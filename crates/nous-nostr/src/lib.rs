@@ -1,6 +1,7 @@
 pub mod event;
 pub mod filter;
 pub mod message;
+pub mod nip04;
 pub mod relay;
 pub mod server;
 pub mod store;
