@@ -196,6 +196,75 @@ mod tests {
         assert_eq!(a.value(), 8);
     }
 
+    // ── libp2p Node + Wire Message Integration ────────────────
+
+    #[tokio::test]
+    async fn two_nodes_create_with_unique_peer_ids() {
+        use nous_net::{NodeConfig, NousNode};
+
+        let config = NodeConfig::default();
+        let (node1, _rx1) = NousNode::new(&config).unwrap();
+        let (node2, _rx2) = NousNode::new(&config).unwrap();
+
+        assert_ne!(node1.local_peer_id(), node2.local_peer_id());
+    }
+
+    #[tokio::test]
+    async fn nodes_subscribe_to_all_topics() {
+        use nous_net::{NodeConfig, NousNode, NousTopic};
+
+        let config = NodeConfig::default();
+        let (mut node, _rx) = NousNode::new(&config).unwrap();
+        node.subscribe_all_default().unwrap();
+
+        let topics = NousTopic::all_default();
+        assert_eq!(topics.len(), 7);
+    }
+
+    #[test]
+    fn wire_message_signed_with_identity() {
+        use nous_crypto::signing::Signer;
+        use nous_net::{NousTopic, WireMessage};
+
+        let identity = Identity::generate();
+        let mut msg = WireMessage::new(
+            NousTopic::Social,
+            b"test message from sovereign web".to_vec(),
+            identity.did().to_string(),
+        );
+
+        // Sign the message
+        let signer = Signer::new(identity.keypair());
+        let sig = signer.sign(&msg.signable_bytes());
+        msg.signature = sig.as_bytes().to_vec();
+        assert!(!msg.signature.is_empty());
+
+        // Encode and decode
+        let encoded = msg.encode().unwrap();
+        let decoded = WireMessage::decode(&encoded).unwrap();
+        assert_eq!(decoded.sender_did, identity.did());
+        assert_eq!(decoded.payload, b"test message from sovereign web");
+        assert_eq!(decoded.topic, NousTopic::Social);
+        assert!(!decoded.signature.is_empty());
+    }
+
+    #[test]
+    fn wire_messages_across_all_topics() {
+        use nous_net::{NousTopic, WireMessage};
+
+        for topic in NousTopic::all_default() {
+            let msg = WireMessage::new(
+                topic.clone(),
+                format!("payload for {topic}").into_bytes(),
+                "did:key:z6MkTest".to_string(),
+            );
+
+            let encoded = msg.encode().unwrap();
+            let decoded = WireMessage::decode(&encoded).unwrap();
+            assert_eq!(decoded.topic, topic);
+        }
+    }
+
     // ── KV Store ───────────────────────────────────────────────
 
     #[test]
