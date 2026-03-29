@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, startTransition } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   node,
@@ -20,7 +20,7 @@ export default function WalletPage() {
   const [wallet, setWallet] = useState<WalletResponse | null>(null);
   const [transactions, setTransactions] = useState<TransactionResponse[]>([]);
   const [invoices, setInvoices] = useState<InvoiceResponse[]>([]);
-  const [escrows, setEscrows] = useState<EscrowResponse[]>([]);
+  const [escrows] = useState<EscrowResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -87,8 +87,10 @@ export default function WalletPage() {
       .health()
       .then(() => setOnline(true))
       .catch(() => setOnline(false));
-    loadWallet();
-    loadInvoices();
+    startTransition(() => {
+      loadWallet();
+      loadInvoices();
+    });
   }, [loadWallet, loadInvoices]);
 
   const handleCreateWallet = async () => {
