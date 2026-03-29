@@ -1,13 +1,13 @@
-use std::sync::Arc;
 use std::convert::Infallible;
+use std::sync::Arc;
 
 use axum::extract::State;
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
-use axum::response::sse::{Event, KeepAlive, Sse};
 use axum::response::IntoResponse;
+use axum::response::sse::{Event, KeepAlive, Sse};
 use futures::stream::Stream;
-use tokio_stream::wrappers::BroadcastStream;
 use tokio_stream::StreamExt;
+use tokio_stream::wrappers::BroadcastStream;
 
 use crate::state::{AppState, RealtimeEvent};
 
@@ -205,7 +205,10 @@ mod tests {
         let e2 = rx2.recv().await.unwrap();
 
         match (e1, e2) {
-            (RealtimeEvent::DaoCreated { id: id1, .. }, RealtimeEvent::DaoCreated { id: id2, .. }) => {
+            (
+                RealtimeEvent::DaoCreated { id: id1, .. },
+                RealtimeEvent::DaoCreated { id: id2, .. },
+            ) => {
                 assert_eq!(id1, "d1");
                 assert_eq!(id2, "d1");
             }

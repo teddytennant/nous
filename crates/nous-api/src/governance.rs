@@ -474,10 +474,7 @@ pub async fn cast_vote(
     let voter = ballot.voter_did.clone();
     tally.cast(ballot).map_err(ApiError::from)?;
 
-    state.emit(crate::state::RealtimeEvent::VoteCast {
-        proposal_id,
-        voter,
-    });
+    state.emit(crate::state::RealtimeEvent::VoteCast { proposal_id, voter });
 
     Ok(Json(MutationResponse {
         success: true,

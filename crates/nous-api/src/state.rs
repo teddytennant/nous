@@ -29,15 +29,9 @@ pub enum RealtimeEvent {
         content: String,
     },
     /// Vote cast on a proposal.
-    VoteCast {
-        proposal_id: String,
-        voter: String,
-    },
+    VoteCast { proposal_id: String, voter: String },
     /// New DAO created.
-    DaoCreated {
-        id: String,
-        name: String,
-    },
+    DaoCreated { id: String, name: String },
     /// Proposal submitted.
     ProposalCreated {
         id: String,
@@ -52,10 +46,7 @@ pub enum RealtimeEvent {
         token: String,
     },
     /// Listing created or updated in marketplace.
-    ListingUpdate {
-        id: String,
-        title: String,
-    },
+    ListingUpdate { id: String, title: String },
 }
 
 pub struct AppState {

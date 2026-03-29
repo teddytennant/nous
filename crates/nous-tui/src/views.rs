@@ -23,11 +23,8 @@ pub fn render_tab(f: &mut Frame, area: Rect, app: &App) {
 
 fn render_feed(f: &mut Frame, area: Rect, app: &App) {
     if app.feed_items.is_empty() {
-        let empty = Paragraph::new(Line::from(Span::styled(
-            "No posts yet",
-            Theme::dim(),
-        )))
-        .block(render_content_block("Feed"));
+        let empty = Paragraph::new(Line::from(Span::styled("No posts yet", Theme::dim())))
+            .block(render_content_block("Feed"));
         f.render_widget(empty, area);
         return;
     }
@@ -64,11 +61,8 @@ fn render_messages(f: &mut Frame, area: Rect, app: &App) {
 
     // Message list
     if app.messages.is_empty() {
-        let empty = Paragraph::new(Line::from(Span::styled(
-            "No messages",
-            Theme::dim(),
-        )))
-        .block(render_content_block("Messages"));
+        let empty = Paragraph::new(Line::from(Span::styled("No messages", Theme::dim())))
+            .block(render_content_block("Messages"));
         f.render_widget(empty, chunks[0]);
     } else {
         let items: Vec<ListItem> = app
@@ -119,10 +113,7 @@ fn render_governance(f: &mut Frame, area: Rect, app: &App) {
             .map(|dao| {
                 let header = Line::from(vec![
                     Span::styled(&dao.name, Theme::accent()),
-                    Span::styled(
-                        format!("  {} members", dao.member_count),
-                        Theme::dim(),
-                    ),
+                    Span::styled(format!("  {} members", dao.member_count), Theme::dim()),
                 ]);
                 let desc = Line::from(Span::styled(&dao.description, Theme::base()));
                 ListItem::new(vec![header, desc])
@@ -134,11 +125,8 @@ fn render_governance(f: &mut Frame, area: Rect, app: &App) {
 
     // Proposals
     if app.proposals.is_empty() {
-        let empty = Paragraph::new(Line::from(Span::styled(
-            "No proposals",
-            Theme::dim(),
-        )))
-        .block(render_content_block("Proposals"));
+        let empty = Paragraph::new(Line::from(Span::styled("No proposals", Theme::dim())))
+            .block(render_content_block("Proposals"));
         f.render_widget(empty, chunks[1]);
     } else {
         let items: Vec<ListItem> = app
@@ -241,10 +229,7 @@ fn render_peers(f: &mut Frame, area: Rect, app: &App) {
         ]),
         Line::from(vec![
             Span::styled("Version  ", Theme::dim()),
-            Span::styled(
-                app.node_version.as_deref().unwrap_or("-"),
-                Theme::base(),
-            ),
+            Span::styled(app.node_version.as_deref().unwrap_or("-"), Theme::base()),
         ]),
         Line::from(vec![
             Span::styled("Uptime  ", Theme::dim()),
