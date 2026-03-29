@@ -47,12 +47,7 @@ pub struct VersionHistory {
 
 impl FileManifest {
     /// Create a new file manifest from chunk references.
-    pub fn new(
-        name: &str,
-        mime_type: &str,
-        chunks: Vec<ChunkRef>,
-        owner: &str,
-    ) -> Self {
+    pub fn new(name: &str, mime_type: &str, chunks: Vec<ChunkRef>, owner: &str) -> Self {
         let total_size: u64 = chunks.iter().map(|c| c.size).sum();
         let id = Self::compute_id(&chunks);
 
@@ -186,15 +181,31 @@ mod tests {
 
     fn sample_chunks() -> Vec<ChunkRef> {
         vec![
-            ChunkRef { hash: "aaa".into(), offset: 0, size: 100 },
-            ChunkRef { hash: "bbb".into(), offset: 100, size: 200 },
+            ChunkRef {
+                hash: "aaa".into(),
+                offset: 0,
+                size: 100,
+            },
+            ChunkRef {
+                hash: "bbb".into(),
+                offset: 100,
+                size: 200,
+            },
         ]
     }
 
     fn other_chunks() -> Vec<ChunkRef> {
         vec![
-            ChunkRef { hash: "aaa".into(), offset: 0, size: 100 },
-            ChunkRef { hash: "ccc".into(), offset: 100, size: 150 },
+            ChunkRef {
+                hash: "aaa".into(),
+                offset: 0,
+                size: 100,
+            },
+            ChunkRef {
+                hash: "ccc".into(),
+                offset: 100,
+                size: 150,
+            },
         ]
     }
 
@@ -293,7 +304,11 @@ mod tests {
         let v2 = v1.new_version(other_chunks());
         history.push(v2);
 
-        let v3_chunks = vec![ChunkRef { hash: "ddd".into(), offset: 0, size: 50 }];
+        let v3_chunks = vec![ChunkRef {
+            hash: "ddd".into(),
+            offset: 0,
+            size: 50,
+        }];
         let v3 = history.current.new_version(v3_chunks);
         history.push(v3);
 
@@ -313,7 +328,12 @@ mod tests {
 
     #[test]
     fn manifest_serde_roundtrip() {
-        let m = FileManifest::new("serde-test.bin", "application/octet-stream", sample_chunks(), "did:key:z1");
+        let m = FileManifest::new(
+            "serde-test.bin",
+            "application/octet-stream",
+            sample_chunks(),
+            "did:key:z1",
+        );
         let json = serde_json::to_string(&m).unwrap();
         let deserialized: FileManifest = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized, m);
