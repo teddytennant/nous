@@ -184,7 +184,8 @@ impl FileStore {
             .ok_or_else(|| Error::NotFound(format!("file '{name}' not found")))?;
 
         // Collect all chunk hashes from all versions.
-        let mut file_chunk_hashes: std::collections::HashSet<String> = std::collections::HashSet::new();
+        let mut file_chunk_hashes: std::collections::HashSet<String> =
+            std::collections::HashSet::new();
         for chunk_ref in &history.current.chunks {
             file_chunk_hashes.insert(chunk_ref.hash.clone());
         }
@@ -216,11 +217,11 @@ impl FileStore {
 
         let mut freed = 0u64;
         for hash in &file_chunk_hashes {
-            if !referenced.contains(hash) {
-                if let Some(data) = self.chunks.remove(hash) {
-                    freed += data.len() as u64;
-                    self.stored_bytes -= data.len() as u64;
-                }
+            if !referenced.contains(hash)
+                && let Some(data) = self.chunks.remove(hash)
+            {
+                freed += data.len() as u64;
+                self.stored_bytes -= data.len() as u64;
             }
         }
 
@@ -229,11 +230,7 @@ impl FileStore {
 
     /// Get store statistics.
     pub fn stats(&self) -> StoreStats {
-        let logical_bytes: u64 = self
-            .histories
-            .values()
-            .map(|h| h.current.total_size)
-            .sum();
+        let logical_bytes: u64 = self.histories.values().map(|h| h.current.total_size).sum();
 
         let dedup_ratio = if self.stored_bytes > 0 {
             logical_bytes as f64 / self.stored_bytes as f64
@@ -287,7 +284,9 @@ mod tests {
     fn put_and_get_large_file() {
         let mut store = FileStore::new();
         let data = vec![0xABu8; 512 * 1024]; // 512 KiB
-        let manifest = store.put("big.bin", "application/octet-stream", &data, OWNER).unwrap();
+        let manifest = store
+            .put("big.bin", "application/octet-stream", &data, OWNER)
+            .unwrap();
 
         let retrieved = store.get(&manifest.id.0).unwrap();
         assert_eq!(retrieved, data);
@@ -296,8 +295,12 @@ mod tests {
     #[test]
     fn get_latest_version() {
         let mut store = FileStore::new();
-        store.put("readme.md", "text/markdown", b"version 1", OWNER).unwrap();
-        store.put("readme.md", "text/markdown", b"version 2", OWNER).unwrap();
+        store
+            .put("readme.md", "text/markdown", b"version 1", OWNER)
+            .unwrap();
+        store
+            .put("readme.md", "text/markdown", b"version 2", OWNER)
+            .unwrap();
 
         let latest = store.get_latest("readme.md", OWNER).unwrap();
         assert_eq!(latest, b"version 2");
@@ -327,7 +330,10 @@ mod tests {
         let stats_after_second = store.stats();
 
         // Same chunks should not increase stored bytes.
-        assert_eq!(stats_after_first.stored_bytes, stats_after_second.stored_bytes);
+        assert_eq!(
+            stats_after_first.stored_bytes,
+            stats_after_second.stored_bytes
+        );
         assert_eq!(stats_after_second.total_files, 2);
     }
 
@@ -336,7 +342,9 @@ mod tests {
         let mut store = FileStore::new();
         store.put("a.txt", "text/plain", b"aaa", OWNER).unwrap();
         store.put("b.txt", "text/plain", b"bbb", OWNER).unwrap();
-        store.put("c.txt", "text/plain", b"ccc", "did:key:zOther").unwrap();
+        store
+            .put("c.txt", "text/plain", b"ccc", "did:key:zOther")
+            .unwrap();
 
         let files = store.list_files(OWNER);
         assert_eq!(files.len(), 2);
@@ -345,7 +353,9 @@ mod tests {
     #[test]
     fn delete_file() {
         let mut store = FileStore::new();
-        store.put("temp.txt", "text/plain", b"temporary data", OWNER).unwrap();
+        store
+            .put("temp.txt", "text/plain", b"temporary data", OWNER)
+            .unwrap();
         assert_eq!(store.stats().total_files, 1);
 
         let freed = store.delete("temp.txt", OWNER).unwrap();
@@ -396,7 +406,11 @@ mod tests {
     #[test]
     fn import_chunk_rejects_bad_hash() {
         let mut store = FileStore::new();
-        assert!(store.import_chunk("wrong-hash".into(), b"data".to_vec()).is_err());
+        assert!(
+            store
+                .import_chunk("wrong-hash".into(), b"data".to_vec())
+                .is_err()
+        );
     }
 
     #[test]
@@ -415,7 +429,9 @@ mod tests {
     #[test]
     fn empty_file() {
         let mut store = FileStore::new();
-        let manifest = store.put("empty.bin", "application/octet-stream", b"", OWNER).unwrap();
+        let manifest = store
+            .put("empty.bin", "application/octet-stream", b"", OWNER)
+            .unwrap();
         assert_eq!(manifest.total_size, 0);
 
         let retrieved = store.get(&manifest.id.0).unwrap();
@@ -437,7 +453,9 @@ mod tests {
     #[test]
     fn store_serde_roundtrip() {
         let mut store = FileStore::new();
-        store.put("test.txt", "text/plain", b"serialize me", OWNER).unwrap();
+        store
+            .put("test.txt", "text/plain", b"serialize me", OWNER)
+            .unwrap();
 
         let json = serde_json::to_string(&store).unwrap();
         let deserialized: FileStore = serde_json::from_str(&json).unwrap();
