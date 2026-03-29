@@ -1,0 +1,25 @@
+[package]
+name = "nous-net"
+description = "P2P networking via libp2p — gossip, DHT, relay, NAT traversal"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+nous-core = { path = "../nous-core" }
+nous-crypto = { path = "../nous-crypto" }
+nous-identity = { path = "../nous-identity" }
+libp2p = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+bytes = { workspace = true }
+async-trait = { workspace = true }
+
+[dev-dependencies]
+tracing-subscriber = { workspace = true }
+tempfile = { workspace = true }
