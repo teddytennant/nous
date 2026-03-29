@@ -3173,10 +3173,12 @@ name = "nous-bench"
 version = "0.1.0"
 dependencies = [
  "criterion",
+ "nous-browser",
  "nous-crypto",
  "nous-files",
  "nous-governance",
  "nous-identity",
+ "nous-marketplace",
  "rand 0.8.5",
  "serde_json",
 ]
@@ -3211,6 +3213,7 @@ dependencies = [
  "nous-files",
  "nous-governance",
  "nous-identity",
+ "nous-marketplace",
  "nous-messaging",
  "nous-net",
  "nous-payments",
