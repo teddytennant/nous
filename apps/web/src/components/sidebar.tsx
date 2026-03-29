@@ -9,6 +9,7 @@ const nav = [
   { name: "Social", href: "/social" },
   { name: "Messages", href: "/messages" },
   { name: "Governance", href: "/governance" },
+  { name: "Marketplace", href: "/marketplace" },
   { name: "Wallet", href: "/wallet" },
   { name: "Identity", href: "/identity" },
 ];
