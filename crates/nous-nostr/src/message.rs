@@ -117,10 +117,8 @@ impl ClientMessage {
                 subscription_id,
                 filters,
             } => {
-                let mut arr: Vec<serde_json::Value> = vec![
-                    serde_json::json!("REQ"),
-                    serde_json::json!(subscription_id),
-                ];
+                let mut arr: Vec<serde_json::Value> =
+                    vec![serde_json::json!("REQ"), serde_json::json!(subscription_id)];
                 for f in filters {
                     arr.push(serde_json::to_value(f).unwrap());
                 }
@@ -212,10 +210,8 @@ impl RelayMessage {
                 event,
             } => {
                 let event_json = serde_json::to_value(event).unwrap();
-                serde_json::to_string(
-                    &serde_json::json!(["EVENT", subscription_id, event_json]),
-                )
-                .unwrap()
+                serde_json::to_string(&serde_json::json!(["EVENT", subscription_id, event_json]))
+                    .unwrap()
             }
             RelayMessage::EndOfStoredEvents(sub_id) => {
                 serde_json::to_string(&serde_json::json!(["EOSE", sub_id])).unwrap()
@@ -227,10 +223,8 @@ impl RelayMessage {
                 event_id,
                 accepted,
                 message,
-            } => serde_json::to_string(
-                &serde_json::json!(["OK", event_id, accepted, message]),
-            )
-            .unwrap(),
+            } => serde_json::to_string(&serde_json::json!(["OK", event_id, accepted, message]))
+                .unwrap(),
         }
     }
 }
@@ -244,9 +238,7 @@ mod tests {
 
     fn test_event() -> Event {
         let key = SigningKey::generate(&mut OsRng);
-        EventBuilder::text_note("hello")
-            .created_at(1000)
-            .sign(&key)
+        EventBuilder::text_note("hello").created_at(1000).sign(&key)
     }
 
     #[test]
