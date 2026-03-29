@@ -820,4 +820,115 @@ mod tests {
         assert!(graph.is_following(&alice_pub, &carol_pub));
         assert_eq!(graph.following_count(&alice_pub), 2);
     }
+
+    // ── Real-time Event Bus ──────────────────────────────────────
+
+    #[tokio::test]
+    async fn realtime_broadcast_delivers_post_events() {
+        use nous_api::config::ApiConfig;
+        use nous_api::state::{AppState, RealtimeEvent};
+
+        let state = AppState::new(ApiConfig::default());
+        let mut rx = state.events.subscribe();
+
+        state.emit(RealtimeEvent::NewPost {
+            id: "test-post".into(),
+            author: "did:key:zIntegration".into(),
+            content: "integration test post".into(),
+        });
+
+        let event = rx.recv().await.unwrap();
+        match event {
+            RealtimeEvent::NewPost {
+                id,
+                author,
+                content,
+            } => {
+                assert_eq!(id, "test-post");
+                assert_eq!(author, "did:key:zIntegration");
+                assert_eq!(content, "integration test post");
+            }
+            _ => panic!("expected NewPost event"),
+        }
+    }
+
+    #[tokio::test]
+    async fn realtime_broadcast_delivers_message_events() {
+        use nous_api::config::ApiConfig;
+        use nous_api::state::{AppState, RealtimeEvent};
+
+        let state = AppState::new(ApiConfig::default());
+        let mut rx = state.events.subscribe();
+
+        state.emit(RealtimeEvent::NewMessage {
+            channel_id: "ch-test".into(),
+            sender: "did:key:zAlice".into(),
+            content: "hello from integration".into(),
+        });
+
+        let event = rx.recv().await.unwrap();
+        match event {
+            RealtimeEvent::NewMessage {
+                channel_id,
+                sender,
+                content,
+            } => {
+                assert_eq!(channel_id, "ch-test");
+                assert_eq!(sender, "did:key:zAlice");
+                assert_eq!(content, "hello from integration");
+            }
+            _ => panic!("expected NewMessage event"),
+        }
+    }
+
+    #[tokio::test]
+    async fn realtime_multiple_event_types() {
+        use nous_api::config::ApiConfig;
+        use nous_api::state::{AppState, RealtimeEvent};
+
+        let state = AppState::new(ApiConfig::default());
+        let mut rx = state.events.subscribe();
+
+        state.emit(RealtimeEvent::DaoCreated {
+            id: "dao-1".into(),
+            name: "Test DAO".into(),
+        });
+        state.emit(RealtimeEvent::VoteCast {
+            proposal_id: "prop-1".into(),
+            voter: "did:key:zVoter".into(),
+        });
+        state.emit(RealtimeEvent::Transfer {
+            from: "did:key:zA".into(),
+            to: "did:key:zB".into(),
+            amount: "100".into(),
+            token: "NOUS".into(),
+        });
+
+        let e1 = rx.recv().await.unwrap();
+        let e2 = rx.recv().await.unwrap();
+        let e3 = rx.recv().await.unwrap();
+
+        assert!(matches!(e1, RealtimeEvent::DaoCreated { .. }));
+        assert!(matches!(e2, RealtimeEvent::VoteCast { .. }));
+        assert!(matches!(e3, RealtimeEvent::Transfer { .. }));
+    }
+
+    #[tokio::test]
+    async fn realtime_event_serialization_roundtrip() {
+        use nous_api::state::RealtimeEvent;
+
+        let event = RealtimeEvent::ProposalCreated {
+            id: "p1".into(),
+            title: "Fund Development".into(),
+            dao_id: "d1".into(),
+        };
+
+        let json = serde_json::to_string(&event).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(parsed["type"], "ProposalCreated");
+        assert_eq!(parsed["data"]["id"], "p1");
+        assert_eq!(parsed["data"]["title"], "Fund Development");
+        assert_eq!(parsed["data"]["dao_id"], "d1");
+    }
 }
