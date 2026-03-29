@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // WASM stub / generated code
+    "public/wasm/**",
   ]),
 ]);
 
