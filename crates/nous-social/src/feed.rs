@@ -23,10 +23,7 @@ impl Feed {
         let kind = event.kind.as_u32();
 
         if self.events.insert(event) {
-            self.by_author
-                .entry(author)
-                .or_default()
-                .push(id.clone());
+            self.by_author.entry(author).or_default().push(id.clone());
             self.by_kind.entry(kind).or_default().push(id);
             true
         } else {
@@ -232,11 +229,7 @@ mod tests {
         let mut feed = Feed::new();
         let parent = make_event("did:key:z1", "parent");
         let parent_id = parent.id.clone();
-        let reply = make_event_with_tags(
-            "did:key:z2",
-            "reply",
-            vec![Tag::event(&parent_id)],
-        );
+        let reply = make_event_with_tags("did:key:z2", "reply", vec![Tag::event(&parent_id)]);
         feed.insert(parent);
         feed.insert(reply);
 
