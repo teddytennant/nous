@@ -1,0 +1,25 @@
+[package]
+name = "nous-bench"
+description = "Criterion benchmarks for Nous hot paths"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+nous-crypto = { path = "../nous-crypto" }
+nous-identity = { path = "../nous-identity" }
+nous-files = { path = "../nous-files" }
+nous-governance = { path = "../nous-governance" }
+rand = { workspace = true }
+serde_json = { workspace = true }
+criterion = { workspace = true }
+
+[[bench]]
+name = "crypto_bench"
+harness = false
+
+[[bench]]
+name = "files_bench"
+harness = false
