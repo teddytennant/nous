@@ -3,8 +3,6 @@ use std::collections::BTreeMap;
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 
-use nous_core::Result;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Ttl {
     Seconds(u64),
@@ -166,21 +164,11 @@ impl EphemeralStore {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ChannelEphemeralPolicy {
     pub default_ttl: Option<Ttl>,
     pub force_ephemeral: bool,
     pub max_ttl: Option<Ttl>,
-}
-
-impl Default for ChannelEphemeralPolicy {
-    fn default() -> Self {
-        Self {
-            default_ttl: None,
-            force_ephemeral: false,
-            max_ttl: None,
-        }
-    }
 }
 
 impl ChannelEphemeralPolicy {
