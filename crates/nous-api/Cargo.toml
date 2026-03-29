@@ -22,6 +22,7 @@ nous-storage = { path = "../nous-storage" }
 nous-nostr = { path = "../nous-nostr" }
 nous-files = { path = "../nous-files" }
 nous-marketplace = { path = "../nous-marketplace" }
+nous-payments = { path = "../nous-payments" }
 base64 = { workspace = true }
 axum = { version = "0.8", features = ["json", "query"] }
 tower = { version = "0.5", features = ["timeout", "limit"] }
