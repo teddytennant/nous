@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{RwLock, broadcast};
 
+use nous_ai::{Agent, Conversation};
 use nous_files::FileStore;
 use nous_governance::{CommittedVote, Dao, Proposal, VoteTally};
 use nous_identity::{Credential, Identity, Reputation};
@@ -72,6 +73,9 @@ pub struct AppState {
     pub transactions: RwLock<Vec<Transaction>>,
     pub escrows: RwLock<HashMap<String, Escrow>>,
     pub invoices: RwLock<HashMap<String, Invoice>>,
+    // AI
+    pub agents: RwLock<HashMap<String, Agent>>,
+    pub conversations: RwLock<HashMap<String, Conversation>>,
     // Real-time event bus
     pub events: broadcast::Sender<RealtimeEvent>,
 }
@@ -99,6 +103,8 @@ impl AppState {
             transactions: RwLock::new(Vec::new()),
             escrows: RwLock::new(HashMap::new()),
             invoices: RwLock::new(HashMap::new()),
+            agents: RwLock::new(HashMap::new()),
+            conversations: RwLock::new(HashMap::new()),
             events: events_tx,
         })
     }
