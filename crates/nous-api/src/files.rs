@@ -1,5 +1,5 @@
-use axum::extract::{Path, Query, State};
 use axum::Json;
+use axum::extract::{Path, Query, State};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use utoipa::{IntoParams, ToSchema};
@@ -31,7 +31,11 @@ pub async fn list_files(
     Query(query): Query<FileListQuery>,
 ) -> Result<Json<FileListResponse>, ApiError> {
     let store = state.file_store.read().await;
-    let files: Vec<FileManifest> = store.list_files(&query.owner).into_iter().cloned().collect();
+    let files: Vec<FileManifest> = store
+        .list_files(&query.owner)
+        .into_iter()
+        .cloned()
+        .collect();
     let count = files.len();
     Ok(Json(FileListResponse { files, count }))
 }
@@ -240,9 +244,7 @@ pub async fn delete_file(
     tag = "files",
     responses((status = 200, description = "File store statistics"))
 )]
-pub async fn store_stats(
-    State(state): State<Arc<AppState>>,
-) -> Json<StoreStats> {
+pub async fn store_stats(State(state): State<Arc<AppState>>) -> Json<StoreStats> {
     let store = state.file_store.read().await;
     Json(store.stats())
 }
@@ -423,7 +425,11 @@ mod tests {
         let app = test_app().await;
 
         for i in 1..=3 {
-            let body = upload_body("versioned.txt", format!("v{i}").as_bytes(), "did:key:zOwner");
+            let body = upload_body(
+                "versioned.txt",
+                format!("v{i}").as_bytes(),
+                "did:key:zOwner",
+            );
             let _ = app
                 .clone()
                 .oneshot(
