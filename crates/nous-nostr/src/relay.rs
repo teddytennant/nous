@@ -124,15 +124,15 @@ impl Relay {
         if event.kind == Kind::DELETE {
             let mut deleted = 0usize;
             for tag in &event.tags {
-                if tag.tag_name() == Some("e") {
-                    if let Some(target_id) = tag.value() {
-                        // Only delete if the target event's pubkey matches the requester
-                        if let Some(target_event) = self.store.get(target_id) {
-                            if target_event.pubkey == event.pubkey {
-                                self.store.delete(target_id);
-                                deleted += 1;
-                            }
-                        }
+                if tag.tag_name() == Some("e")
+                    && let Some(target_id) = tag.value()
+                {
+                    // Only delete if the target event's pubkey matches the requester
+                    if let Some(target_event) = self.store.get(target_id)
+                        && target_event.pubkey == event.pubkey
+                    {
+                        self.store.delete(target_id);
+                        deleted += 1;
                     }
                 }
             }
@@ -175,9 +175,7 @@ impl Relay {
             .collect();
 
         // Send EOSE
-        responses.push(RelayMessage::EndOfStoredEvents(
-            subscription_id.to_string(),
-        ));
+        responses.push(RelayMessage::EndOfStoredEvents(subscription_id.to_string()));
 
         responses
     }
@@ -246,9 +244,11 @@ mod tests {
         let mut event = EventBuilder::text_note("hello").created_at(1000).sign(&k);
         event.id = "0000000000000000000000000000000000000000000000000000000000000000".into();
 
-        let responses =
-            r.handle_message(&ClientMessage::Event(event), &sub_mgr());
-        if let RelayMessage::Ok { accepted, message, .. } = &responses[0] {
+        let responses = r.handle_message(&ClientMessage::Event(event), &sub_mgr());
+        if let RelayMessage::Ok {
+            accepted, message, ..
+        } = &responses[0]
+        {
             assert!(!accepted);
             assert!(message.contains("id does not match"));
         }
@@ -271,9 +271,11 @@ mod tests {
             &event.content,
         );
 
-        let responses =
-            r.handle_message(&ClientMessage::Event(event), &sub_mgr());
-        if let RelayMessage::Ok { accepted, message, .. } = &responses[0] {
+        let responses = r.handle_message(&ClientMessage::Event(event), &sub_mgr());
+        if let RelayMessage::Ok {
+            accepted, message, ..
+        } = &responses[0]
+        {
             assert!(!accepted);
             assert!(message.contains("bad signature"));
         }
@@ -286,9 +288,11 @@ mod tests {
         let event = EventBuilder::text_note("hello").created_at(1000).sign(&k);
 
         r.handle_message(&ClientMessage::Event(event.clone()), &sub_mgr());
-        let responses =
-            r.handle_message(&ClientMessage::Event(event), &sub_mgr());
-        if let RelayMessage::Ok { accepted, message, .. } = &responses[0] {
+        let responses = r.handle_message(&ClientMessage::Event(event), &sub_mgr());
+        if let RelayMessage::Ok {
+            accepted, message, ..
+        } = &responses[0]
+        {
             assert!(accepted);
             assert!(message.contains("duplicate"));
         }
@@ -391,9 +395,11 @@ mod tests {
             .created_at(1000)
             .sign(&k);
 
-        let responses =
-            r.handle_message(&ClientMessage::Event(event), &sub_mgr());
-        if let RelayMessage::Ok { accepted, message, .. } = &responses[0] {
+        let responses = r.handle_message(&ClientMessage::Event(event), &sub_mgr());
+        if let RelayMessage::Ok {
+            accepted, message, ..
+        } = &responses[0]
+        {
             assert!(!accepted);
             assert!(message.contains("too large"));
         }
@@ -419,7 +425,9 @@ mod tests {
         let mgr = sub_mgr();
 
         // Publish a text note
-        let note = EventBuilder::text_note("delete me").created_at(1000).sign(&k);
+        let note = EventBuilder::text_note("delete me")
+            .created_at(1000)
+            .sign(&k);
         let note_id = note.id.clone();
         r.handle_message(&ClientMessage::Event(note), &mgr);
         assert!(r.store().get(&note_id).is_some());
@@ -444,7 +452,9 @@ mod tests {
         let mgr = sub_mgr();
 
         // Alice publishes
-        let note = EventBuilder::text_note("alice's post").created_at(1000).sign(&alice);
+        let note = EventBuilder::text_note("alice's post")
+            .created_at(1000)
+            .sign(&alice);
         let note_id = note.id.clone();
         r.handle_message(&ClientMessage::Event(note), &mgr);
 
@@ -491,7 +501,9 @@ mod tests {
         let k = key();
         let mgr = sub_mgr();
 
-        let note = EventBuilder::text_note("ephemeral").created_at(1000).sign(&k);
+        let note = EventBuilder::text_note("ephemeral")
+            .created_at(1000)
+            .sign(&k);
         let note_id = note.id.clone();
         r.handle_message(&ClientMessage::Event(note), &mgr);
 
@@ -522,8 +534,7 @@ mod tests {
         let r = Relay::with_defaults();
         let k = key();
         let event = EventBuilder::text_note("default").created_at(1000).sign(&k);
-        let responses =
-            r.handle_message(&ClientMessage::Event(event), &sub_mgr());
+        let responses = r.handle_message(&ClientMessage::Event(event), &sub_mgr());
         assert!(!responses.is_empty());
     }
 }
