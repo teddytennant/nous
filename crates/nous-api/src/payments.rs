@@ -417,6 +417,14 @@ pub async fn create_transfer(
 
     let resp = TransactionResponse::from(&tx);
     state.transactions.write().await.push(tx);
+
+    state.emit(crate::state::RealtimeEvent::Transfer {
+        from: req.from_did.clone(),
+        to: req.to_did.clone(),
+        amount: format!("{}", req.amount),
+        token: req.token.clone(),
+    });
+
     Ok(Json(resp))
 }
 
