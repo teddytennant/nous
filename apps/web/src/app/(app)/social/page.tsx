@@ -37,7 +37,7 @@ export default function SocialPage() {
   }, [loadFeed]);
 
   // Live post updates via SSE
-  useRealtime("new_post", useCallback((data) => {
+  useRealtime("new_post", (data) => {
     setPosts((prev) => [
       {
         id: data.id,
@@ -49,7 +49,7 @@ export default function SocialPage() {
       },
       ...prev,
     ]);
-  }, []));
+  });
 
   async function handlePost() {
     if (!draft.trim() || posting || !userDid) return;
