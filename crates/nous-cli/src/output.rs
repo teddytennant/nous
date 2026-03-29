@@ -52,15 +52,16 @@ impl Output {
                     for (i, header) in headers.iter().enumerate() {
                         map.insert(
                             header.to_string(),
-                            serde_json::Value::String(
-                                row.get(i).cloned().unwrap_or_default(),
-                            ),
+                            serde_json::Value::String(row.get(i).cloned().unwrap_or_default()),
                         );
                     }
                     serde_json::Value::Object(map)
                 })
                 .collect();
-            println!("{}", serde_json::to_string_pretty(&entries).unwrap_or_default());
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&entries).unwrap_or_default()
+            );
         } else {
             // Calculate column widths
             let mut widths: Vec<usize> = headers.iter().map(|h| h.len()).collect();
@@ -143,11 +144,6 @@ mod tests {
     #[test]
     fn table_json() {
         let output = Output::new(true);
-        output.table(
-            &["Name", "Value"],
-            &[
-                vec!["alice".into(), "100".into()],
-            ],
-        );
+        output.table(&["Name", "Value"], &[vec!["alice".into(), "100".into()]]);
     }
 }
