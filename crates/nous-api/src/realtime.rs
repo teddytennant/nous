@@ -81,6 +81,9 @@ pub async fn sse_handler(
                 RealtimeEvent::ProposalCreated { .. } => "proposal_created",
                 RealtimeEvent::Transfer { .. } => "transfer",
                 RealtimeEvent::ListingUpdate { .. } => "listing_update",
+                RealtimeEvent::OrderUpdate { .. } => "order_update",
+                RealtimeEvent::DisputeOpened { .. } => "dispute_opened",
+                RealtimeEvent::OfferMade { .. } => "offer_made",
             };
             Some(Ok(Event::default().event(event_type).data(json)))
         }
