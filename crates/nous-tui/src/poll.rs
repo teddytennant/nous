@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use std::time::Duration;
 
 use tokio::sync::mpsc;
@@ -115,10 +114,10 @@ async fn poll_loop(
                 }
             }
             _ = wallet_tick.tick() => {
-                if !did.is_empty() {
-                    if let Ok(resp) = client.wallet(&did).await {
-                        let _ = tx.send(PollEvent::Balances(resp.balances)).await;
-                    }
+                if !did.is_empty()
+                    && let Ok(resp) = client.wallet(&did).await
+                {
+                    let _ = tx.send(PollEvent::Balances(resp.balances)).await;
                 }
             }
         }
