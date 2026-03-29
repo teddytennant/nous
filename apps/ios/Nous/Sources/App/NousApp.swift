@@ -2,6 +2,7 @@ import SwiftUI
 
 public struct NousAppView: View {
     @State private var selectedTab = 0
+    @State private var store = NousStore()
 
     public init() {}
 
@@ -25,19 +26,26 @@ public struct NousAppView: View {
                 }
                 .tag(2)
 
+            GovernanceView()
+                .tabItem {
+                    Label("Govern", systemImage: "building.columns")
+                }
+                .tag(3)
+
             WalletView()
                 .tabItem {
                     Label("Wallet", systemImage: "creditcard")
                 }
-                .tag(3)
+                .tag(4)
 
             IdentityView()
                 .tabItem {
                     Label("Identity", systemImage: "person.crop.circle")
                 }
-                .tag(4)
+                .tag(5)
         }
         .tint(NousTheme.accent)
         .preferredColorScheme(.dark)
+        .environment(store)
     }
 }
