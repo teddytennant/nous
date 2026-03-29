@@ -17,6 +17,12 @@ thiserror = { workspace = true }
 chrono = { workspace = true }
 uuid = { workspace = true }
 x25519-dalek = { workspace = true }
+ed25519-dalek = { workspace = true }
+hkdf = { workspace = true }
+sha2 = { workspace = true }
+hmac = { workspace = true }
+rand = { workspace = true }
+zeroize = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
