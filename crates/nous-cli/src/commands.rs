@@ -45,6 +45,14 @@ pub enum Command {
     #[command(subcommand)]
     Governance(GovernanceCommand),
 
+    /// File management
+    #[command(subcommand)]
+    File(FileCommand),
+
+    /// Messaging
+    #[command(subcommand)]
+    Message(MessageCommand),
+
     /// Node information
     Status,
 
@@ -180,6 +188,120 @@ pub enum GovernanceCommand {
     Tally {
         /// Proposal ID
         proposal_id: String,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum FileCommand {
+    /// Upload a file to the local file store
+    Upload {
+        /// Path to the file to upload
+        path: String,
+        /// Owner DID
+        #[arg(long)]
+        owner: String,
+    },
+    /// Download a file by content ID
+    Download {
+        /// Content ID of the file manifest
+        content_id: String,
+        /// Output file path
+        #[arg(short, long)]
+        output: String,
+    },
+    /// List files for an owner
+    List {
+        /// Owner DID
+        #[arg(long)]
+        owner: String,
+    },
+    /// Show version history for a file
+    Versions {
+        /// File name
+        name: String,
+        /// Owner DID
+        #[arg(long)]
+        owner: String,
+    },
+    /// Show file store statistics
+    Stats,
+    /// Share a file with another identity
+    Share {
+        /// File name
+        name: String,
+        /// Owner DID
+        #[arg(long)]
+        owner: String,
+        /// DID to share with
+        #[arg(long = "with")]
+        with: String,
+    },
+    /// Encrypted vault operations
+    #[command(subcommand)]
+    Vault(VaultCommand),
+}
+
+#[derive(Debug, Subcommand)]
+pub enum VaultCommand {
+    /// Create an encrypted vault
+    Create {
+        /// Vault password
+        #[arg(long)]
+        password: String,
+        /// Vault name
+        #[arg(long, default_value = "default")]
+        name: String,
+    },
+    /// Store a file in a vault
+    Store {
+        /// Path to the file to store
+        path: String,
+        /// Vault ID
+        #[arg(long)]
+        vault_id: String,
+        /// Vault password
+        #[arg(long)]
+        password: String,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum MessageCommand {
+    /// Send a message to a channel
+    Send {
+        /// Channel ID
+        channel_id: String,
+        /// Message text
+        text: String,
+        /// Sender DID (uses active identity if omitted)
+        #[arg(long)]
+        sender: Option<String>,
+    },
+    /// List messages in a channel
+    List {
+        /// Channel ID
+        channel_id: String,
+        /// Maximum messages to show
+        #[arg(short, long, default_value = "20")]
+        limit: usize,
+    },
+    /// List channels a DID is member of
+    Channels {
+        /// Member DID (uses active identity if omitted)
+        #[arg(long)]
+        member: Option<String>,
+    },
+    /// Create a new channel
+    CreateChannel {
+        /// Channel kind: direct, group, or public
+        #[arg(long)]
+        kind: String,
+        /// Channel name (required for group and public)
+        #[arg(long)]
+        name: Option<String>,
+        /// Member DIDs (can be specified multiple times)
+        #[arg(long = "member")]
+        members: Vec<String>,
     },
 }
 
@@ -349,6 +471,265 @@ mod tests {
     fn parse_terminal() {
         let cli = Cli::parse_from(["nous", "terminal"]);
         assert!(matches!(cli.command, Command::Terminal));
+    }
+
+    #[test]
+    fn parse_file_upload() {
+        let cli = Cli::parse_from([
+            "nous",
+            "file",
+            "upload",
+            "/tmp/test.txt",
+            "--owner",
+            "did:key:z123",
+        ]);
+        if let Command::File(FileCommand::Upload { path, owner }) = cli.command {
+            assert_eq!(path, "/tmp/test.txt");
+            assert_eq!(owner, "did:key:z123");
+        } else {
+            panic!("expected file upload");
+        }
+    }
+
+    #[test]
+    fn parse_file_download() {
+        let cli = Cli::parse_from([
+            "nous",
+            "file",
+            "download",
+            "abc123",
+            "--output",
+            "/tmp/out.bin",
+        ]);
+        if let Command::File(FileCommand::Download { content_id, output }) = cli.command {
+            assert_eq!(content_id, "abc123");
+            assert_eq!(output, "/tmp/out.bin");
+        } else {
+            panic!("expected file download");
+        }
+    }
+
+    #[test]
+    fn parse_file_list() {
+        let cli = Cli::parse_from(["nous", "file", "list", "--owner", "did:key:z123"]);
+        if let Command::File(FileCommand::List { owner }) = cli.command {
+            assert_eq!(owner, "did:key:z123");
+        } else {
+            panic!("expected file list");
+        }
+    }
+
+    #[test]
+    fn parse_file_versions() {
+        let cli = Cli::parse_from([
+            "nous",
+            "file",
+            "versions",
+            "readme.md",
+            "--owner",
+            "did:key:z123",
+        ]);
+        if let Command::File(FileCommand::Versions { name, owner }) = cli.command {
+            assert_eq!(name, "readme.md");
+            assert_eq!(owner, "did:key:z123");
+        } else {
+            panic!("expected file versions");
+        }
+    }
+
+    #[test]
+    fn parse_file_stats() {
+        let cli = Cli::parse_from(["nous", "file", "stats"]);
+        assert!(matches!(cli.command, Command::File(FileCommand::Stats)));
+    }
+
+    #[test]
+    fn parse_file_share() {
+        let cli = Cli::parse_from([
+            "nous",
+            "file",
+            "share",
+            "doc.txt",
+            "--owner",
+            "did:key:zalice",
+            "--with",
+            "did:key:zbob",
+        ]);
+        if let Command::File(FileCommand::Share { name, owner, with }) = cli.command {
+            assert_eq!(name, "doc.txt");
+            assert_eq!(owner, "did:key:zalice");
+            assert_eq!(with, "did:key:zbob");
+        } else {
+            panic!("expected file share");
+        }
+    }
+
+    #[test]
+    fn parse_file_vault_create() {
+        let cli = Cli::parse_from(["nous", "file", "vault", "create", "--password", "s3cret"]);
+        if let Command::File(FileCommand::Vault(VaultCommand::Create { password, name })) =
+            cli.command
+        {
+            assert_eq!(password, "s3cret");
+            assert_eq!(name, "default");
+        } else {
+            panic!("expected file vault create");
+        }
+    }
+
+    #[test]
+    fn parse_file_vault_store() {
+        let cli = Cli::parse_from([
+            "nous",
+            "file",
+            "vault",
+            "store",
+            "/tmp/secret.bin",
+            "--vault-id",
+            "vault-abc",
+            "--password",
+            "pass",
+        ]);
+        if let Command::File(FileCommand::Vault(VaultCommand::Store {
+            path,
+            vault_id,
+            password,
+        })) = cli.command
+        {
+            assert_eq!(path, "/tmp/secret.bin");
+            assert_eq!(vault_id, "vault-abc");
+            assert_eq!(password, "pass");
+        } else {
+            panic!("expected file vault store");
+        }
+    }
+
+    #[test]
+    fn parse_message_send() {
+        let cli = Cli::parse_from([
+            "nous",
+            "message",
+            "send",
+            "ch-123",
+            "hello world",
+            "--sender",
+            "did:key:zalice",
+        ]);
+        if let Command::Message(MessageCommand::Send {
+            channel_id,
+            text,
+            sender,
+        }) = cli.command
+        {
+            assert_eq!(channel_id, "ch-123");
+            assert_eq!(text, "hello world");
+            assert_eq!(sender, Some("did:key:zalice".to_string()));
+        } else {
+            panic!("expected message send");
+        }
+    }
+
+    #[test]
+    fn parse_message_send_no_sender() {
+        let cli = Cli::parse_from(["nous", "message", "send", "ch-123", "hi"]);
+        if let Command::Message(MessageCommand::Send {
+            channel_id,
+            text,
+            sender,
+        }) = cli.command
+        {
+            assert_eq!(channel_id, "ch-123");
+            assert_eq!(text, "hi");
+            assert!(sender.is_none());
+        } else {
+            panic!("expected message send");
+        }
+    }
+
+    #[test]
+    fn parse_message_list() {
+        let cli = Cli::parse_from(["nous", "message", "list", "ch-123", "--limit", "50"]);
+        if let Command::Message(MessageCommand::List { channel_id, limit }) = cli.command {
+            assert_eq!(channel_id, "ch-123");
+            assert_eq!(limit, 50);
+        } else {
+            panic!("expected message list");
+        }
+    }
+
+    #[test]
+    fn parse_message_list_default_limit() {
+        let cli = Cli::parse_from(["nous", "message", "list", "ch-123"]);
+        if let Command::Message(MessageCommand::List { channel_id, limit }) = cli.command {
+            assert_eq!(channel_id, "ch-123");
+            assert_eq!(limit, 20);
+        } else {
+            panic!("expected message list");
+        }
+    }
+
+    #[test]
+    fn parse_message_channels() {
+        let cli = Cli::parse_from(["nous", "message", "channels", "--member", "did:key:zalice"]);
+        if let Command::Message(MessageCommand::Channels { member }) = cli.command {
+            assert_eq!(member, Some("did:key:zalice".to_string()));
+        } else {
+            panic!("expected message channels");
+        }
+    }
+
+    #[test]
+    fn parse_message_create_channel_group() {
+        let cli = Cli::parse_from([
+            "nous",
+            "message",
+            "create-channel",
+            "--kind",
+            "group",
+            "--name",
+            "engineering",
+            "--member",
+            "did:key:za",
+            "--member",
+            "did:key:zb",
+        ]);
+        if let Command::Message(MessageCommand::CreateChannel {
+            kind,
+            name,
+            members,
+        }) = cli.command
+        {
+            assert_eq!(kind, "group");
+            assert_eq!(name, Some("engineering".to_string()));
+            assert_eq!(members, vec!["did:key:za", "did:key:zb"]);
+        } else {
+            panic!("expected message create-channel");
+        }
+    }
+
+    #[test]
+    fn parse_message_create_channel_public() {
+        let cli = Cli::parse_from([
+            "nous",
+            "message",
+            "create-channel",
+            "--kind",
+            "public",
+            "--name",
+            "general",
+        ]);
+        if let Command::Message(MessageCommand::CreateChannel {
+            kind,
+            name,
+            members,
+        }) = cli.command
+        {
+            assert_eq!(kind, "public");
+            assert_eq!(name, Some("general".to_string()));
+            assert!(members.is_empty());
+        } else {
+            panic!("expected message create-channel");
+        }
     }
 
     #[test]
