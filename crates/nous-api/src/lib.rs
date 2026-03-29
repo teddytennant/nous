@@ -1,5 +1,6 @@
 pub mod config;
 pub mod error;
+pub mod files;
 pub mod graphql;
 pub mod grpc;
 pub mod middleware;
@@ -29,7 +30,14 @@ pub fn router(config: ApiConfig) -> Router {
         .route("/events/{event_id}", get(routes::get_event))
         .route("/events/{event_id}", delete(routes::delete_event))
         .route("/follow", post(routes::follow_user))
-        .route("/unfollow", post(routes::unfollow_user));
+        .route("/unfollow", post(routes::unfollow_user))
+        .route("/files", get(files::list_files))
+        .route("/files", post(files::upload_file))
+        .route("/files", delete(files::delete_file))
+        .route("/files/stats", get(files::store_stats))
+        .route("/files/latest", get(files::get_latest))
+        .route("/files/history", get(files::get_history))
+        .route("/files/{manifest_id}", get(files::get_file));
 
     Router::new()
         .nest("/api/v1", api)
