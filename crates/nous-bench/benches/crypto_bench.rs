@@ -1,12 +1,12 @@
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
 
+use nous_crypto::encryption::{decrypt, derive_key, encrypt};
 use nous_crypto::keys::KeyPair;
 use nous_crypto::signing::{Signer, Verifier};
-use nous_crypto::encryption::{encrypt, decrypt, derive_key};
-use nous_crypto::zkp::{SchnorrProof, PedersenCommitment, schnorr_keygen};
-use nous_identity::Identity;
-use nous_governance::zkvote;
+use nous_crypto::zkp::{PedersenCommitment, SchnorrProof, schnorr_keygen};
 use nous_governance::vote::VoteChoice;
+use nous_governance::zkvote;
+use nous_identity::Identity;
 
 fn bench_keypair_generation(c: &mut Criterion) {
     c.bench_function("keypair_generate", |b| {
@@ -38,9 +38,11 @@ fn bench_verify(c: &mut Criterion) {
 
     c.bench_function("ed25519_verify", |b| {
         b.iter(|| {
-            black_box(
-                Verifier::verify(black_box(&kp.verifying_key()), black_box(message), black_box(&sig))
-            )
+            black_box(Verifier::verify(
+                black_box(&kp.verifying_key()),
+                black_box(message),
+                black_box(&sig),
+            ))
         });
     });
 }
@@ -90,7 +92,10 @@ fn bench_hkdf_derive(c: &mut Criterion) {
 
     c.bench_function("hkdf_derive_key", |b| {
         b.iter(|| {
-            black_box(derive_key(black_box(&secret), black_box(b"nous-bench-context")))
+            black_box(derive_key(
+                black_box(&secret),
+                black_box(b"nous-bench-context"),
+            ))
         });
     });
 }
@@ -116,9 +121,7 @@ fn bench_schnorr_verify(c: &mut Criterion) {
     let proof = SchnorrProof::prove(&secret, &public, message);
 
     c.bench_function("schnorr_verify", |b| {
-        b.iter(|| {
-            black_box(proof.verify(black_box(&public), black_box(message)))
-        });
+        b.iter(|| black_box(proof.verify(black_box(&public), black_box(message))));
     });
 }
 
@@ -132,9 +135,7 @@ fn bench_pedersen_verify(c: &mut Criterion) {
     let (commitment, opening) = PedersenCommitment::commit(42);
 
     c.bench_function("pedersen_verify", |b| {
-        b.iter(|| {
-            black_box(commitment.verify(black_box(&opening)))
-        });
+        b.iter(|| black_box(commitment.verify(black_box(&opening))));
     });
 }
 
@@ -148,19 +149,18 @@ fn bench_zk_vote_commit(c: &mut Criterion) {
                     black_box(VoteChoice::For),
                     black_box(42),
                 )
-                .unwrap()
+                .unwrap(),
             )
         });
     });
 }
 
 fn bench_zk_vote_verify(c: &mut Criterion) {
-    let (vote, _) = zkvote::commit_vote("prop-bench", "did:key:zBenchVoter", VoteChoice::For, 42).unwrap();
+    let (vote, _) =
+        zkvote::commit_vote("prop-bench", "did:key:zBenchVoter", VoteChoice::For, 42).unwrap();
 
     c.bench_function("zk_vote_verify", |b| {
-        b.iter(|| {
-            black_box(zkvote::verify_committed_vote(black_box(&vote)).unwrap())
-        });
+        b.iter(|| black_box(zkvote::verify_committed_vote(black_box(&vote)).unwrap()));
     });
 }
 
