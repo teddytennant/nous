@@ -1,0 +1,29 @@
+[package]
+name = "nous-nostr"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "NIP-01 Nostr relay and client for the Nous protocol"
+
+[dependencies]
+nous-core = { path = "../nous-core" }
+nous-crypto = { path = "../nous-crypto" }
+
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+chrono = { workspace = true }
+ed25519-dalek = { workspace = true }
+sha2 = { workspace = true }
+rand = { workspace = true }
+hex = { workspace = true }
+futures = { workspace = true }
+tokio-tungstenite = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+tokio = { workspace = true, features = ["test-util", "macros"] }
