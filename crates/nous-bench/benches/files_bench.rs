@@ -1,9 +1,9 @@
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
 
-use nous_files::chunk::{chunk_data, reassemble, ContentId};
+use nous_files::chunk::{ContentId, chunk_data, reassemble};
+use nous_files::manifest::FileManifest;
 use nous_files::store::FileStore;
 use nous_files::vault::Vault;
-use nous_files::manifest::FileManifest;
 
 fn bench_chunk_small(c: &mut Criterion) {
     let data = vec![0xABu8; 1024]; // 1 KiB
@@ -63,7 +63,12 @@ fn bench_store_put(c: &mut Criterion) {
             |mut store| {
                 black_box(
                     store
-                        .put("bench.bin", "application/octet-stream", &data, "did:key:zBench")
+                        .put(
+                            "bench.bin",
+                            "application/octet-stream",
+                            &data,
+                            "did:key:zBench",
+                        )
                         .unwrap(),
                 );
             },
@@ -75,7 +80,12 @@ fn bench_store_get(c: &mut Criterion) {
     let data = vec![0xABu8; 64 * 1024];
     let mut store = FileStore::new();
     let manifest = store
-        .put("bench.bin", "application/octet-stream", &data, "did:key:zBench")
+        .put(
+            "bench.bin",
+            "application/octet-stream",
+            &data,
+            "did:key:zBench",
+        )
         .unwrap();
 
     c.bench_function("store_get_64kib", |b| {
@@ -91,14 +101,24 @@ fn bench_store_dedup(c: &mut Criterion) {
             || {
                 let mut store = FileStore::new();
                 store
-                    .put("original.bin", "application/octet-stream", &data, "did:key:zBench")
+                    .put(
+                        "original.bin",
+                        "application/octet-stream",
+                        &data,
+                        "did:key:zBench",
+                    )
                     .unwrap();
                 store
             },
             |mut store| {
                 black_box(
                     store
-                        .put("duplicate.bin", "application/octet-stream", &data, "did:key:zBench")
+                        .put(
+                            "duplicate.bin",
+                            "application/octet-stream",
+                            &data,
+                            "did:key:zBench",
+                        )
                         .unwrap(),
                 );
             },
@@ -121,7 +141,12 @@ fn bench_vault_encrypt(c: &mut Criterion) {
                 b.iter(|| {
                     black_box(
                         vault
-                            .encrypt_file(black_box(&key), "bench.bin", "application/octet-stream", black_box(data))
+                            .encrypt_file(
+                                black_box(&key),
+                                "bench.bin",
+                                "application/octet-stream",
+                                black_box(data),
+                            )
                             .unwrap(),
                     )
                 });
@@ -147,7 +172,11 @@ fn bench_vault_decrypt(c: &mut Criterion) {
             &entry,
             |b, entry| {
                 b.iter(|| {
-                    black_box(vault.decrypt_file(black_box(&key), black_box(entry)).unwrap())
+                    black_box(
+                        vault
+                            .decrypt_file(black_box(&key), black_box(entry))
+                            .unwrap(),
+                    )
                 });
             },
         );
@@ -159,7 +188,12 @@ fn bench_manifest_serde(c: &mut Criterion) {
     let data = vec![0xABu8; 256 * 1024];
     let mut store = FileStore::new();
     let manifest = store
-        .put("bench.bin", "application/octet-stream", &data, "did:key:zBench")
+        .put(
+            "bench.bin",
+            "application/octet-stream",
+            &data,
+            "did:key:zBench",
+        )
         .unwrap();
 
     c.bench_function("manifest_serialize", |b| {
@@ -169,9 +203,7 @@ fn bench_manifest_serde(c: &mut Criterion) {
     let json = serde_json::to_vec(&manifest).unwrap();
 
     c.bench_function("manifest_deserialize", |b| {
-        b.iter(|| {
-            black_box(serde_json::from_slice::<FileManifest>(black_box(&json)).unwrap())
-        });
+        b.iter(|| black_box(serde_json::from_slice::<FileManifest>(black_box(&json)).unwrap()));
     });
 }
 
