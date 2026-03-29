@@ -298,6 +298,12 @@ pub async fn send_message(
         .or_default()
         .push(message);
 
+    state.emit(crate::state::RealtimeEvent::NewMessage {
+        channel_id: req.channel_id.clone(),
+        sender: req.sender_did.clone(),
+        content: req.content.clone(),
+    });
+
     Ok(Json(resp))
 }
 
