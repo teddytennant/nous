@@ -385,6 +385,233 @@ export const marketplace = {
     }),
 };
 
+// ── Orders ────────────────────────────────────────────────────────────────
+
+export interface ShippingResponse {
+  carrier: string;
+  tracking_id: string;
+  shipped_at: string;
+}
+
+export interface OrderResponse {
+  id: string;
+  listing_id: string;
+  buyer_did: string;
+  seller_did: string;
+  token: string;
+  amount: number;
+  quantity: number;
+  status: string;
+  escrow_id: string | null;
+  shipping: ShippingResponse | null;
+  created_at: string;
+  updated_at: string;
+  completed_at: string | null;
+}
+
+export interface OrderListResponse {
+  orders: OrderResponse[];
+  count: number;
+}
+
+export const orders = {
+  list: (params?: { buyer_did?: string; seller_did?: string; status?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.buyer_did) query.set("buyer_did", params.buyer_did);
+    if (params?.seller_did) query.set("seller_did", params.seller_did);
+    if (params?.status) query.set("status", params.status);
+    const qs = query.toString();
+    return request<OrderListResponse>(`/orders${qs ? `?${qs}` : ""}`);
+  },
+
+  get: (orderId: string) => request<OrderResponse>(`/orders/${orderId}`),
+
+  create: (data: { listing_id: string; buyer_did: string; quantity?: number }) =>
+    request<OrderResponse>("/orders", { method: "POST", body: JSON.stringify(data) }),
+
+  fund: (orderId: string, escrowId: string) =>
+    request<MutationResponse>(`/orders/${orderId}/fund`, {
+      method: "POST",
+      body: JSON.stringify({ escrow_id: escrowId }),
+    }),
+
+  ship: (orderId: string, data: { seller_did: string; carrier: string; tracking_id: string }) =>
+    request<MutationResponse>(`/orders/${orderId}/ship`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  confirmDelivery: (orderId: string, callerDid: string) =>
+    request<MutationResponse>(`/orders/${orderId}/deliver`, {
+      method: "POST",
+      body: JSON.stringify({ caller_did: callerDid }),
+    }),
+
+  complete: (orderId: string, callerDid: string) =>
+    request<MutationResponse>(`/orders/${orderId}/complete`, {
+      method: "POST",
+      body: JSON.stringify({ caller_did: callerDid }),
+    }),
+
+  cancel: (orderId: string, callerDid: string) =>
+    request<MutationResponse>(`/orders/${orderId}/cancel`, {
+      method: "POST",
+      body: JSON.stringify({ caller_did: callerDid }),
+    }),
+
+  dispute: (orderId: string, callerDid: string) =>
+    request<MutationResponse>(`/orders/${orderId}/dispute`, {
+      method: "POST",
+      body: JSON.stringify({ caller_did: callerDid }),
+    }),
+};
+
+// ── Disputes ──────────────────────────────────────────────────────────────
+
+export interface DisputeResponse {
+  id: string;
+  order_id: string;
+  initiator_did: string;
+  respondent_did: string;
+  reason: string;
+  description: string;
+  evidence_count: number;
+  status: string;
+  arbiter_did: string | null;
+  resolution_note: string | null;
+  created_at: string;
+  resolved_at: string | null;
+}
+
+export interface DisputeListResponse {
+  disputes: DisputeResponse[];
+  count: number;
+}
+
+export const disputes = {
+  list: (params?: { order_id?: string; status?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.order_id) query.set("order_id", params.order_id);
+    if (params?.status) query.set("status", params.status);
+    const qs = query.toString();
+    return request<DisputeListResponse>(`/disputes${qs ? `?${qs}` : ""}`);
+  },
+
+  get: (disputeId: string) => request<DisputeResponse>(`/disputes/${disputeId}`),
+
+  create: (data: {
+    order_id: string;
+    initiator_did: string;
+    respondent_did: string;
+    reason: string;
+    description: string;
+  }) =>
+    request<DisputeResponse>("/disputes", { method: "POST", body: JSON.stringify(data) }),
+
+  addEvidence: (disputeId: string, data: {
+    submitted_by: string;
+    description: string;
+    attachments?: string[];
+  }) =>
+    request<MutationResponse>(`/disputes/${disputeId}/evidence`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  assignArbiter: (disputeId: string, arbiterDid: string) =>
+    request<MutationResponse>(`/disputes/${disputeId}/arbiter`, {
+      method: "POST",
+      body: JSON.stringify({ arbiter_did: arbiterDid }),
+    }),
+
+  resolveBuyer: (disputeId: string, callerDid: string, note: string) =>
+    request<MutationResponse>(`/disputes/${disputeId}/resolve-buyer`, {
+      method: "POST",
+      body: JSON.stringify({ caller_did: callerDid, note }),
+    }),
+
+  resolveSeller: (disputeId: string, callerDid: string, note: string) =>
+    request<MutationResponse>(`/disputes/${disputeId}/resolve-seller`, {
+      method: "POST",
+      body: JSON.stringify({ caller_did: callerDid, note }),
+    }),
+
+  escalate: (disputeId: string, callerDid: string) =>
+    request<MutationResponse>(`/disputes/${disputeId}/escalate`, {
+      method: "POST",
+      body: JSON.stringify({ caller_did: callerDid }),
+    }),
+};
+
+// ── Offers ────────────────────────────────────────────────────────────────
+
+export interface OfferResponse {
+  id: string;
+  listing_id: string;
+  buyer_did: string;
+  seller_did: string;
+  token: string;
+  amount: number;
+  message: string | null;
+  status: string;
+  counter_amount: number | null;
+  created_at: string;
+  expires_at: string;
+  responded_at: string | null;
+}
+
+export interface OfferListResponse {
+  offers: OfferResponse[];
+  count: number;
+}
+
+export const offers = {
+  list: (params?: { listing_id?: string; buyer_did?: string; seller_did?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.listing_id) query.set("listing_id", params.listing_id);
+    if (params?.buyer_did) query.set("buyer_did", params.buyer_did);
+    if (params?.seller_did) query.set("seller_did", params.seller_did);
+    const qs = query.toString();
+    return request<OfferListResponse>(`/offers${qs ? `?${qs}` : ""}`);
+  },
+
+  get: (offerId: string) => request<OfferResponse>(`/offers/${offerId}`),
+
+  create: (data: {
+    listing_id: string;
+    buyer_did: string;
+    amount: number;
+    token: string;
+    duration_hours?: number;
+    message?: string;
+  }) =>
+    request<OfferResponse>("/offers", { method: "POST", body: JSON.stringify(data) }),
+
+  accept: (offerId: string, callerDid: string) =>
+    request<MutationResponse>(`/offers/${offerId}/accept`, {
+      method: "POST",
+      body: JSON.stringify({ caller_did: callerDid }),
+    }),
+
+  reject: (offerId: string, callerDid: string) =>
+    request<MutationResponse>(`/offers/${offerId}/reject`, {
+      method: "POST",
+      body: JSON.stringify({ caller_did: callerDid }),
+    }),
+
+  counter: (offerId: string, sellerDid: string, counterAmount: number) =>
+    request<MutationResponse>(`/offers/${offerId}/counter`, {
+      method: "POST",
+      body: JSON.stringify({ seller_did: sellerDid, counter_amount: counterAmount }),
+    }),
+
+  withdraw: (offerId: string, callerDid: string) =>
+    request<MutationResponse>(`/offers/${offerId}/withdraw`, {
+      method: "POST",
+      body: JSON.stringify({ caller_did: callerDid }),
+    }),
+};
+
 // ── Files ─────────────────────────────────────────────────────────────────
 
 export interface FileManifestResponse {
