@@ -112,9 +112,7 @@ impl Event {
             return false;
         };
         let signature = ed25519_dalek::Signature::from_bytes(&sig_arr);
-        verifying_key
-            .verify(self.id.as_bytes(), &signature)
-            .is_ok()
+        verifying_key.verify(self.id.as_bytes(), &signature).is_ok()
     }
 
     /// Verify both ID and signature.
@@ -233,9 +231,9 @@ impl EventBuilder {
         recipient_pubkey_hex: &str,
         sender_signing_key: &SigningKey,
     ) -> Result<Self, String> {
-        let ciphertext = crate::nip04::encrypt(plaintext, recipient_pubkey_hex, sender_signing_key)?;
-        Ok(Self::new(Kind::ENCRYPTED_DM, ciphertext)
-            .tag(Tag::pubkey(recipient_pubkey_hex)))
+        let ciphertext =
+            crate::nip04::encrypt(plaintext, recipient_pubkey_hex, sender_signing_key)?;
+        Ok(Self::new(Kind::ENCRYPTED_DM, ciphertext).tag(Tag::pubkey(recipient_pubkey_hex)))
     }
 }
 
@@ -266,12 +264,9 @@ mod tests {
     #[test]
     fn event_id_is_sha256_of_serialized_content() {
         let key = test_key();
-        let event = EventBuilder::text_note("test")
-            .created_at(1000)
-            .sign(&key);
+        let event = EventBuilder::text_note("test").created_at(1000).sign(&key);
 
-        let expected_id =
-            Event::compute_id(&event.pubkey, 1000, Kind::TEXT_NOTE, &[], "test");
+        let expected_id = Event::compute_id(&event.pubkey, 1000, Kind::TEXT_NOTE, &[], "test");
         assert_eq!(event.id, expected_id);
     }
 
@@ -420,8 +415,7 @@ mod tests {
     #[test]
     fn nip09_deletion_event() {
         let key = test_key();
-        let event = EventBuilder::deletion(&["event1", "event2"], "spam")
-            .sign(&key);
+        let event = EventBuilder::deletion(&["event1", "event2"], "spam").sign(&key);
 
         assert_eq!(event.kind, Kind::DELETE);
         assert_eq!(event.content, "spam");
