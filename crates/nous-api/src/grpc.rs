@@ -8,9 +8,11 @@ pub mod pb {
     tonic::include_proto!("nous.v1");
 }
 
+use pb::governance_service_server::GovernanceService;
+use pb::identity_service_server::IdentityService;
+use pb::marketplace_service_server::MarketplaceService;
 use pb::node_service_server::NodeService;
 use pb::social_service_server::SocialService;
-use pb::identity_service_server::IdentityService;
 
 // ---- Node Service ----
 
@@ -245,6 +247,287 @@ impl IdentityService for NousIdentityService {
         .to_string();
 
         Ok(Response::new(pb::ResolveDocumentResponse { document_json: doc_json }))
+    }
+}
+
+// ---- Governance Service ----
+
+pub struct NousGovernanceService {
+    state: Arc<AppState>,
+}
+
+impl NousGovernanceService {
+    pub fn new(state: Arc<AppState>) -> Self {
+        Self { state }
+    }
+}
+
+fn dao_to_proto(dao: &nous_governance::Dao) -> pb::DaoMessage {
+    pb::DaoMessage {
+        id: dao.id.clone(),
+        name: dao.name.clone(),
+        description: dao.description.clone(),
+        founder_did: dao.founder_did.clone(),
+        member_count: dao.member_count() as u32,
+        created_at: dao.created_at.to_rfc3339(),
+    }
+}
+
+fn proposal_to_proto(p: &nous_governance::Proposal) -> pb::ProposalMessage {
+    pb::ProposalMessage {
+        id: p.id.clone(),
+        dao_id: p.dao_id.clone(),
+        title: p.title.clone(),
+        description: p.description.clone(),
+        proposer_did: p.proposer_did.clone(),
+        status: format!("{:?}", p.status),
+        voting_starts: p.voting_starts.to_rfc3339(),
+        voting_ends: p.voting_ends.to_rfc3339(),
+        created_at: p.created_at.to_rfc3339(),
+    }
+}
+
+#[tonic::async_trait]
+impl GovernanceService for NousGovernanceService {
+    async fn create_dao(
+        &self,
+        request: Request<pb::CreateDaoRequest>,
+    ) -> Result<Response<pb::DaoMessage>, Status> {
+        let req = request.into_inner();
+        if req.name.is_empty() {
+            return Err(Status::invalid_argument("name must not be empty"));
+        }
+        let dao = nous_governance::Dao::create(&req.founder_did, &req.name, &req.description);
+        let msg = dao_to_proto(&dao);
+        let mut daos = self.state.daos.write().await;
+        daos.insert(dao.id.clone(), dao);
+        Ok(Response::new(msg))
+    }
+
+    async fn get_dao(
+        &self,
+        request: Request<pb::GetDaoRequest>,
+    ) -> Result<Response<pb::DaoMessage>, Status> {
+        let req = request.into_inner();
+        let daos = self.state.daos.read().await;
+        let dao = daos
+            .get(&req.dao_id)
+            .ok_or_else(|| Status::not_found("DAO not found"))?;
+        Ok(Response::new(dao_to_proto(dao)))
+    }
+
+    async fn list_daos(
+        &self,
+        _request: Request<pb::ListDaosRequest>,
+    ) -> Result<Response<pb::ListDaosResponse>, Status> {
+        let daos = self.state.daos.read().await;
+        let list: Vec<pb::DaoMessage> = daos.values().map(dao_to_proto).collect();
+        Ok(Response::new(pb::ListDaosResponse { daos: list }))
+    }
+
+    async fn list_proposals(
+        &self,
+        request: Request<pb::ListProposalsRequest>,
+    ) -> Result<Response<pb::ListProposalsResponse>, Status> {
+        let req = request.into_inner();
+        let proposals = self.state.proposals.read().await;
+        let limit = if req.limit == 0 { 50 } else { req.limit as usize };
+
+        let list: Vec<pb::ProposalMessage> = proposals
+            .values()
+            .filter(|p| req.dao_id.is_empty() || p.dao_id == req.dao_id)
+            .take(limit)
+            .map(proposal_to_proto)
+            .collect();
+        Ok(Response::new(pb::ListProposalsResponse { proposals: list }))
+    }
+
+    async fn get_proposal(
+        &self,
+        request: Request<pb::GetProposalRequest>,
+    ) -> Result<Response<pb::ProposalMessage>, Status> {
+        let req = request.into_inner();
+        let proposals = self.state.proposals.read().await;
+        let p = proposals
+            .get(&req.proposal_id)
+            .ok_or_else(|| Status::not_found("proposal not found"))?;
+        Ok(Response::new(proposal_to_proto(p)))
+    }
+
+    async fn get_tally(
+        &self,
+        request: Request<pb::GetTallyRequest>,
+    ) -> Result<Response<pb::VoteResultMessage>, Status> {
+        let req = request.into_inner();
+        let tallies = self.state.tallies.read().await;
+        let tally = tallies
+            .get(&req.proposal_id)
+            .ok_or_else(|| Status::not_found("tally not found"))?;
+
+        let result = tally.tally(100);
+        Ok(Response::new(pb::VoteResultMessage {
+            proposal_id: result.proposal_id,
+            votes_for: result.votes_for,
+            votes_against: result.votes_against,
+            votes_abstain: result.votes_abstain,
+            total_voters: result.total_voters as u32,
+            passed: result.passed,
+        }))
+    }
+}
+
+// ---- Marketplace Service ----
+
+pub struct NousMarketplaceService {
+    state: Arc<AppState>,
+}
+
+impl NousMarketplaceService {
+    pub fn new(state: Arc<AppState>) -> Self {
+        Self { state }
+    }
+}
+
+fn listing_to_proto(l: &nous_marketplace::Listing) -> pb::ListingMessage {
+    pb::ListingMessage {
+        id: l.id.clone(),
+        seller_did: l.seller_did.clone(),
+        title: l.title.clone(),
+        description: l.description.clone(),
+        category: format!("{:?}", l.category),
+        price_token: l.price_token.clone(),
+        price_amount: l.price_amount.to_string(),
+        status: format!("{:?}", l.status),
+        tags: l.tags.clone(),
+        created_at: l.created_at.to_rfc3339(),
+    }
+}
+
+#[tonic::async_trait]
+impl MarketplaceService for NousMarketplaceService {
+    async fn create_listing(
+        &self,
+        request: Request<pb::CreateListingRequest>,
+    ) -> Result<Response<pb::ListingMessage>, Status> {
+        let req = request.into_inner();
+        let category = match req.category.to_lowercase().as_str() {
+            "physical" => nous_marketplace::ListingCategory::Physical,
+            "digital" => nous_marketplace::ListingCategory::Digital,
+            "service" => nous_marketplace::ListingCategory::Service,
+            "nft" => nous_marketplace::ListingCategory::NFT,
+            "data" => nous_marketplace::ListingCategory::Data,
+            _ => nous_marketplace::ListingCategory::Other,
+        };
+
+        let price: u128 = req
+            .price_amount
+            .parse()
+            .map_err(|_| Status::invalid_argument("invalid price_amount"))?;
+
+        let mut listing = nous_marketplace::Listing::new(
+            &req.seller_did,
+            &req.title,
+            &req.description,
+            category,
+            &req.price_token,
+            price,
+        )
+        .map_err(|e| Status::invalid_argument(e.to_string()))?;
+
+        for tag in &req.tags {
+            listing = listing.with_tag(tag);
+        }
+
+        let msg = listing_to_proto(&listing);
+        let mut listings = self.state.listings.write().await;
+        listings.insert(listing.id.clone(), listing);
+        Ok(Response::new(msg))
+    }
+
+    async fn get_listing(
+        &self,
+        request: Request<pb::GetListingRequest>,
+    ) -> Result<Response<pb::ListingMessage>, Status> {
+        let req = request.into_inner();
+        let listings = self.state.listings.read().await;
+        let l = listings
+            .get(&req.listing_id)
+            .ok_or_else(|| Status::not_found("listing not found"))?;
+        Ok(Response::new(listing_to_proto(l)))
+    }
+
+    async fn search_listings(
+        &self,
+        request: Request<pb::SearchListingsRequest>,
+    ) -> Result<Response<pb::SearchListingsResponse>, Status> {
+        let req = request.into_inner();
+        let listings = self.state.listings.read().await;
+        let limit = if req.limit == 0 { 50 } else { req.limit as usize };
+
+        let results: Vec<pb::ListingMessage> = listings
+            .values()
+            .filter(|l| {
+                let text = req.query.is_empty() || l.matches_search(&req.query);
+                let cat = req.category.is_empty()
+                    || format!("{:?}", l.category).to_lowercase() == req.category.to_lowercase();
+                text && cat
+            })
+            .take(limit)
+            .map(listing_to_proto)
+            .collect();
+
+        let count = results.len() as u32;
+        Ok(Response::new(pb::SearchListingsResponse {
+            listings: results,
+            count,
+        }))
+    }
+
+    async fn create_review(
+        &self,
+        request: Request<pb::CreateReviewRequest>,
+    ) -> Result<Response<pb::CreateReviewResponse>, Status> {
+        let req = request.into_inner();
+        let review = nous_marketplace::Review::new(
+            &req.listing_id,
+            &req.reviewer_did,
+            &req.seller_did,
+            req.rating as u8,
+            &req.comment,
+        )
+        .map_err(|e| Status::invalid_argument(e.to_string()))?;
+
+        let review_id = review.id.clone();
+        let mut reviews = self.state.reviews.write().await;
+        reviews.insert(review.id.clone(), review);
+
+        Ok(Response::new(pb::CreateReviewResponse {
+            success: true,
+            review_id,
+        }))
+    }
+
+    async fn get_seller_rating(
+        &self,
+        request: Request<pb::GetSellerRatingRequest>,
+    ) -> Result<Response<pb::SellerRatingMessage>, Status> {
+        let req = request.into_inner();
+        let reviews = self.state.reviews.read().await;
+        let seller_reviews: Vec<nous_marketplace::Review> = reviews
+            .values()
+            .filter(|r| r.seller_did == req.seller_did)
+            .cloned()
+            .collect();
+
+        let rating = nous_marketplace::SellerRating::compute(&req.seller_did, &seller_reviews);
+        let trusted = rating.is_trusted();
+        Ok(Response::new(pb::SellerRatingMessage {
+            seller_did: rating.seller_did,
+            total_reviews: rating.total_reviews,
+            average_rating: rating.average_rating,
+            verified_reviews: rating.verified_reviews,
+            trusted,
+        }))
     }
 }
 
@@ -483,6 +766,205 @@ mod tests {
             }))
             .await;
         assert!(result.is_err());
+    }
+
+    // ── Governance gRPC tests ────────────────────────────────
+
+    #[tokio::test]
+    async fn grpc_create_dao() {
+        let state = test_state();
+        let svc = NousGovernanceService::new(state.clone());
+
+        let resp = svc
+            .create_dao(Request::new(pb::CreateDaoRequest {
+                founder_did: "did:key:zfounder".into(),
+                name: "TestDAO".into(),
+                description: "A test DAO".into(),
+            }))
+            .await
+            .unwrap();
+
+        let dao = resp.into_inner();
+        assert_eq!(dao.name, "TestDAO");
+        assert_eq!(dao.member_count, 1);
+    }
+
+    #[tokio::test]
+    async fn grpc_list_daos() {
+        let state = test_state();
+        let svc = NousGovernanceService::new(state.clone());
+
+        svc.create_dao(Request::new(pb::CreateDaoRequest {
+            founder_did: "did:key:za".into(),
+            name: "Alpha".into(),
+            description: "first".into(),
+        }))
+        .await
+        .unwrap();
+
+        let resp = svc
+            .list_daos(Request::new(pb::ListDaosRequest {}))
+            .await
+            .unwrap();
+        assert_eq!(resp.into_inner().daos.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn grpc_get_dao() {
+        let state = test_state();
+        let svc = NousGovernanceService::new(state.clone());
+
+        let resp = svc
+            .create_dao(Request::new(pb::CreateDaoRequest {
+                founder_did: "did:key:za".into(),
+                name: "GetMe".into(),
+                description: "test".into(),
+            }))
+            .await
+            .unwrap();
+        let dao_id = resp.into_inner().id;
+
+        let resp = svc
+            .get_dao(Request::new(pb::GetDaoRequest {
+                dao_id: dao_id.clone(),
+            }))
+            .await
+            .unwrap();
+        assert_eq!(resp.into_inner().name, "GetMe");
+    }
+
+    #[tokio::test]
+    async fn grpc_get_dao_not_found() {
+        let svc = NousGovernanceService::new(test_state());
+        let result = svc
+            .get_dao(Request::new(pb::GetDaoRequest {
+                dao_id: "nonexistent".into(),
+            }))
+            .await;
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().code(), tonic::Code::NotFound);
+    }
+
+    #[tokio::test]
+    async fn grpc_empty_proposals() {
+        let svc = NousGovernanceService::new(test_state());
+        let resp = svc
+            .list_proposals(Request::new(pb::ListProposalsRequest {
+                dao_id: "".into(),
+                limit: 0,
+            }))
+            .await
+            .unwrap();
+        assert!(resp.into_inner().proposals.is_empty());
+    }
+
+    // ── Marketplace gRPC tests ────────────────────────────────
+
+    #[tokio::test]
+    async fn grpc_create_listing() {
+        let state = test_state();
+        let svc = NousMarketplaceService::new(state.clone());
+
+        let resp = svc
+            .create_listing(Request::new(pb::CreateListingRequest {
+                seller_did: "did:key:zseller".into(),
+                title: "Widget".into(),
+                description: "A nice widget".into(),
+                category: "physical".into(),
+                price_token: "ETH".into(),
+                price_amount: "1000".into(),
+                tags: vec!["widget".into()],
+            }))
+            .await
+            .unwrap();
+
+        let listing = resp.into_inner();
+        assert_eq!(listing.title, "Widget");
+        assert_eq!(listing.category, "Physical");
+    }
+
+    #[tokio::test]
+    async fn grpc_get_listing() {
+        let state = test_state();
+        let svc = NousMarketplaceService::new(state.clone());
+
+        let resp = svc
+            .create_listing(Request::new(pb::CreateListingRequest {
+                seller_did: "did:key:zs".into(),
+                title: "Book".into(),
+                description: "A book".into(),
+                category: "digital".into(),
+                price_token: "USDC".into(),
+                price_amount: "500".into(),
+                tags: vec![],
+            }))
+            .await
+            .unwrap();
+        let listing_id = resp.into_inner().id;
+
+        let resp = svc
+            .get_listing(Request::new(pb::GetListingRequest {
+                listing_id: listing_id.clone(),
+            }))
+            .await
+            .unwrap();
+        assert_eq!(resp.into_inner().title, "Book");
+    }
+
+    #[tokio::test]
+    async fn grpc_search_listings() {
+        let state = test_state();
+        let svc = NousMarketplaceService::new(state.clone());
+
+        svc.create_listing(Request::new(pb::CreateListingRequest {
+            seller_did: "did:key:zs".into(),
+            title: "Rust Handbook".into(),
+            description: "Learn Rust programming".into(),
+            category: "digital".into(),
+            price_token: "USDC".into(),
+            price_amount: "2000".into(),
+            tags: vec!["rust".into()],
+        }))
+        .await
+        .unwrap();
+
+        let resp = svc
+            .search_listings(Request::new(pb::SearchListingsRequest {
+                query: "Rust".into(),
+                category: "".into(),
+                limit: 10,
+            }))
+            .await
+            .unwrap();
+        assert_eq!(resp.into_inner().count, 1);
+    }
+
+    #[tokio::test]
+    async fn grpc_create_review_and_rating() {
+        let state = test_state();
+        let svc = NousMarketplaceService::new(state.clone());
+
+        let resp = svc
+            .create_review(Request::new(pb::CreateReviewRequest {
+                listing_id: "listing-1".into(),
+                reviewer_did: "did:key:zbuyer".into(),
+                seller_did: "did:key:zseller".into(),
+                rating: 5,
+                comment: "Excellent".into(),
+            }))
+            .await
+            .unwrap();
+        assert!(resp.into_inner().success);
+
+        let resp = svc
+            .get_seller_rating(Request::new(pb::GetSellerRatingRequest {
+                seller_did: "did:key:zseller".into(),
+            }))
+            .await
+            .unwrap();
+        let rating = resp.into_inner();
+        assert_eq!(rating.total_reviews, 1);
+        assert_eq!(rating.average_rating, 5.0);
     }
 
     #[tokio::test]
