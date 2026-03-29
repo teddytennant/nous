@@ -282,10 +282,12 @@ export interface FileContentResponse {
 }
 
 export interface FileStoreStats {
+  total_chunks: number;
+  total_manifests: number;
   total_files: number;
   stored_bytes: number;
-  unique_chunks: number;
-  deduplicated_bytes: number;
+  logical_bytes: number;
+  dedup_ratio: number;
 }
 
 export const files = {
