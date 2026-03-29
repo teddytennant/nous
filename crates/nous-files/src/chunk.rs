@@ -50,14 +50,11 @@ impl std::fmt::Display for ContentId {
 
 mod hex {
     pub fn encode(bytes: impl AsRef<[u8]>) -> String {
-        bytes
-            .as_ref()
-            .iter()
-            .fold(String::new(), |mut s, b| {
-                use std::fmt::Write;
-                let _ = write!(s, "{b:02x}");
-                s
-            })
+        bytes.as_ref().iter().fold(String::new(), |mut s, b| {
+            use std::fmt::Write;
+            let _ = write!(s, "{b:02x}");
+            s
+        })
     }
 }
 
@@ -71,9 +68,7 @@ mod base64_bytes {
 
     pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<u8>, D::Error> {
         let encoded = String::deserialize(d)?;
-        STANDARD
-            .decode(&encoded)
-            .map_err(serde::de::Error::custom)
+        STANDARD.decode(&encoded).map_err(serde::de::Error::custom)
     }
 }
 
@@ -105,7 +100,9 @@ impl BuzHash {
         }
 
         // Buzhash: rotate left by 1, XOR out the old byte shifted by window size, XOR in new byte
-        self.hash = self.hash.rotate_left(1) ^ BYTE_TABLE[old as usize].rotate_left(WINDOW_SIZE as u32) ^ BYTE_TABLE[byte as usize];
+        self.hash = self.hash.rotate_left(1)
+            ^ BYTE_TABLE[old as usize].rotate_left(WINDOW_SIZE as u32)
+            ^ BYTE_TABLE[byte as usize];
         self.hash
     }
 }
