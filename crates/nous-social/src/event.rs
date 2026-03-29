@@ -149,8 +149,13 @@ impl SignedEvent {
             return Err(nous_core::Error::Crypto("event is unsigned".into()));
         }
 
-        let expected_id =
-            Self::compute_id(&self.pubkey, &self.created_at, &self.kind, &self.tags, &self.content);
+        let expected_id = Self::compute_id(
+            &self.pubkey,
+            &self.created_at,
+            &self.kind,
+            &self.tags,
+            &self.content,
+        );
         if self.id != expected_id {
             return Err(nous_core::Error::Crypto("event id mismatch".into()));
         }
