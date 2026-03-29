@@ -196,6 +196,135 @@ export const governance = {
     }),
 };
 
+// ── Delegation & Execution ────────────────────────────────────────────────
+
+export interface DelegationResponse {
+  id: string;
+  from_did: string;
+  to_did: string;
+  scope_type: string;
+  scope_id: string;
+  created_at: string;
+  expires_at: string | null;
+  revoked: boolean;
+  active: boolean;
+}
+
+export interface DelegationListResponse {
+  delegations: DelegationResponse[];
+  count: number;
+}
+
+export interface PowerEntry {
+  did: string;
+  base_credits: number;
+  effective_credits: number;
+}
+
+export interface EffectivePowerResponse {
+  scope_type: string;
+  scope_id: string;
+  power: PowerEntry[];
+}
+
+export interface DelegationChainResponse {
+  chain: string[];
+  final_delegate: string | null;
+}
+
+export interface ExecutionResponse {
+  id: string;
+  proposal_id: string;
+  dao_id: string;
+  status: string;
+  queued_at: string;
+  executable_at: string;
+  expires_at: string;
+  executed_at: string | null;
+  executor_did: string | null;
+  error: string | null;
+}
+
+export interface ExecutionListResponse {
+  executions: ExecutionResponse[];
+  count: number;
+}
+
+export const delegation = {
+  create: (data: {
+    from_did: string;
+    to_did: string;
+    scope_type: string;
+    scope_id: string;
+    expires_in_hours?: number;
+  }) =>
+    request<DelegationResponse>("/delegations", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  list: (params: {
+    scope_type?: string;
+    scope_id?: string;
+    from_did?: string;
+    to_did?: string;
+  }) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v) as [string, string][]
+    ).toString();
+    return request<DelegationListResponse>(
+      `/delegations${query ? `?${query}` : ""}`
+    );
+  },
+
+  revoke: (delegationId: string, requesterDid: string) =>
+    request<MutationResponse>(`/delegations/${delegationId}/revoke`, {
+      method: "POST",
+      body: JSON.stringify({ requester_did: requesterDid }),
+    }),
+
+  power: (scopeType: string, scopeId: string) =>
+    request<EffectivePowerResponse>(
+      `/delegations/power?scope_type=${scopeType}&scope_id=${scopeId}`
+    ),
+
+  chain: (did: string, scopeType: string, scopeId: string) =>
+    request<DelegationChainResponse>(
+      `/delegations/chain?did=${did}&scope_type=${scopeType}&scope_id=${scopeId}`
+    ),
+};
+
+export const execution = {
+  queue: (data: { proposal_id: string; actions: unknown[] }) =>
+    request<ExecutionResponse>("/executions", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  list: (params: { dao_id?: string; status?: string }) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v) as [string, string][]
+    ).toString();
+    return request<ExecutionListResponse>(
+      `/executions${query ? `?${query}` : ""}`
+    );
+  },
+
+  get: (executionId: string) =>
+    request<ExecutionResponse>(`/executions/${executionId}`),
+
+  execute: (executionId: string, executorDid: string) =>
+    request<unknown>(`/executions/${executionId}/execute`, {
+      method: "POST",
+      body: JSON.stringify({ executor_did: executorDid }),
+    }),
+
+  cancel: (executionId: string) =>
+    request<MutationResponse>(`/executions/${executionId}/cancel`, {
+      method: "POST",
+    }),
+};
+
 // ── Marketplace ────────────────────────────────────────────────────────────
 
 export interface ListingResponse {
