@@ -198,4 +198,141 @@ export const marketplace = {
 
   getSellerRating: (sellerDid: string) =>
     request<SellerRating>(`/sellers/${sellerDid}/rating`),
+
+  createListing: (listing: {
+    seller_did: string;
+    title: string;
+    description: string;
+    category: string;
+    price_token: string;
+    price_amount: number;
+    tags?: string[];
+  }) =>
+    request<ListingResponse>("/listings", {
+      method: "POST",
+      body: JSON.stringify(listing),
+    }),
+};
+
+// ── Messaging ─────────────────────────────────────────────────────────────
+
+export interface ChannelResponse {
+  id: string;
+  kind: string;
+  name: string | null;
+  members: string[];
+  created_at: string;
+}
+
+export interface MessageResponse {
+  id: string;
+  channel_id: string;
+  sender: string;
+  content: string;
+  reply_to: string | null;
+  timestamp: string;
+}
+
+export const messaging = {
+  createChannel: (data: {
+    creator_did: string;
+    kind: string;
+    name?: string;
+    peer_did?: string;
+    members?: string[];
+  }) =>
+    request<ChannelResponse>("/channels", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  listChannels: (did: string) =>
+    request<ChannelResponse[]>(`/channels?did=${encodeURIComponent(did)}`),
+
+  getChannel: (channelId: string) =>
+    request<ChannelResponse>(`/channels/${channelId}`),
+
+  sendMessage: (data: {
+    channel_id: string;
+    sender_did: string;
+    content: string;
+    reply_to?: string;
+  }) =>
+    request<MessageResponse>("/messages", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  getMessages: (channelId: string, limit?: number) => {
+    const qs = limit ? `?limit=${limit}` : "";
+    return request<MessageResponse[]>(`/channels/${channelId}/messages${qs}`);
+  },
+
+  deleteMessage: (messageId: string) =>
+    request<void>(`/messages/${messageId}`, { method: "DELETE" }),
+};
+
+// ── Identity ──────────────────────────────────────────────────────────────
+
+export interface IdentityResponse {
+  did: string;
+  display_name: string | null;
+  signing_key_type: string;
+  exchange_key_type: string;
+}
+
+export interface DocumentResponse {
+  did: string;
+  document: Record<string, unknown>;
+}
+
+export interface CredentialResponse {
+  id: string;
+  credential_type: string[];
+  issuer: string;
+  subject: string;
+  issuance_date: string;
+  expiration_date: string | null;
+  expired: boolean;
+  claims: Record<string, unknown>;
+}
+
+export interface ReputationResponse {
+  did: string;
+  total_score: number;
+  scores: Record<string, number>;
+  event_count: number;
+}
+
+export const identity = {
+  create: (displayName?: string) =>
+    request<IdentityResponse>("/identities", {
+      method: "POST",
+      body: JSON.stringify({ display_name: displayName }),
+    }),
+
+  get: (did: string) => request<IdentityResponse>(`/identities/${did}`),
+
+  getDocument: (did: string) =>
+    request<DocumentResponse>(`/identities/${did}/document`),
+
+  listCredentials: (did: string) =>
+    request<CredentialResponse[]>(`/identities/${did}/credentials`),
+
+  issueCredential: (
+    did: string,
+    data: {
+      subject_did: string;
+      issuer_did: string;
+      credential_type: string;
+      claims: Record<string, unknown>;
+    }
+  ) =>
+    request<CredentialResponse>(`/identities/${did}/credentials`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  getReputation: (did: string) =>
+    request<ReputationResponse>(`/identities/${did}/reputation`),
 };
