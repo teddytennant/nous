@@ -109,8 +109,18 @@ mod tests {
     #[test]
     fn pipeline_steps() {
         let mut pipeline = Pipeline::new("analysis");
-        pipeline.add_step(PipelineStep::new("extract", "extractor", "raw_text", "entities"));
-        pipeline.add_step(PipelineStep::new("summarize", "summarizer", "entities", "summary"));
+        pipeline.add_step(PipelineStep::new(
+            "extract",
+            "extractor",
+            "raw_text",
+            "entities",
+        ));
+        pipeline.add_step(PipelineStep::new(
+            "summarize",
+            "summarizer",
+            "entities",
+            "summary",
+        ));
         assert_eq!(pipeline.step_count(), 2);
     }
 
