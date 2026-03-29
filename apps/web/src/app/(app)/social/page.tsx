@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { social, type FeedEvent } from "@/lib/api";
+import { useRealtime } from "@/lib/use-realtime";
 
 const MAX_POST_LENGTH = 500;
 
@@ -34,6 +35,21 @@ export default function SocialPage() {
   useEffect(() => {
     loadFeed();
   }, [loadFeed]);
+
+  // Live post updates via SSE
+  useRealtime("new_post", useCallback((data) => {
+    setPosts((prev) => [
+      {
+        id: data.id,
+        pubkey: data.author,
+        created_at: new Date().toISOString(),
+        kind: 1,
+        content: data.content,
+        tags: [],
+      },
+      ...prev,
+    ]);
+  }, []));
 
   async function handlePost() {
     if (!draft.trim() || posting || !userDid) return;
