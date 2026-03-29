@@ -236,7 +236,14 @@ mod tests {
     #[test]
     fn parse_wallet_send() {
         let cli = Cli::parse_from([
-            "nous", "wallet", "send", "did:key:bob", "ETH", "100", "-m", "for coffee",
+            "nous",
+            "wallet",
+            "send",
+            "did:key:bob",
+            "ETH",
+            "100",
+            "-m",
+            "for coffee",
         ]);
         if let Command::Wallet(WalletCommand::Send {
             to,
@@ -256,12 +263,7 @@ mod tests {
 
     #[test]
     fn parse_net_connect() {
-        let cli = Cli::parse_from([
-            "nous",
-            "net",
-            "connect",
-            "/ip4/127.0.0.1/tcp/4001",
-        ]);
+        let cli = Cli::parse_from(["nous", "net", "connect", "/ip4/127.0.0.1/tcp/4001"]);
         if let Command::Net(NetCommand::Connect { addr }) = cli.command {
             assert_eq!(addr, "/ip4/127.0.0.1/tcp/4001");
         } else {
