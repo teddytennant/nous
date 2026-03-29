@@ -117,13 +117,19 @@ fn handle_key(app: &mut App, key: KeyEvent) {
         KeyCode::BackTab => {
             app.tabs.prev();
         }
-        KeyCode::Up => {
-            app.scroll_up();
-        }
-        KeyCode::Down => {
-            let max = app.messages.len().saturating_sub(1);
-            app.scroll_down(max);
-        }
+        KeyCode::Up => match app.tabs.active {
+            crate::tabs::Tab::Marketplace => app.marketplace_select_up(),
+            crate::tabs::Tab::Browser => app.browser_select_up(),
+            _ => app.scroll_up(),
+        },
+        KeyCode::Down => match app.tabs.active {
+            crate::tabs::Tab::Marketplace => app.marketplace_select_down(),
+            crate::tabs::Tab::Browser => app.browser_select_down(),
+            _ => {
+                let max = app.messages.len().saturating_sub(1);
+                app.scroll_down(max);
+            }
+        },
         KeyCode::Enter => {
             app.submit_input();
         }
@@ -134,10 +140,18 @@ fn handle_key(app: &mut App, key: KeyEvent) {
             app.input.delete();
         }
         KeyCode::Left => {
-            app.input.move_left();
+            if app.tabs.active == crate::tabs::Tab::Marketplace {
+                app.marketplace_toggle_tab();
+            } else {
+                app.input.move_left();
+            }
         }
         KeyCode::Right => {
-            app.input.move_right();
+            if app.tabs.active == crate::tabs::Tab::Marketplace {
+                app.marketplace_toggle_tab();
+            } else {
+                app.input.move_right();
+            }
         }
         KeyCode::Home => {
             app.input.home();
@@ -246,6 +260,52 @@ mod tests {
         handle_key(&mut app, KeyEvent::new(KeyCode::Up, KeyModifiers::NONE));
         handle_key(&mut app, KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
         assert_eq!(app.scroll_offset, 0);
+    }
+
+    #[test]
+    fn up_down_navigates_marketplace() {
+        let mut app = test_app();
+        app.tabs.select(crate::tabs::Tab::Marketplace);
+        app.listings.push(crate::client::ListingItem {
+            id: "l1".into(),
+            seller_did: "d".into(),
+            title: "A".into(),
+            description: "".into(),
+            category: "".into(),
+            price_token: "".into(),
+            price_amount: "".into(),
+            status: "".into(),
+            created_at: "".into(),
+            tags: vec![],
+        });
+        app.listings.push(crate::client::ListingItem {
+            id: "l2".into(),
+            seller_did: "d".into(),
+            title: "B".into(),
+            description: "".into(),
+            category: "".into(),
+            price_token: "".into(),
+            price_amount: "".into(),
+            status: "".into(),
+            created_at: "".into(),
+            tags: vec![],
+        });
+
+        handle_key(&mut app, KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        assert_eq!(app.marketplace_selected, 1);
+        handle_key(&mut app, KeyEvent::new(KeyCode::Up, KeyModifiers::NONE));
+        assert_eq!(app.marketplace_selected, 0);
+    }
+
+    #[test]
+    fn left_right_toggles_marketplace_tab() {
+        let mut app = test_app();
+        app.tabs.select(crate::tabs::Tab::Marketplace);
+        assert_eq!(app.marketplace_tab, crate::app::MarketplaceSubTab::Listings);
+        handle_key(&mut app, KeyEvent::new(KeyCode::Right, KeyModifiers::NONE));
+        assert_eq!(app.marketplace_tab, crate::app::MarketplaceSubTab::Orders);
+        handle_key(&mut app, KeyEvent::new(KeyCode::Left, KeyModifiers::NONE));
+        assert_eq!(app.marketplace_tab, crate::app::MarketplaceSubTab::Listings);
     }
 
     #[test]
