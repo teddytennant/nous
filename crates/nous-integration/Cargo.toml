@@ -14,7 +14,9 @@ nous-messaging = { path = "../nous-messaging" }
 nous-social = { path = "../nous-social" }
 nous-storage = { path = "../nous-storage" }
 nous-governance = { path = "../nous-governance" }
+nous-net = { path = "../nous-net" }
 curve25519-dalek = { workspace = true }
+tokio = { workspace = true }
 rand = { workspace = true }
 x25519-dalek = { workspace = true }
 tempfile = { workspace = true }
