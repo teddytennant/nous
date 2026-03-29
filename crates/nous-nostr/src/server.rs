@@ -8,8 +8,8 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::broadcast;
-use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::WebSocketStream;
+use tokio_tungstenite::tungstenite::Message;
 use tracing::{debug, error, info, warn};
 
 /// A WebSocket-based NIP-01 relay server.
@@ -148,18 +148,14 @@ impl RelayServer {
             Ok(msg) => msg,
             Err(e) => {
                 let notice = RelayMessage::Notice(format!("error: {e}"));
-                write
-                    .send(Message::Text(notice.to_json().into()))
-                    .await?;
+                write.send(Message::Text(notice.to_json())).await?;
                 return Ok(());
             }
         };
 
         let responses = self.relay.handle_message(&client_msg, sub_mgr);
         for response in responses {
-            write
-                .send(Message::Text(response.to_json().into()))
-                .await?;
+            write.send(Message::Text(response.to_json())).await?;
         }
         Ok(())
     }
@@ -176,9 +172,7 @@ impl RelayServer {
                 subscription_id: sub_id,
                 event: event.clone(),
             };
-            write
-                .send(Message::Text(msg.to_json().into()))
-                .await?;
+            write.send(Message::Text(msg.to_json())).await?;
         }
         Ok(())
     }
@@ -212,7 +206,9 @@ mod tests {
         addr
     }
 
-    async fn connect(addr: SocketAddr) -> WebSocketStream<tokio_tungstenite::MaybeTlsStream<TcpStream>> {
+    async fn connect(
+        addr: SocketAddr,
+    ) -> WebSocketStream<tokio_tungstenite::MaybeTlsStream<TcpStream>> {
         let url = format!("ws://{addr}");
         let (ws, _) = connect_async(&url).await.unwrap();
         ws
@@ -237,9 +233,7 @@ mod tests {
 
         match relay_msg {
             RelayMessage::Ok {
-                event_id,
-                accepted,
-                ..
+                event_id, accepted, ..
             } => {
                 assert_eq!(event_id, event.id);
                 assert!(accepted);
