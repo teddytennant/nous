@@ -1,5 +1,5 @@
-use axum::extract::{Path, Query, State};
 use axum::Json;
+use axum::extract::{Path, Query, State};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use utoipa::{IntoParams, ToSchema};
@@ -133,7 +133,11 @@ pub async fn create_channel(
                 .ok_or_else(|| ApiError::bad_request("name required for public channels"))?;
             Channel::public(&req.creator_did, name)
         }
-        _ => return Err(ApiError::bad_request("kind must be direct, group, or public")),
+        _ => {
+            return Err(ApiError::bad_request(
+                "kind must be direct, group, or public",
+            ));
+        }
     };
 
     let resp = ChannelResponse::from(&channel);
@@ -206,7 +210,9 @@ pub async fn add_channel_member(
         .get_mut(&channel_id)
         .ok_or_else(|| ApiError::not_found(format!("channel {channel_id} not found")))?;
     channel.add_member(&req.did);
-    Ok(Json(serde_json::json!({"added": req.did, "channel": channel_id})))
+    Ok(Json(
+        serde_json::json!({"added": req.did, "channel": channel_id}),
+    ))
 }
 
 #[utoipa::path(
@@ -231,9 +237,13 @@ pub async fn remove_channel_member(
         .ok_or_else(|| ApiError::not_found(format!("channel {channel_id} not found")))?;
     let removed = channel.remove_member(&did);
     if removed {
-        Ok(Json(serde_json::json!({"removed": did, "channel": channel_id})))
+        Ok(Json(
+            serde_json::json!({"removed": did, "channel": channel_id}),
+        ))
     } else {
-        Err(ApiError::not_found(format!("{did} not a member of {channel_id}")))
+        Err(ApiError::not_found(format!(
+            "{did} not a member of {channel_id}"
+        )))
     }
 }
 
@@ -312,7 +322,9 @@ pub async fn get_messages(
     {
         let channels = state.channels.read().await;
         if !channels.contains_key(&channel_id) {
-            return Err(ApiError::not_found(format!("channel {channel_id} not found")));
+            return Err(ApiError::not_found(format!(
+                "channel {channel_id} not found"
+            )));
         }
     }
 
@@ -331,7 +343,11 @@ pub async fn get_messages(
             } else {
                 iter.take(limit).collect()
             };
-            filtered.into_iter().rev().map(MessageResponse::from).collect()
+            filtered
+                .into_iter()
+                .rev()
+                .map(MessageResponse::from)
+                .collect()
         })
         .unwrap_or_default();
 
@@ -358,7 +374,9 @@ pub async fn delete_message(
             return Ok(Json(serde_json::json!({"deleted": message_id})));
         }
     }
-    Err(ApiError::not_found(format!("message {message_id} not found")))
+    Err(ApiError::not_found(format!(
+        "message {message_id} not found"
+    )))
 }
 
 #[cfg(test)]
@@ -520,20 +538,13 @@ mod tests {
         // Get messages
         let uri = format!("/api/v1/channels/{channel_id}/messages?limit=10");
         let resp = app
-            .oneshot(
-                Request::builder()
-                    .uri(&uri)
-                    .body(Body::empty())
-                    .unwrap(),
-            )
+            .oneshot(Request::builder().uri(&uri).body(Body::empty()).unwrap())
             .await
             .unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
 
-        let msgs: Vec<serde_json::Value> = serde_json::from_slice(
-            &resp.into_body().collect().await.unwrap().to_bytes(),
-        )
-        .unwrap();
+        let msgs: Vec<serde_json::Value> =
+            serde_json::from_slice(&resp.into_body().collect().await.unwrap().to_bytes()).unwrap();
         assert_eq!(msgs.len(), 1);
         assert_eq!(msgs[0]["content"], "hello bob");
     }
@@ -659,10 +670,8 @@ mod tests {
             .unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
 
-        let channels: Vec<serde_json::Value> = serde_json::from_slice(
-            &resp.into_body().collect().await.unwrap().to_bytes(),
-        )
-        .unwrap();
+        let channels: Vec<serde_json::Value> =
+            serde_json::from_slice(&resp.into_body().collect().await.unwrap().to_bytes()).unwrap();
         assert_eq!(channels.len(), 1);
         assert_eq!(channels[0]["name"], "alpha");
     }
