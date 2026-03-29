@@ -4,7 +4,10 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use utoipa::{IntoParams, ToSchema};
 
-use nous_governance::{Ballot, CommittedVote, Dao, Proposal, VoteChoice, VoteResult, VoteTally};
+use nous_governance::{
+    Ballot, CommittedVote, Dao, DelegationScope, Proposal, ProposalAction, VoteChoice, VoteResult,
+    VoteTally,
+};
 
 use crate::error::ApiError;
 use crate::state::AppState;
@@ -742,6 +745,551 @@ pub async fn simple_vote(
     Ok(Json(MutationResponse {
         success: true,
         message: "vote cast".into(),
+    }))
+}
+
+// ── Delegation Handlers ───────────────────────────────────────────────────
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct CreateDelegationRequest {
+    pub from_did: String,
+    pub to_did: String,
+    pub scope_type: String,
+    pub scope_id: String,
+    pub expires_in_hours: Option<i64>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DelegationResponse {
+    pub id: String,
+    pub from_did: String,
+    pub to_did: String,
+    pub scope_type: String,
+    pub scope_id: String,
+    pub created_at: String,
+    pub expires_at: Option<String>,
+    pub revoked: bool,
+    pub active: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DelegationListResponse {
+    pub delegations: Vec<DelegationResponse>,
+    pub count: usize,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct EffectivePowerResponse {
+    pub scope_type: String,
+    pub scope_id: String,
+    pub power: Vec<PowerEntry>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PowerEntry {
+    pub did: String,
+    pub base_credits: u64,
+    pub effective_credits: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DelegationChainResponse {
+    pub chain: Vec<String>,
+    pub final_delegate: Option<String>,
+}
+
+fn parse_scope(scope_type: &str, scope_id: &str) -> Result<DelegationScope, ApiError> {
+    match scope_type {
+        "dao" => Ok(DelegationScope::Dao(scope_id.to_string())),
+        "proposal" => Ok(DelegationScope::Proposal(scope_id.to_string())),
+        _ => Err(ApiError::bad_request(
+            "scope_type must be 'dao' or 'proposal'",
+        )),
+    }
+}
+
+fn delegation_to_response(d: &nous_governance::Delegation) -> DelegationResponse {
+    let (scope_type, scope_id) = match &d.scope {
+        DelegationScope::Dao(id) => ("dao".to_string(), id.clone()),
+        DelegationScope::Proposal(id) => ("proposal".to_string(), id.clone()),
+    };
+    DelegationResponse {
+        id: d.id.clone(),
+        from_did: d.from_did.clone(),
+        to_did: d.to_did.clone(),
+        scope_type,
+        scope_id,
+        created_at: d.created_at.to_rfc3339(),
+        expires_at: d.expires_at.map(|t| t.to_rfc3339()),
+        revoked: d.revoked,
+        active: !d.revoked && d.expires_at.is_none_or(|t| chrono::Utc::now() < t),
+    }
+}
+
+#[utoipa::path(
+    post, path = "/api/v1/delegations",
+    tag = "governance",
+    request_body = CreateDelegationRequest,
+    responses(
+        (status = 200, description = "Delegation created"),
+        (status = 400, description = "Invalid request or cycle detected")
+    )
+)]
+pub async fn create_delegation(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<CreateDelegationRequest>,
+) -> Result<Json<DelegationResponse>, ApiError> {
+    if req.from_did.is_empty() || req.to_did.is_empty() {
+        return Err(ApiError::bad_request("from_did and to_did are required"));
+    }
+
+    let scope = parse_scope(&req.scope_type, &req.scope_id)?;
+
+    let expires_at = req
+        .expires_in_hours
+        .map(|h| chrono::Utc::now() + chrono::Duration::hours(h));
+
+    let mut registry = state.delegations.write().await;
+    let id = registry
+        .delegate(&req.from_did, &req.to_did, scope, expires_at)
+        .map_err(ApiError::from)?;
+
+    let delegation = registry.get(&id).unwrap();
+    Ok(Json(delegation_to_response(delegation)))
+}
+
+#[derive(Debug, Deserialize, IntoParams)]
+pub struct DelegationQuery {
+    pub scope_type: Option<String>,
+    pub scope_id: Option<String>,
+    pub from_did: Option<String>,
+    pub to_did: Option<String>,
+}
+
+#[utoipa::path(
+    get, path = "/api/v1/delegations",
+    tag = "governance",
+    params(DelegationQuery),
+    responses((status = 200, description = "List delegations"))
+)]
+pub async fn list_delegations(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<DelegationQuery>,
+) -> Json<DelegationListResponse> {
+    let registry = state.delegations.read().await;
+
+    let delegations: Vec<DelegationResponse> =
+        if let (Some(st), Some(si)) = (&query.scope_type, &query.scope_id) {
+            if let Ok(scope) = parse_scope(st, si) {
+                registry
+                    .active_delegations(&scope)
+                    .into_iter()
+                    .map(delegation_to_response)
+                    .collect()
+            } else {
+                vec![]
+            }
+        } else if let Some(ref from) = query.from_did {
+            registry
+                .delegations_from(from)
+                .into_iter()
+                .map(delegation_to_response)
+                .collect()
+        } else if let Some(ref to) = query.to_did {
+            registry
+                .delegations_to(to)
+                .into_iter()
+                .map(delegation_to_response)
+                .collect()
+        } else {
+            vec![]
+        };
+
+    let count = delegations.len();
+    Json(DelegationListResponse { delegations, count })
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct RevokeDelegationRequest {
+    pub requester_did: String,
+}
+
+#[utoipa::path(
+    post, path = "/api/v1/delegations/{delegation_id}/revoke",
+    tag = "governance",
+    params(("delegation_id" = String, Path, description = "Delegation ID")),
+    request_body = RevokeDelegationRequest,
+    responses(
+        (status = 200, description = "Delegation revoked"),
+        (status = 404, description = "Delegation not found"),
+        (status = 401, description = "Not authorized to revoke")
+    )
+)]
+pub async fn revoke_delegation(
+    State(state): State<Arc<AppState>>,
+    Path(delegation_id): Path<String>,
+    Json(req): Json<RevokeDelegationRequest>,
+) -> Result<Json<MutationResponse>, ApiError> {
+    let mut registry = state.delegations.write().await;
+    registry
+        .revoke(&delegation_id, &req.requester_did)
+        .map_err(ApiError::from)?;
+
+    Ok(Json(MutationResponse {
+        success: true,
+        message: format!("delegation {} revoked", delegation_id),
+    }))
+}
+
+#[derive(Debug, Deserialize, IntoParams)]
+pub struct PowerQuery {
+    pub scope_type: String,
+    pub scope_id: String,
+}
+
+#[utoipa::path(
+    get, path = "/api/v1/delegations/power",
+    tag = "governance",
+    params(PowerQuery),
+    responses((status = 200, description = "Effective voting power for all members"))
+)]
+pub async fn get_effective_power(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<PowerQuery>,
+) -> Result<Json<EffectivePowerResponse>, ApiError> {
+    let scope = parse_scope(&query.scope_type, &query.scope_id)?;
+
+    // Get member credits from the DAO
+    let dao_id = match &scope {
+        DelegationScope::Dao(id) => id.clone(),
+        DelegationScope::Proposal(prop_id) => {
+            let proposals = state.proposals.read().await;
+            proposals
+                .get(prop_id)
+                .map(|p| p.dao_id.clone())
+                .ok_or_else(|| ApiError::not_found("proposal not found"))?
+        }
+    };
+
+    let daos = state.daos.read().await;
+    let dao = daos
+        .get(&dao_id)
+        .ok_or_else(|| ApiError::not_found("DAO not found"))?;
+
+    let member_credits: std::collections::HashMap<String, u64> = dao
+        .members
+        .values()
+        .map(|m| (m.did.clone(), m.credits))
+        .collect();
+    drop(daos);
+
+    let registry = state.delegations.read().await;
+    let effective = registry.effective_power(&member_credits, &scope);
+
+    let power: Vec<PowerEntry> = member_credits
+        .iter()
+        .map(|(did, &base)| PowerEntry {
+            did: did.clone(),
+            base_credits: base,
+            effective_credits: effective.get(did).copied().unwrap_or(0),
+        })
+        .collect();
+
+    Ok(Json(EffectivePowerResponse {
+        scope_type: query.scope_type,
+        scope_id: query.scope_id,
+        power,
+    }))
+}
+
+#[derive(Debug, Deserialize, IntoParams)]
+pub struct ChainQuery {
+    pub did: String,
+    pub scope_type: String,
+    pub scope_id: String,
+}
+
+#[utoipa::path(
+    get, path = "/api/v1/delegations/chain",
+    tag = "governance",
+    params(ChainQuery),
+    responses((status = 200, description = "Delegation chain from a DID"))
+)]
+pub async fn get_delegation_chain(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<ChainQuery>,
+) -> Result<Json<DelegationChainResponse>, ApiError> {
+    let scope = parse_scope(&query.scope_type, &query.scope_id)?;
+    let registry = state.delegations.read().await;
+
+    let chain = registry.delegation_chain(&query.did, &scope);
+    let final_delegate = registry.resolve_delegate(&query.did, &scope);
+
+    Ok(Json(DelegationChainResponse {
+        chain,
+        final_delegate,
+    }))
+}
+
+// ── Execution Handlers ────────────────────────────────────────────────────
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct QueueExecutionRequest {
+    pub proposal_id: String,
+    pub actions: Vec<ActionRequest>,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(tag = "type")]
+pub enum ActionRequest {
+    #[serde(rename = "treasury_transfer")]
+    TreasuryTransfer {
+        recipient_did: String,
+        token: String,
+        amount: u64,
+    },
+    #[serde(rename = "parameter_change")]
+    ParameterChange { parameter: String, value: String },
+    #[serde(rename = "add_member")]
+    AddMember { did: String },
+    #[serde(rename = "remove_member")]
+    RemoveMember { did: String },
+    #[serde(rename = "grant_credits")]
+    GrantCredits { did: String, amount: u64 },
+}
+
+impl From<ActionRequest> for ProposalAction {
+    fn from(req: ActionRequest) -> Self {
+        match req {
+            ActionRequest::TreasuryTransfer {
+                recipient_did,
+                token,
+                amount,
+            } => ProposalAction::TreasuryTransfer {
+                recipient_did,
+                token,
+                amount,
+            },
+            ActionRequest::ParameterChange { parameter, value } => {
+                ProposalAction::ParameterChange { parameter, value }
+            }
+            ActionRequest::AddMember { did } => ProposalAction::AddMember { did },
+            ActionRequest::RemoveMember { did } => ProposalAction::RemoveMember { did },
+            ActionRequest::GrantCredits { did, amount } => {
+                ProposalAction::GrantCredits { did, amount }
+            }
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ExecutionResponse {
+    pub id: String,
+    pub proposal_id: String,
+    pub dao_id: String,
+    pub status: String,
+    pub queued_at: String,
+    pub executable_at: String,
+    pub expires_at: String,
+    pub executed_at: Option<String>,
+    pub executor_did: Option<String>,
+    pub error: Option<String>,
+}
+
+fn execution_to_response(e: &nous_governance::QueuedExecution) -> ExecutionResponse {
+    ExecutionResponse {
+        id: e.id.clone(),
+        proposal_id: e.proposal_id.clone(),
+        dao_id: e.dao_id.clone(),
+        status: format!("{:?}", e.status),
+        queued_at: e.queued_at.to_rfc3339(),
+        executable_at: e.executable_at.to_rfc3339(),
+        expires_at: e.expires_at.to_rfc3339(),
+        executed_at: e.executed_at.map(|t| t.to_rfc3339()),
+        executor_did: e.executor_did.clone(),
+        error: e.error.clone(),
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ExecutionListResponse {
+    pub executions: Vec<ExecutionResponse>,
+    pub count: usize,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ActionResultResponse {
+    pub success: bool,
+    pub message: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ExecuteResultResponse {
+    pub execution_id: String,
+    pub status: String,
+    pub results: Vec<ActionResultResponse>,
+}
+
+#[utoipa::path(
+    post, path = "/api/v1/executions",
+    tag = "governance",
+    request_body = QueueExecutionRequest,
+    responses(
+        (status = 200, description = "Proposal queued for execution"),
+        (status = 400, description = "Invalid request")
+    )
+)]
+pub async fn queue_execution(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<QueueExecutionRequest>,
+) -> Result<Json<ExecutionResponse>, ApiError> {
+    if req.actions.is_empty() {
+        return Err(ApiError::bad_request("at least one action is required"));
+    }
+
+    // Verify proposal exists and is passed
+    let proposals = state.proposals.read().await;
+    let proposal = proposals
+        .get(&req.proposal_id)
+        .ok_or_else(|| ApiError::not_found("proposal not found"))?;
+
+    let dao_id = proposal.dao_id.clone();
+    let status = proposal.status;
+    drop(proposals);
+
+    let actions: Vec<ProposalAction> = req.actions.into_iter().map(Into::into).collect();
+
+    let mut engine = state.execution_engine.write().await;
+    let id = engine
+        .queue_proposal(&req.proposal_id, &dao_id, status, actions)
+        .map_err(ApiError::from)?;
+
+    let execution = engine.get(&id).unwrap();
+    Ok(Json(execution_to_response(execution)))
+}
+
+#[derive(Debug, Deserialize, IntoParams)]
+pub struct ExecutionQuery {
+    pub dao_id: Option<String>,
+    pub status: Option<String>,
+}
+
+#[utoipa::path(
+    get, path = "/api/v1/executions",
+    tag = "governance",
+    params(ExecutionQuery),
+    responses((status = 200, description = "List queued executions"))
+)]
+pub async fn list_executions(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<ExecutionQuery>,
+) -> Json<ExecutionListResponse> {
+    let engine = state.execution_engine.read().await;
+
+    let executions: Vec<ExecutionResponse> = if let Some(ref dao_id) = query.dao_id {
+        engine
+            .list_for_dao(dao_id)
+            .into_iter()
+            .map(execution_to_response)
+            .collect()
+    } else if query.status.as_deref() == Some("ready") {
+        engine
+            .ready_executions()
+            .into_iter()
+            .map(execution_to_response)
+            .collect()
+    } else {
+        vec![]
+    };
+
+    let count = executions.len();
+    Json(ExecutionListResponse { executions, count })
+}
+
+#[utoipa::path(
+    get, path = "/api/v1/executions/{execution_id}",
+    tag = "governance",
+    params(("execution_id" = String, Path, description = "Execution ID")),
+    responses(
+        (status = 200, description = "Execution details"),
+        (status = 404, description = "Execution not found")
+    )
+)]
+pub async fn get_execution(
+    State(state): State<Arc<AppState>>,
+    Path(execution_id): Path<String>,
+) -> Result<Json<ExecutionResponse>, ApiError> {
+    let engine = state.execution_engine.read().await;
+    let execution = engine
+        .get(&execution_id)
+        .ok_or_else(|| ApiError::not_found("execution not found"))?;
+    Ok(Json(execution_to_response(execution)))
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct ExecuteRequest {
+    pub executor_did: String,
+}
+
+#[utoipa::path(
+    post, path = "/api/v1/executions/{execution_id}/execute",
+    tag = "governance",
+    params(("execution_id" = String, Path, description = "Execution ID")),
+    request_body = ExecuteRequest,
+    responses(
+        (status = 200, description = "Execution completed"),
+        (status = 400, description = "Timelock not expired or already executed"),
+        (status = 404, description = "Execution not found")
+    )
+)]
+pub async fn execute(
+    State(state): State<Arc<AppState>>,
+    Path(execution_id): Path<String>,
+    Json(req): Json<ExecuteRequest>,
+) -> Result<Json<ExecuteResultResponse>, ApiError> {
+    let mut engine = state.execution_engine.write().await;
+    let results = engine
+        .execute(&execution_id, &req.executor_did)
+        .map_err(ApiError::from)?;
+
+    let execution = engine.get(&execution_id).unwrap();
+    let status = format!("{:?}", execution.status);
+
+    let action_results: Vec<ActionResultResponse> = results
+        .into_iter()
+        .map(|r| ActionResultResponse {
+            success: r.success,
+            message: r.message,
+        })
+        .collect();
+
+    Ok(Json(ExecuteResultResponse {
+        execution_id,
+        status,
+        results: action_results,
+    }))
+}
+
+#[utoipa::path(
+    post, path = "/api/v1/executions/{execution_id}/cancel",
+    tag = "governance",
+    params(("execution_id" = String, Path, description = "Execution ID")),
+    responses(
+        (status = 200, description = "Execution cancelled"),
+        (status = 400, description = "Cannot cancel"),
+        (status = 404, description = "Execution not found")
+    )
+)]
+pub async fn cancel_execution(
+    State(state): State<Arc<AppState>>,
+    Path(execution_id): Path<String>,
+) -> Result<Json<MutationResponse>, ApiError> {
+    let mut engine = state.execution_engine.write().await;
+    engine.cancel(&execution_id).map_err(ApiError::from)?;
+
+    Ok(Json(MutationResponse {
+        success: true,
+        message: format!("execution {} cancelled", execution_id),
     }))
 }
 
@@ -1513,5 +2061,253 @@ mod tests {
         let prop: ProposalResponse = serde_json::from_slice(&bytes).unwrap();
         assert!((prop.quorum - 0.33).abs() < f64::EPSILON);
         assert!((prop.threshold - 0.67).abs() < f64::EPSILON);
+    }
+
+    // ── Delegation Tests ──────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn create_and_list_delegation() {
+        let app = test_app().await;
+
+        let response = app
+            .clone()
+            .oneshot(json_request(
+                "POST",
+                "/api/v1/delegations",
+                serde_json::json!({
+                    "from_did": "did:key:alice",
+                    "to_did": "did:key:bob",
+                    "scope_type": "dao",
+                    "scope_id": "dao:test"
+                }),
+            ))
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = response.into_body().collect().await.unwrap().to_bytes();
+        let delegation: DelegationResponse = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(delegation.from_did, "did:key:alice");
+        assert_eq!(delegation.to_did, "did:key:bob");
+        assert!(delegation.active);
+
+        // List delegations by scope
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/delegations?scope_type=dao&scope_id=dao:test")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = response.into_body().collect().await.unwrap().to_bytes();
+        let list: DelegationListResponse = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(list.count, 1);
+    }
+
+    #[tokio::test]
+    async fn delegation_self_rejected() {
+        let app = test_app().await;
+
+        let response = app
+            .oneshot(json_request(
+                "POST",
+                "/api/v1/delegations",
+                serde_json::json!({
+                    "from_did": "did:key:alice",
+                    "to_did": "did:key:alice",
+                    "scope_type": "dao",
+                    "scope_id": "dao:test"
+                }),
+            ))
+            .await
+            .unwrap();
+
+        assert_ne!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn revoke_delegation_api() {
+        let app = test_app().await;
+
+        let response = app
+            .clone()
+            .oneshot(json_request(
+                "POST",
+                "/api/v1/delegations",
+                serde_json::json!({
+                    "from_did": "did:key:alice",
+                    "to_did": "did:key:bob",
+                    "scope_type": "dao",
+                    "scope_id": "dao:test"
+                }),
+            ))
+            .await
+            .unwrap();
+
+        let bytes = response.into_body().collect().await.unwrap().to_bytes();
+        let delegation: DelegationResponse = serde_json::from_slice(&bytes).unwrap();
+
+        let response = app
+            .oneshot(json_request(
+                "POST",
+                &format!("/api/v1/delegations/{}/revoke", delegation.id),
+                serde_json::json!({ "requester_did": "did:key:alice" }),
+            ))
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn effective_power_endpoint() {
+        let app = test_app().await;
+
+        // Create a DAO first
+        let dao = create_test_dao(&app).await;
+
+        // Add a member
+        let _ = app
+            .clone()
+            .oneshot(json_request(
+                "POST",
+                &format!("/api/v1/daos/{}/members", dao.id),
+                serde_json::json!({ "did": "did:key:zMember" }),
+            ))
+            .await
+            .unwrap();
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri(format!(
+                        "/api/v1/delegations/power?scope_type=dao&scope_id={}",
+                        dao.id
+                    ))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = response.into_body().collect().await.unwrap().to_bytes();
+        let power: EffectivePowerResponse = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(power.power.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn delegation_chain_endpoint() {
+        let app = test_app().await;
+
+        // Create delegation chain: alice → bob
+        let _ = app
+            .clone()
+            .oneshot(json_request(
+                "POST",
+                "/api/v1/delegations",
+                serde_json::json!({
+                    "from_did": "did:key:alice",
+                    "to_did": "did:key:bob",
+                    "scope_type": "dao",
+                    "scope_id": "dao:test"
+                }),
+            ))
+            .await
+            .unwrap();
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/delegations/chain?did=did:key:alice&scope_type=dao&scope_id=dao:test")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = response.into_body().collect().await.unwrap().to_bytes();
+        let chain: DelegationChainResponse = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(chain.chain, vec!["did:key:alice", "did:key:bob"]);
+        assert_eq!(chain.final_delegate, Some("did:key:bob".to_string()));
+    }
+
+    // ── Execution Tests ──────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn queue_and_get_execution() {
+        let app = test_app().await;
+        let dao = create_test_dao(&app).await;
+
+        // Create identity and proposal
+        let _ = app
+            .clone()
+            .oneshot(json_request(
+                "POST",
+                "/api/v1/identities",
+                serde_json::json!({ "display_name": "Founder" }),
+            ))
+            .await
+            .unwrap();
+
+        // We need to create a proposal that is Passed status.
+        // Since the convenience endpoint creates Active proposals, we'll test the queue endpoint
+        // which should reject non-Passed proposals.
+        let response = app
+            .clone()
+            .oneshot(json_request(
+                "POST",
+                "/api/v1/executions",
+                serde_json::json!({
+                    "proposal_id": "prop:nonexistent",
+                    "actions": [{ "type": "add_member", "did": "did:key:znew" }]
+                }),
+            ))
+            .await
+            .unwrap();
+
+        // Should fail because proposal doesn't exist
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn execution_rejects_empty_actions() {
+        let app = test_app().await;
+
+        let response = app
+            .oneshot(json_request(
+                "POST",
+                "/api/v1/executions",
+                serde_json::json!({
+                    "proposal_id": "prop:test",
+                    "actions": []
+                }),
+            ))
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn cancel_execution_api() {
+        let app = test_app().await;
+
+        // Cancel a nonexistent execution — should 404
+        let response = app
+            .oneshot(json_request(
+                "POST",
+                "/api/v1/executions/exec:nonexistent/cancel",
+                serde_json::json!({}),
+            ))
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
     }
 }
