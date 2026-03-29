@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nous</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <nav id="sidebar">
+      <div class="sidebar-header">
+        <h1 class="logo">nous</h1>
+        <span class="version" id="version">v0.1.0</span>
+      </div>
+      <ul class="nav-items">
+        <li class="nav-item active" data-view="dashboard">Dashboard</li>
+        <li class="nav-item" data-view="social">Social</li>
+        <li class="nav-item" data-view="messages">Messages</li>
+        <li class="nav-item" data-view="governance">Governance</li>
+        <li class="nav-item" data-view="wallet">Wallet</li>
+        <li class="nav-item" data-view="identity">Identity</li>
+        <li class="nav-item" data-view="files">Files</li>
+      </ul>
+      <div class="sidebar-footer">
+        <div class="status-indicator">
+          <span class="dot"></span>
+          <span class="status-text">Online</span>
+        </div>
+      </div>
+    </nav>
+
+    <main id="content">
+      <!-- Dashboard View -->
+      <section id="view-dashboard" class="view active">
+        <div class="view-header">
+          <h2>Dashboard</h2>
+          <p class="subtitle">Sovereign protocol overview</p>
+        </div>
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-card">
+            <span class="stat-label">Identity</span>
+            <span class="stat-value" id="stat-did">Loading...</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Peers</span>
+            <span class="stat-value" id="stat-peers">0</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Uptime</span>
+            <span class="stat-value" id="stat-uptime">0s</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Version</span>
+            <span class="stat-value" id="stat-version">—</span>
+          </div>
+        </div>
+        <div class="modules-section">
+          <h3>Protocol Modules</h3>
+          <div class="modules-grid" id="modules-grid"></div>
+        </div>
+      </section>
+
+      <!-- Social View -->
+      <section id="view-social" class="view">
+        <div class="view-header">
+          <h2>Social</h2>
+          <p class="subtitle">Decentralized feed</p>
+        </div>
+        <div class="composer">
+          <textarea placeholder="What's on your mind?" rows="3"></textarea>
+          <button class="btn-primary">Post</button>
+        </div>
+        <div class="feed" id="feed">
+          <p class="empty-state">No posts yet. Be the first to post on the sovereign web.</p>
+        </div>
+      </section>
+
+      <!-- Messages View -->
+      <section id="view-messages" class="view">
+        <div class="view-header">
+          <h2>Messages</h2>
+          <p class="subtitle">End-to-end encrypted</p>
+        </div>
+        <div class="messages-layout">
+          <div class="conversations-list">
+            <p class="empty-state">No conversations yet.</p>
+          </div>
+          <div class="chat-area">
+            <p class="empty-state centered">Select a conversation to begin.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Governance View -->
+      <section id="view-governance" class="view">
+        <div class="view-header">
+          <h2>Governance</h2>
+          <p class="subtitle">Quadratic voting &amp; proposals</p>
+        </div>
+        <div class="proposals-list" id="proposals">
+          <p class="empty-state">No active proposals.</p>
+        </div>
+      </section>
+
+      <!-- Wallet View -->
+      <section id="view-wallet" class="view">
+        <div class="view-header">
+          <h2>Wallet</h2>
+          <p class="subtitle">Multi-chain, escrow-backed</p>
+        </div>
+        <div class="balances-grid" id="balances-grid"></div>
+        <div class="wallet-actions">
+          <button class="btn-outline">Send</button>
+          <button class="btn-outline">Receive</button>
+          <button class="btn-outline">Swap</button>
+        </div>
+      </section>
+
+      <!-- Identity View -->
+      <section id="view-identity" class="view">
+        <div class="view-header">
+          <h2>Identity</h2>
+          <p class="subtitle">Self-sovereign, DID:key</p>
+        </div>
+        <div class="identity-card" id="identity-card">
+          <div class="did-display">
+            <span class="label">Your DID</span>
+            <code id="identity-did">Loading...</code>
+          </div>
+          <div class="keys-section" id="keys-section"></div>
+        </div>
+      </section>
+
+      <!-- Files View -->
+      <section id="view-files" class="view">
+        <div class="view-header">
+          <h2>Files</h2>
+          <p class="subtitle">Encrypted, content-addressed storage</p>
+        </div>
+        <div class="files-toolbar">
+          <button class="btn-primary">Upload</button>
+          <button class="btn-outline">New Vault</button>
+        </div>
+        <div class="files-list" id="files-list">
+          <p class="empty-state">No files stored. Upload a file or create an encrypted vault.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
