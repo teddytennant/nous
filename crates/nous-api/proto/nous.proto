@@ -24,6 +24,25 @@ service IdentityService {
   rpc ResolveDocument(ResolveDocumentRequest) returns (ResolveDocumentResponse);
 }
 
+// Governance operations
+service GovernanceService {
+  rpc CreateDao(CreateDaoRequest) returns (DaoMessage);
+  rpc GetDao(GetDaoRequest) returns (DaoMessage);
+  rpc ListDaos(ListDaosRequest) returns (ListDaosResponse);
+  rpc ListProposals(ListProposalsRequest) returns (ListProposalsResponse);
+  rpc GetProposal(GetProposalRequest) returns (ProposalMessage);
+  rpc GetTally(GetTallyRequest) returns (VoteResultMessage);
+}
+
+// Marketplace operations
+service MarketplaceService {
+  rpc CreateListing(CreateListingRequest) returns (ListingMessage);
+  rpc GetListing(GetListingRequest) returns (ListingMessage);
+  rpc SearchListings(SearchListingsRequest) returns (SearchListingsResponse);
+  rpc CreateReview(CreateReviewRequest) returns (CreateReviewResponse);
+  rpc GetSellerRating(GetSellerRatingRequest) returns (SellerRatingMessage);
+}
+
 // ---- Messages ----
 
 message HealthRequest {}
@@ -111,4 +130,134 @@ message EventMessage {
   string content = 5;
   repeated string hashtags = 6;
   repeated string referenced_events = 7;
+}
+
+// ---- Governance Messages ----
+
+message CreateDaoRequest {
+  string founder_did = 1;
+  string name = 2;
+  string description = 3;
+}
+
+message GetDaoRequest {
+  string dao_id = 1;
+}
+
+message ListDaosRequest {}
+
+message ListDaosResponse {
+  repeated DaoMessage daos = 1;
+}
+
+message DaoMessage {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string founder_did = 4;
+  uint32 member_count = 5;
+  string created_at = 6;
+}
+
+message ListProposalsRequest {
+  string dao_id = 1;
+  uint32 limit = 2;
+}
+
+message ListProposalsResponse {
+  repeated ProposalMessage proposals = 1;
+}
+
+message GetProposalRequest {
+  string proposal_id = 1;
+}
+
+message ProposalMessage {
+  string id = 1;
+  string dao_id = 2;
+  string title = 3;
+  string description = 4;
+  string proposer_did = 5;
+  string status = 6;
+  string voting_starts = 7;
+  string voting_ends = 8;
+  string created_at = 9;
+}
+
+message GetTallyRequest {
+  string proposal_id = 1;
+}
+
+message VoteResultMessage {
+  string proposal_id = 1;
+  uint64 votes_for = 2;
+  uint64 votes_against = 3;
+  uint64 votes_abstain = 4;
+  uint32 total_voters = 5;
+  bool passed = 6;
+}
+
+// ---- Marketplace Messages ----
+
+message CreateListingRequest {
+  string seller_did = 1;
+  string title = 2;
+  string description = 3;
+  string category = 4;
+  string price_token = 5;
+  string price_amount = 6;
+  repeated string tags = 7;
+}
+
+message GetListingRequest {
+  string listing_id = 1;
+}
+
+message ListingMessage {
+  string id = 1;
+  string seller_did = 2;
+  string title = 3;
+  string description = 4;
+  string category = 5;
+  string price_token = 6;
+  string price_amount = 7;
+  string status = 8;
+  repeated string tags = 9;
+  string created_at = 10;
+}
+
+message SearchListingsRequest {
+  string query = 1;
+  string category = 2;
+  uint32 limit = 3;
+}
+
+message SearchListingsResponse {
+  repeated ListingMessage listings = 1;
+  uint32 count = 2;
+}
+
+message CreateReviewRequest {
+  string listing_id = 1;
+  string reviewer_did = 2;
+  string seller_did = 3;
+  uint32 rating = 4;
+  string comment = 5;
+}
+
+message CreateReviewResponse {
+  bool success = 1;
+  string review_id = 2;
+}
+
+message GetSellerRatingRequest {
+  string seller_did = 1;
+}
+
+message SellerRatingMessage {
+  string seller_did = 1;
+  uint32 total_reviews = 2;
+  double average_rating = 3;
+  uint32 verified_reviews = 4;
+  bool trusted = 5;
 }
