@@ -57,6 +57,10 @@ pub enum Command {
     #[command(subcommand)]
     Marketplace(MarketplaceCommand),
 
+    /// AI and knowledge base
+    #[command(subcommand)]
+    Ai(AiCommand),
+
     /// Node information
     Status,
 
@@ -397,6 +401,58 @@ pub enum MarketplaceCommand {
     Cancel {
         /// Listing ID to cancel
         id: String,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum AiCommand {
+    /// Send a message to the AI
+    Chat {
+        /// Message to send
+        message: String,
+        /// Model to use
+        #[arg(short, long, default_value = "nous-local")]
+        model: String,
+        /// Temperature (0.0 to 2.0)
+        #[arg(short, long, default_value = "0.7")]
+        temperature: f32,
+    },
+    /// Search the knowledge base
+    Search {
+        /// Query text
+        query: String,
+        /// Maximum results
+        #[arg(short, long, default_value = "5")]
+        limit: usize,
+    },
+    /// Index a document into the knowledge base
+    Index {
+        /// Path to document file
+        path: String,
+        /// Document title
+        #[arg(short, long)]
+        title: Option<String>,
+        /// Source identifier
+        #[arg(short, long, default_value = "cli")]
+        source: String,
+    },
+    /// List documents in the knowledge base
+    Documents {
+        /// Maximum results
+        #[arg(short, long, default_value = "20")]
+        limit: usize,
+    },
+    /// List available agents
+    Agents,
+    /// Run an agent with a task
+    Run {
+        /// Agent ID
+        agent_id: String,
+        /// Task description
+        task: String,
+        /// Maximum execution steps
+        #[arg(long, default_value = "10")]
+        max_steps: usize,
     },
 }
 
@@ -981,6 +1037,127 @@ mod tests {
             assert_eq!(id, "listing:abc");
         } else {
             panic!("expected marketplace cancel");
+        }
+    }
+
+    #[test]
+    fn parse_ai_chat() {
+        let cli = Cli::parse_from(["nous", "ai", "chat", "What is Nous?"]);
+        if let Command::Ai(AiCommand::Chat {
+            message,
+            model,
+            temperature,
+        }) = cli.command
+        {
+            assert_eq!(message, "What is Nous?");
+            assert_eq!(model, "nous-local");
+            assert_eq!(temperature, 0.7);
+        } else {
+            panic!("expected ai chat");
+        }
+    }
+
+    #[test]
+    fn parse_ai_chat_with_model() {
+        let cli = Cli::parse_from([
+            "nous",
+            "ai",
+            "chat",
+            "Hello",
+            "-m",
+            "claude-sonnet-4-20250514",
+            "-t",
+            "0.3",
+        ]);
+        if let Command::Ai(AiCommand::Chat {
+            message,
+            model,
+            temperature,
+        }) = cli.command
+        {
+            assert_eq!(message, "Hello");
+            assert_eq!(model, "claude-sonnet-4-20250514");
+            assert_eq!(temperature, 0.3);
+        } else {
+            panic!("expected ai chat");
+        }
+    }
+
+    #[test]
+    fn parse_ai_search() {
+        let cli = Cli::parse_from(["nous", "ai", "search", "governance voting", "-l", "10"]);
+        if let Command::Ai(AiCommand::Search { query, limit }) = cli.command {
+            assert_eq!(query, "governance voting");
+            assert_eq!(limit, 10);
+        } else {
+            panic!("expected ai search");
+        }
+    }
+
+    #[test]
+    fn parse_ai_index() {
+        let cli = Cli::parse_from([
+            "nous",
+            "ai",
+            "index",
+            "/tmp/whitepaper.md",
+            "-t",
+            "Nous Whitepaper",
+            "-s",
+            "docs",
+        ]);
+        if let Command::Ai(AiCommand::Index {
+            path,
+            title,
+            source,
+        }) = cli.command
+        {
+            assert_eq!(path, "/tmp/whitepaper.md");
+            assert_eq!(title, Some("Nous Whitepaper".to_string()));
+            assert_eq!(source, "docs");
+        } else {
+            panic!("expected ai index");
+        }
+    }
+
+    #[test]
+    fn parse_ai_documents() {
+        let cli = Cli::parse_from(["nous", "ai", "documents"]);
+        if let Command::Ai(AiCommand::Documents { limit }) = cli.command {
+            assert_eq!(limit, 20);
+        } else {
+            panic!("expected ai documents");
+        }
+    }
+
+    #[test]
+    fn parse_ai_agents() {
+        let cli = Cli::parse_from(["nous", "ai", "agents"]);
+        assert!(matches!(cli.command, Command::Ai(AiCommand::Agents)));
+    }
+
+    #[test]
+    fn parse_ai_run() {
+        let cli = Cli::parse_from([
+            "nous",
+            "ai",
+            "run",
+            "researcher",
+            "Summarize recent governance proposals",
+            "--max-steps",
+            "5",
+        ]);
+        if let Command::Ai(AiCommand::Run {
+            agent_id,
+            task,
+            max_steps,
+        }) = cli.command
+        {
+            assert_eq!(agent_id, "researcher");
+            assert_eq!(task, "Summarize recent governance proposals");
+            assert_eq!(max_steps, 5);
+        } else {
+            panic!("expected ai run");
         }
     }
 }
