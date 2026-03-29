@@ -2844,6 +2844,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "nous-integration"
+version = "0.1.0"
+dependencies = [
+ "curve25519-dalek",
+ "nous-core",
+ "nous-crypto",
+ "nous-governance",
+ "nous-identity",
+ "nous-messaging",
+ "nous-social",
+ "nous-storage",
+ "rand 0.8.5",
+ "tempfile",
+ "x25519-dalek",
+]
+
+[[package]]
 name = "nous-marketplace"
 version = "0.1.0"
 dependencies = [
