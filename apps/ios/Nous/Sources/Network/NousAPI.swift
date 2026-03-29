@@ -46,6 +46,93 @@ struct WalletResponse: Codable {
     }
 }
 
+struct TransactionResponse: Codable, Identifiable {
+    let id: String
+    let fromDid: String
+    let toDid: String
+    let token: String
+    let amount: String
+    let fee: String
+    let memo: String?
+    let status: String
+    let timestamp: String
+
+    enum CodingKeys: String, CodingKey {
+        case id, token, amount, fee, memo, status, timestamp
+        case fromDid = "from_did"
+        case toDid = "to_did"
+    }
+}
+
+struct TransferRequest: Codable {
+    let fromDid: String
+    let toDid: String
+    let token: String
+    let amount: Int
+    let memo: String?
+
+    enum CodingKeys: String, CodingKey {
+        case token, amount, memo
+        case fromDid = "from_did"
+        case toDid = "to_did"
+    }
+}
+
+struct ChannelResponse: Codable, Identifiable {
+    let id: String
+    let kind: String
+    let name: String?
+    let members: [String]
+    let createdAt: String
+
+    enum CodingKeys: String, CodingKey {
+        case id, kind, name, members
+        case createdAt = "created_at"
+    }
+}
+
+struct MessageResponse: Codable, Identifiable {
+    let id: String
+    let channelId: String
+    let sender: String
+    let content: String
+    let replyTo: String?
+    let timestamp: String
+
+    enum CodingKeys: String, CodingKey {
+        case id, sender, content, timestamp
+        case channelId = "channel_id"
+        case replyTo = "reply_to"
+    }
+}
+
+struct SendMessageRequest: Codable {
+    let channelId: String
+    let senderDid: String
+    let content: String
+    let replyTo: String?
+
+    enum CodingKeys: String, CodingKey {
+        case content
+        case channelId = "channel_id"
+        case senderDid = "sender_did"
+        case replyTo = "reply_to"
+    }
+}
+
+struct CreatePostRequest: Codable {
+    let authorDid: String
+    let content: String
+    let replyTo: String?
+    let hashtags: [String]?
+
+    enum CodingKeys: String, CodingKey {
+        case content, hashtags
+        case authorDid = "author_did"
+        case replyTo = "reply_to"
+    }
+}
+
 struct FeedEvent: Codable, Identifiable {
     let id: String
     let pubkey: String
@@ -149,9 +236,13 @@ final class NousAPI: @unchecked Sendable {
         return try decoder.decode(T.self, from: data)
     }
 
+    // MARK: - Health
+
     func health() async throws -> HealthResponse {
         try await get("/health")
     }
+
+    // MARK: - Identity
 
     func createIdentity(displayName: String? = nil) async throws -> IdentityResponse {
         struct Req: Encodable {
@@ -164,13 +255,45 @@ final class NousAPI: @unchecked Sendable {
         try await get("/identities/\(did)")
     }
 
+    // MARK: - Wallet & Payments
+
     func getWallet(did: String) async throws -> WalletResponse {
         try await get("/wallets/\(did)")
     }
 
+    func getTransactions(did: String, limit: Int = 50) async throws -> [TransactionResponse] {
+        try await get("/wallets/\(did)/transactions?limit=\(limit)")
+    }
+
+    func createTransfer(request: TransferRequest) async throws -> TransactionResponse {
+        try await post("/transfers", body: request)
+    }
+
+    // MARK: - Social Feed
+
     func getFeed(limit: Int = 20) async throws -> FeedResponse {
         try await get("/feed?limit=\(limit)")
     }
+
+    func createPost(request: CreatePostRequest) async throws -> FeedEvent {
+        try await post("/events", body: request)
+    }
+
+    // MARK: - Messaging
+
+    func listChannels(did: String) async throws -> [ChannelResponse] {
+        try await get("/channels?did=\(did)")
+    }
+
+    func getChannelMessages(channelId: String, limit: Int = 50) async throws -> [MessageResponse] {
+        try await get("/channels/\(channelId)/messages?limit=\(limit)")
+    }
+
+    func sendMessage(request: SendMessageRequest) async throws -> MessageResponse {
+        try await post("/messages", body: request)
+    }
+
+    // MARK: - Governance
 
     func listDaos() async throws -> DaoListResponse {
         try await get("/daos")
