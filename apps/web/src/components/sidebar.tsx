@@ -10,6 +10,7 @@ const nav = [
   { name: "Messages", href: "/messages" },
   { name: "Governance", href: "/governance" },
   { name: "Marketplace", href: "/marketplace" },
+  { name: "Files", href: "/files" },
   { name: "Wallet", href: "/wallet" },
   { name: "Identity", href: "/identity" },
   { name: "Settings", href: "/settings" },
