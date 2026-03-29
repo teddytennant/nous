@@ -6,11 +6,11 @@
 use std::sync::Arc;
 
 use async_graphql::{Context, EmptySubscription, InputObject, Object, Schema, SimpleObject};
-use axum::extract::State;
 use axum::Json;
+use axum::extract::State;
 
-use nous_governance::{Dao, Proposal, VoteTally};
-use nous_marketplace::{Listing, ListingCategory, ListingStatus, Review, SellerRating};
+use nous_governance::{Dao, Proposal};
+use nous_marketplace::{Listing, ListingCategory, Review, SellerRating};
 use nous_social::{EventKind, PostBuilder, SignedEvent};
 
 use crate::state::AppState;
@@ -367,11 +367,7 @@ impl QueryRoot {
         Ok(daos.values().map(DaoNode::from_dao).collect())
     }
 
-    async fn dao(
-        &self,
-        ctx: &Context<'_>,
-        id: String,
-    ) -> async_graphql::Result<Option<DaoNode>> {
+    async fn dao(&self, ctx: &Context<'_>, id: String) -> async_graphql::Result<Option<DaoNode>> {
         let state = ctx.data::<Arc<AppState>>()?;
         let daos = state.daos.read().await;
         Ok(daos.get(&id).map(DaoNode::from_dao))
@@ -443,12 +439,10 @@ impl QueryRoot {
         let result: Vec<ListingNode> = listings
             .values()
             .filter(|l| {
-                let text_match = search
+                let text_match = search.as_ref().is_none_or(|q| l.matches_search(q));
+                let cat_match = category
                     .as_ref()
-                    .is_none_or(|q| l.matches_search(q));
-                let cat_match = category.as_ref().is_none_or(|c| {
-                    format!("{:?}", l.category).to_lowercase() == c.to_lowercase()
-                });
+                    .is_none_or(|c| format!("{:?}", l.category).to_lowercase() == c.to_lowercase());
                 text_match && cat_match
             })
             .take(limit)
@@ -852,9 +846,7 @@ mod tests {
 
         // Alice's timeline
         let res = schema
-            .execute(
-                r#"{ timeline(did: "did:key:alice") { events { content } count } }"#,
-            )
+            .execute(r#"{ timeline(did: "did:key:alice") { events { content } count } }"#)
             .await;
         assert!(res.errors.is_empty());
         let data = res.data.into_json().unwrap();
@@ -878,9 +870,7 @@ mod tests {
             .await;
 
         let res = schema
-            .execute(
-                r#"{ followInfo(did: "did:key:bob") { followingCount followerCount } }"#,
-            )
+            .execute(r#"{ followInfo(did: "did:key:bob") { followingCount followerCount } }"#)
             .await;
         assert!(res.errors.is_empty());
         let data = res.data.into_json().unwrap();
@@ -934,9 +924,7 @@ mod tests {
     #[tokio::test]
     async fn schema_introspection() {
         let schema = test_schema();
-        let res = schema
-            .execute("{ __schema { queryType { name } } }")
-            .await;
+        let res = schema.execute("{ __schema { queryType { name } } }").await;
         assert!(res.errors.is_empty());
         let data = res.data.into_json().unwrap();
         assert_eq!(data["__schema"]["queryType"]["name"], "QueryRoot");
@@ -981,9 +969,7 @@ mod tests {
             )
             .await;
 
-        let res = schema
-            .execute("{ daos { id name founder } }")
-            .await;
+        let res = schema.execute("{ daos { id name founder } }").await;
         assert!(res.errors.is_empty());
         let data = res.data.into_json().unwrap();
         assert_eq!(data["daos"].as_array().unwrap().len(), 1);
@@ -1022,9 +1008,7 @@ mod tests {
     #[tokio::test]
     async fn empty_proposals_query() {
         let schema = test_schema();
-        let res = schema
-            .execute("{ proposals { id title status } }")
-            .await;
+        let res = schema.execute("{ proposals { id title status } }").await;
         assert!(res.errors.is_empty());
         let data = res.data.into_json().unwrap();
         assert!(data["proposals"].as_array().unwrap().is_empty());
