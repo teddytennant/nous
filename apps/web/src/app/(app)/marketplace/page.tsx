@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, startTransition } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { marketplace, type ListingResponse } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -52,7 +52,9 @@ export default function MarketplacePage() {
   }, [search, category]);
 
   useEffect(() => {
-    fetchListings();
+    startTransition(() => {
+      fetchListings();
+    });
   }, [fetchListings]);
 
   async function createListing() {
