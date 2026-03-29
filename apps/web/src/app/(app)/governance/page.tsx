@@ -6,14 +6,17 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   governance,
+  delegation as delegationApi,
   identity,
   type DaoResponse,
   type DaoDetailResponse,
   type ProposalResponse,
   type VoteResultResponse,
+  type DelegationResponse,
+  type PowerEntry,
 } from "@/lib/api";
 
-type Tab = "proposals" | "daos";
+type Tab = "proposals" | "daos" | "delegation";
 
 export default function GovernancePage() {
   const [tab, setTab] = useState<Tab>("proposals");
@@ -39,6 +42,13 @@ export default function GovernancePage() {
   const [propDesc, setPropDesc] = useState("");
   const [propDaoId, setPropDaoId] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // Delegation state
+  const [delegations, setDelegations] = useState<DelegationResponse[]>([]);
+  const [showDelegateForm, setShowDelegateForm] = useState(false);
+  const [delegateTo, setDelegateTo] = useState("");
+  const [delegateScope, setDelegateScope] = useState("");
+  const [powerMap, setPowerMap] = useState<PowerEntry[]>([]);
 
   useEffect(() => {
     const stored = localStorage.getItem("nous_did");
@@ -153,6 +163,60 @@ export default function GovernancePage() {
     }
   }
 
+  const loadDelegations = useCallback(async () => {
+    if (!userDid) return;
+    try {
+      const data = await delegationApi.list({ from_did: userDid });
+      setDelegations(data.delegations);
+    } catch {
+      // Ignore
+    }
+  }, [userDid]);
+
+  const loadPower = useCallback(
+    async (daoId: string) => {
+      try {
+        const data = await delegationApi.power("dao", daoId);
+        setPowerMap(data.power);
+      } catch {
+        // Ignore
+      }
+    },
+    []
+  );
+
+  async function handleDelegate() {
+    if (!delegateTo.trim() || !delegateScope) return;
+    setSubmitting(true);
+    try {
+      const did = await ensureIdentity();
+      await delegationApi.create({
+        from_did: did,
+        to_did: delegateTo.trim(),
+        scope_type: "dao",
+        scope_id: delegateScope,
+      });
+      setDelegateTo("");
+      setShowDelegateForm(false);
+      await loadDelegations();
+      await loadPower(delegateScope);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to delegate");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleRevoke(delegationId: string) {
+    try {
+      const did = await ensureIdentity();
+      await delegationApi.revoke(delegationId, did);
+      await loadDelegations();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to revoke");
+    }
+  }
+
   function formatDeadline(votingEnds: string): string {
     const end = new Date(votingEnds);
     const now = new Date();
@@ -197,7 +261,7 @@ export default function GovernancePage() {
 
       {/* Tabs */}
       <div className="flex gap-6 mb-10 border-b border-white/[0.06] pb-3">
-        {(["proposals", "daos"] as Tab[]).map((t) => (
+        {(["proposals", "daos", "delegation"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => {
@@ -536,6 +600,174 @@ export default function GovernancePage() {
                   </CardContent>
                 </Card>
               ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* ── Delegation Tab ──────────────────────────────────────── */}
+      {tab === "delegation" && (
+        <section>
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-sm font-mono uppercase tracking-[0.2em] text-neutral-400">
+              Vote Delegation
+            </h2>
+            <Button
+              onClick={() => {
+                setShowDelegateForm((v) => !v);
+                loadDelegations();
+              }}
+              className="text-xs"
+            >
+              {showDelegateForm ? "Cancel" : "Delegate"}
+            </Button>
+          </div>
+
+          {showDelegateForm && (
+            <Card className="bg-white/[0.02] border-white/[0.06] mb-8">
+              <CardContent className="p-6 space-y-4">
+                <p className="text-xs text-neutral-500 font-light mb-4">
+                  Delegate your voting power to another member. They will vote
+                  on your behalf with your credits.
+                </p>
+                <div>
+                  <label className="block text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-600 mb-1.5">
+                    Delegate to (DID)
+                  </label>
+                  <input
+                    value={delegateTo}
+                    onChange={(e) => setDelegateTo(e.target.value)}
+                    placeholder="did:key:z..."
+                    className="w-full bg-white/[0.03] border border-white/[0.06] px-3 py-2 text-sm font-mono placeholder:text-neutral-700 focus:border-[#d4af37]/40 focus:outline-none transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-600 mb-1.5">
+                    DAO Scope
+                  </label>
+                  <select
+                    value={delegateScope}
+                    onChange={(e) => {
+                      setDelegateScope(e.target.value);
+                      if (e.target.value) loadPower(e.target.value);
+                    }}
+                    className="w-full bg-white/[0.03] border border-white/[0.06] px-3 py-2 text-sm font-mono focus:border-[#d4af37]/40 focus:outline-none transition-colors"
+                  >
+                    <option value="">Select DAO...</option>
+                    {daos.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <Button
+                  onClick={handleDelegate}
+                  disabled={submitting || !delegateTo.trim() || !delegateScope}
+                  className="text-xs"
+                >
+                  {submitting ? "Delegating..." : "Confirm Delegation"}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Active Delegations */}
+          <div className="mb-10">
+            <h3 className="text-xs font-mono uppercase tracking-[0.15em] text-neutral-600 mb-4">
+              Your Delegations
+            </h3>
+            {delegations.length === 0 ? (
+              <p className="text-xs text-neutral-600 font-light">
+                No active delegations.{" "}
+                {!userDid && "Connect an identity to view delegations."}
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {delegations.map((d) => (
+                  <Card
+                    key={d.id}
+                    className="bg-white/[0.02] border-white/[0.06]"
+                  >
+                    <CardContent className="p-4 flex items-center justify-between">
+                      <div className="space-y-1">
+                        <p className="text-sm font-mono">
+                          <span className="text-neutral-600">to </span>
+                          <span className="text-[#d4af37]">
+                            {d.to_did.length > 24
+                              ? `${d.to_did.slice(0, 12)}...${d.to_did.slice(-8)}`
+                              : d.to_did}
+                          </span>
+                        </p>
+                        <p className="text-[10px] text-neutral-600 font-mono">
+                          {d.scope_type}:{d.scope_id.length > 20 ? `${d.scope_id.slice(0, 20)}...` : d.scope_id}
+                          {d.expires_at && (
+                            <span className="ml-2">
+                              expires {new Date(d.expires_at).toLocaleDateString()}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      <Button
+                        onClick={() => handleRevoke(d.id)}
+                        className="text-[10px] text-red-700 hover:text-red-500 bg-transparent hover:bg-white/[0.02]"
+                      >
+                        Revoke
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Effective Power */}
+          {powerMap.length > 0 && (
+            <div>
+              <h3 className="text-xs font-mono uppercase tracking-[0.15em] text-neutral-600 mb-4">
+                Effective Voting Power
+              </h3>
+              <Card className="bg-white/[0.02] border-white/[0.06]">
+                <CardContent className="p-4">
+                  <div className="grid grid-cols-3 gap-2 text-[10px] font-mono uppercase tracking-[0.1em] text-neutral-600 mb-3 border-b border-white/[0.04] pb-2">
+                    <span>Member</span>
+                    <span className="text-right">Base</span>
+                    <span className="text-right">Effective</span>
+                  </div>
+                  {powerMap.map((p) => (
+                    <div
+                      key={p.did}
+                      className="grid grid-cols-3 gap-2 text-sm py-1.5"
+                    >
+                      <span className="font-mono text-xs truncate">
+                        {p.did.length > 20
+                          ? `${p.did.slice(0, 10)}...${p.did.slice(-6)}`
+                          : p.did}
+                      </span>
+                      <span className="text-right text-neutral-500 font-mono text-xs">
+                        {p.base_credits}
+                      </span>
+                      <span
+                        className={cn(
+                          "text-right font-mono text-xs",
+                          p.effective_credits > p.base_credits
+                            ? "text-[#d4af37]"
+                            : p.effective_credits < p.base_credits
+                              ? "text-neutral-600"
+                              : "text-neutral-300"
+                        )}
+                      >
+                        {p.effective_credits}
+                        {p.effective_credits > p.base_credits && (
+                          <span className="text-[10px] ml-1 text-[#d4af37]/60">
+                            +{p.effective_credits - p.base_credits}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
             </div>
           )}
         </section>
