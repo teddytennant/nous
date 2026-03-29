@@ -236,7 +236,9 @@ mod tests {
     #[test]
     fn set_api_client() {
         let mut app = App::new(TuiConfig::default());
-        app.set_api_client(crate::client::ApiClient::new("http://localhost:8080/api/v1"));
+        app.set_api_client(crate::client::ApiClient::new(
+            "http://localhost:8080/api/v1",
+        ));
         assert!(app.api_client.is_some());
     }
 }
