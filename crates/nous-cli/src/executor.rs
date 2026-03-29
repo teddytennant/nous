@@ -1,3 +1,4 @@
+use std::io::Write;
 use std::path::Path;
 
 use nous_governance::{Ballot, Dao, ProposalBuilder, QuadraticVoting, VoteChoice, VoteTally};
@@ -5,6 +6,11 @@ use nous_identity::Identity;
 use nous_payments::Wallet;
 use nous_social::{EventKind, Feed, FollowGraph, SignedEvent, Tag};
 use nous_storage::Database;
+use nous_terminal::{Terminal, TerminalConfig};
+
+use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
+use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
+use crossterm::{cursor, execute, queue, style};
 
 use nous_cli::commands::*;
 use nous_cli::output::Output;
@@ -36,6 +42,7 @@ impl Executor {
             Command::Wallet(cmd) => self.wallet(cmd),
             Command::Governance(cmd) => self.governance(cmd).await,
             Command::Net(cmd) => self.net(cmd).await,
+            Command::Terminal => Self::run_terminal(),
             Command::Status => self.status(),
         }
     }
@@ -316,6 +323,172 @@ impl Executor {
                 vec!["Protocol".into(), "nous/0.1".into()],
             ],
         );
+        Ok(())
+    }
+
+    /// Launch an embedded terminal using nous-terminal and crossterm raw mode.
+    fn run_terminal() -> Result<(), String> {
+        let (cols, rows) =
+            terminal::size().map_err(|e| format!("failed to get terminal size: {e}"))?;
+
+        let config = TerminalConfig {
+            rows,
+            cols,
+            ..Default::default()
+        };
+
+        let mut term =
+            Terminal::spawn(config).map_err(|e| format!("failed to spawn terminal: {e}"))?;
+
+        let mut stdout = std::io::stdout();
+
+        // Enter raw mode and alternate screen
+        terminal::enable_raw_mode().map_err(|e| format!("failed to enable raw mode: {e}"))?;
+        execute!(stdout, EnterAlternateScreen, cursor::Hide)
+            .map_err(|e| format!("failed to enter alternate screen: {e}"))?;
+
+        let result = Self::terminal_loop(&mut term, &mut stdout);
+
+        // Always restore terminal state
+        let _ = execute!(stdout, cursor::Show, LeaveAlternateScreen);
+        let _ = terminal::disable_raw_mode();
+
+        result
+    }
+
+    fn terminal_loop(term: &mut Terminal, stdout: &mut std::io::Stdout) -> Result<(), String> {
+        use std::time::Duration;
+
+        let mut last_screen: Vec<nous_terminal::RenderRow> = Vec::new();
+
+        loop {
+            // Check if the child shell is still alive
+            if !term.is_alive() {
+                break;
+            }
+
+            // Read PTY output and process through VT parser
+            match term.tick() {
+                Ok(dirty) => {
+                    if dirty {
+                        Self::render_screen(term, stdout, &mut last_screen)?;
+                    }
+                }
+                Err(e) => {
+                    // EIO means the child exited — not an error
+                    let msg = e.to_string();
+                    if msg.contains("EIO") || msg.contains("Input/output error") {
+                        break;
+                    }
+                    return Err(format!("pty read error: {e}"));
+                }
+            }
+
+            // Poll for keyboard/resize events with a short timeout
+            if event::poll(Duration::from_millis(10))
+                .map_err(|e| format!("event poll error: {e}"))?
+            {
+                match event::read().map_err(|e| format!("event read error: {e}"))? {
+                    Event::Key(KeyEvent {
+                        code: KeyCode::Char('q'),
+                        modifiers: KeyModifiers::CONTROL,
+                        ..
+                    }) => {
+                        break;
+                    }
+                    Event::Key(key_event) => {
+                        let bytes = key_event_to_bytes(&key_event);
+                        if !bytes.is_empty() {
+                            term.write(&bytes)
+                                .map_err(|e| format!("pty write error: {e}"))?;
+                        }
+                    }
+                    Event::Resize(cols, rows) => {
+                        term.resize(rows, cols)
+                            .map_err(|e| format!("resize error: {e}"))?;
+                        // Force full redraw after resize
+                        last_screen.clear();
+                        Self::render_screen(term, stdout, &mut last_screen)?;
+                    }
+                    Event::Paste(text) => {
+                        term.write(text.as_bytes())
+                            .map_err(|e| format!("pty write error: {e}"))?;
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn render_screen(
+        term: &Terminal,
+        stdout: &mut std::io::Stdout,
+        last_screen: &mut Vec<nous_terminal::RenderRow>,
+    ) -> Result<(), String> {
+        let screen = term.screen();
+        let (cursor_row, cursor_col) = term.cursor_position();
+
+        for (row_idx, render_row) in screen.iter().enumerate() {
+            // Skip unchanged rows for efficiency
+            if row_idx < last_screen.len() {
+                let old_row = &last_screen[row_idx];
+                if old_row.cells.len() == render_row.cells.len()
+                    && old_row
+                        .cells
+                        .iter()
+                        .zip(render_row.cells.iter())
+                        .all(|(a, b)| a == b)
+                {
+                    continue;
+                }
+            }
+
+            queue!(stdout, cursor::MoveTo(0, row_idx as u16))
+                .map_err(|e| format!("cursor move error: {e}"))?;
+
+            for cell in &render_row.cells {
+                let fg = nous_color_to_crossterm(cell.style.fg);
+                let bg = nous_color_to_crossterm(cell.style.bg);
+
+                let mut attrs = crossterm::style::Attributes::default();
+                if cell.style.bold {
+                    attrs.set(crossterm::style::Attribute::Bold);
+                }
+                if cell.style.italic {
+                    attrs.set(crossterm::style::Attribute::Italic);
+                }
+                if cell.style.underline {
+                    attrs.set(crossterm::style::Attribute::Underlined);
+                }
+                if cell.style.strikethrough {
+                    attrs.set(crossterm::style::Attribute::CrossedOut);
+                }
+                if cell.style.inverse {
+                    attrs.set(crossterm::style::Attribute::Reverse);
+                }
+
+                queue!(
+                    stdout,
+                    style::SetForegroundColor(fg),
+                    style::SetBackgroundColor(bg),
+                    style::SetAttributes(attrs),
+                    style::Print(cell.ch),
+                    style::SetAttributes(crossterm::style::Attributes::default()),
+                    style::ResetColor
+                )
+                .map_err(|e| format!("render error: {e}"))?;
+            }
+        }
+
+        // Position the cursor
+        queue!(stdout, cursor::MoveTo(cursor_col, cursor_row), cursor::Show)
+            .map_err(|e| format!("cursor position error: {e}"))?;
+
+        stdout.flush().map_err(|e| format!("flush error: {e}"))?;
+
+        *last_screen = screen;
         Ok(())
     }
 
@@ -650,6 +823,68 @@ fn truncate_did(did: &str) -> String {
         format!("{}...{}", &did[..16], &did[did.len() - 6..])
     } else {
         did.to_string()
+    }
+}
+
+/// Convert a nous-terminal Color to a crossterm Color.
+fn nous_color_to_crossterm(color: nous_terminal::Color) -> crossterm::style::Color {
+    match color {
+        nous_terminal::Color::Default => crossterm::style::Color::Reset,
+        nous_terminal::Color::Rgb(r, g, b) => crossterm::style::Color::Rgb { r, g, b },
+        nous_terminal::Color::Indexed(idx) => crossterm::style::Color::AnsiValue(idx),
+    }
+}
+
+/// Convert a crossterm KeyEvent into the byte sequence expected by a PTY.
+fn key_event_to_bytes(key: &KeyEvent) -> Vec<u8> {
+    // Handle Ctrl+<letter> combinations (except Ctrl+Q which is handled as quit)
+    if key.modifiers.contains(KeyModifiers::CONTROL)
+        && let KeyCode::Char(c) = key.code
+    {
+        let ctrl_byte = (c.to_ascii_lowercase() as u8)
+            .wrapping_sub(b'a')
+            .wrapping_add(1);
+        return vec![ctrl_byte];
+    }
+
+    match key.code {
+        KeyCode::Char(c) => {
+            let mut buf = [0u8; 4];
+            let s = c.encode_utf8(&mut buf);
+            s.as_bytes().to_vec()
+        }
+        KeyCode::Enter => vec![b'\r'],
+        KeyCode::Backspace => vec![0x7f],
+        KeyCode::Tab => vec![b'\t'],
+        KeyCode::Esc => vec![0x1b],
+        KeyCode::Up => b"\x1b[A".to_vec(),
+        KeyCode::Down => b"\x1b[B".to_vec(),
+        KeyCode::Right => b"\x1b[C".to_vec(),
+        KeyCode::Left => b"\x1b[D".to_vec(),
+        KeyCode::Home => b"\x1b[H".to_vec(),
+        KeyCode::End => b"\x1b[F".to_vec(),
+        KeyCode::PageUp => b"\x1b[5~".to_vec(),
+        KeyCode::PageDown => b"\x1b[6~".to_vec(),
+        KeyCode::Insert => b"\x1b[2~".to_vec(),
+        KeyCode::Delete => b"\x1b[3~".to_vec(),
+        KeyCode::F(n) => match n {
+            1 => b"\x1bOP".to_vec(),
+            2 => b"\x1bOQ".to_vec(),
+            3 => b"\x1bOR".to_vec(),
+            4 => b"\x1bOS".to_vec(),
+            5 => b"\x1b[15~".to_vec(),
+            6 => b"\x1b[17~".to_vec(),
+            7 => b"\x1b[18~".to_vec(),
+            8 => b"\x1b[19~".to_vec(),
+            9 => b"\x1b[20~".to_vec(),
+            10 => b"\x1b[21~".to_vec(),
+            11 => b"\x1b[23~".to_vec(),
+            12 => b"\x1b[24~".to_vec(),
+            _ => vec![],
+        },
+        KeyCode::BackTab => b"\x1b[Z".to_vec(),
+        KeyCode::Null => vec![0],
+        _ => vec![],
     }
 }
 
