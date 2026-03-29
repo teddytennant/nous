@@ -1,8 +1,11 @@
 use std::io::Write;
 use std::path::Path;
 
+use nous_files::{FileStore, SharedFolder, Vault, VaultEntry};
 use nous_governance::{Ballot, Dao, ProposalBuilder, QuadraticVoting, VoteChoice, VoteTally};
 use nous_identity::Identity;
+use nous_messaging::message::MessageBuilder;
+use nous_messaging::{Channel, Message, MessageContent};
 use nous_payments::Wallet;
 use nous_social::{EventKind, Feed, FollowGraph, SignedEvent, Tag};
 use nous_storage::Database;
@@ -41,6 +44,8 @@ impl Executor {
             Command::Social(cmd) => self.social(cmd),
             Command::Wallet(cmd) => self.wallet(cmd),
             Command::Governance(cmd) => self.governance(cmd).await,
+            Command::File(cmd) => self.file(cmd),
+            Command::Message(cmd) => self.message(cmd),
             Command::Net(cmd) => self.net(cmd).await,
             Command::Terminal => Self::run_terminal(),
             Command::Status => self.status(),
@@ -268,6 +273,358 @@ impl Executor {
             }
             WalletCommand::History { limit: _ } => {
                 self.output.success("No transactions yet.");
+                Ok(())
+            }
+        }
+    }
+
+    fn file(&self, cmd: FileCommand) -> Result<(), String> {
+        match cmd {
+            FileCommand::Upload { path, owner } => {
+                let file_path = Path::new(&path);
+                if !file_path.exists() {
+                    return Err(format!("file not found: {path}"));
+                }
+
+                let data =
+                    std::fs::read(file_path).map_err(|e| format!("failed to read file: {e}"))?;
+                let file_name = file_path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("unknown");
+                let mime_type = mime_from_extension(file_name);
+
+                let mut store = self.load_file_store();
+                let manifest = store
+                    .put(file_name, &mime_type, &data, &owner)
+                    .map_err(|e| format!("store error: {e}"))?;
+                self.save_file_store(&store)?;
+
+                self.output.success(&format!(
+                    "Uploaded '{}' ({} bytes)\n  Content ID: {}\n  Version: {}\n  Owner: {}",
+                    file_name,
+                    data.len(),
+                    manifest.id.0,
+                    manifest.version,
+                    truncate_did(&owner),
+                ));
+                Ok(())
+            }
+            FileCommand::Download { content_id, output } => {
+                let store = self.load_file_store();
+                let data = store
+                    .get(&content_id)
+                    .map_err(|e| format!("download error: {e}"))?;
+
+                std::fs::write(&output, &data)
+                    .map_err(|e| format!("failed to write output: {e}"))?;
+
+                self.output
+                    .success(&format!("Downloaded {} bytes to '{}'", data.len(), output,));
+                Ok(())
+            }
+            FileCommand::List { owner } => {
+                let store = self.load_file_store();
+                let files = store.list_files(&owner);
+
+                if files.is_empty() {
+                    self.output.success("No files found.");
+                } else {
+                    let rows: Vec<Vec<String>> = files
+                        .iter()
+                        .map(|m| {
+                            vec![
+                                m.name.clone(),
+                                m.id.0.clone(),
+                                format!("v{}", m.version),
+                                format!("{} B", m.total_size),
+                                m.mime_type.clone(),
+                            ]
+                        })
+                        .collect();
+                    self.output
+                        .table(&["Name", "Content ID", "Version", "Size", "Type"], &rows);
+                }
+                Ok(())
+            }
+            FileCommand::Versions { name, owner } => {
+                let store = self.load_file_store();
+                let history = store
+                    .get_history(&name, &owner)
+                    .ok_or_else(|| format!("no history found for '{name}'"))?;
+
+                let mut rows: Vec<Vec<String>> = Vec::new();
+                // Current version first.
+                rows.push(vec![
+                    format!("v{}", history.current.version),
+                    history.current.id.0.clone(),
+                    format!("{} B", history.current.total_size),
+                    history
+                        .current
+                        .created_at
+                        .format("%Y-%m-%d %H:%M")
+                        .to_string(),
+                    "(current)".into(),
+                ]);
+                for ver in &history.history {
+                    rows.push(vec![
+                        format!("v{}", ver.version),
+                        ver.id.0.clone(),
+                        format!("{} B", ver.total_size),
+                        ver.created_at.format("%Y-%m-%d %H:%M").to_string(),
+                        String::new(),
+                    ]);
+                }
+                self.output.table(
+                    &["Version", "Content ID", "Size", "Created", "Status"],
+                    &rows,
+                );
+                Ok(())
+            }
+            FileCommand::Stats => {
+                let store = self.load_file_store();
+                let stats = store.stats();
+
+                self.output.table(
+                    &["Metric", "Value"],
+                    &[
+                        vec!["Total files".into(), stats.total_files.to_string()],
+                        vec!["Total chunks".into(), stats.total_chunks.to_string()],
+                        vec!["Total manifests".into(), stats.total_manifests.to_string()],
+                        vec!["Stored bytes".into(), format_bytes(stats.stored_bytes)],
+                        vec!["Logical bytes".into(), format_bytes(stats.logical_bytes)],
+                        vec!["Dedup ratio".into(), format!("{:.2}x", stats.dedup_ratio)],
+                    ],
+                );
+                Ok(())
+            }
+            FileCommand::Share { name, owner, with } => {
+                let store = self.load_file_store();
+                // Verify the file exists.
+                let _history = store
+                    .get_history(&name, &owner)
+                    .ok_or_else(|| format!("file '{name}' not found for owner"))?;
+
+                // Create or update shared folder for this owner.
+                let mut folder = self.load_shared_folder(&owner).unwrap_or_else(|| {
+                    SharedFolder::new(&format!("{}'s files", truncate_did(&owner)), &owner)
+                });
+
+                // Add the target DID as a reader.
+                folder
+                    .add_member(&owner, &with, nous_files::AccessLevel::Read)
+                    .map_err(|e| format!("share error: {e}"))?;
+                self.save_shared_folder(&folder)?;
+
+                self.output.success(&format!(
+                    "Shared '{}' with {}\n  Folder: {}",
+                    name,
+                    truncate_did(&with),
+                    folder.id,
+                ));
+                Ok(())
+            }
+            FileCommand::Vault(vault_cmd) => match vault_cmd {
+                VaultCommand::Create { password, name } => {
+                    let vault = Vault::create(&name, password.as_bytes())
+                        .map_err(|e| format!("vault creation error: {e}"))?;
+
+                    let vault_id = vault.id.clone();
+                    self.save_vault(&vault)?;
+
+                    self.output
+                        .success(&format!("Created vault '{}'\n  ID: {}", name, vault_id,));
+                    Ok(())
+                }
+                VaultCommand::Store {
+                    path,
+                    vault_id,
+                    password,
+                } => {
+                    let file_path = Path::new(&path);
+                    if !file_path.exists() {
+                        return Err(format!("file not found: {path}"));
+                    }
+
+                    let data = std::fs::read(file_path)
+                        .map_err(|e| format!("failed to read file: {e}"))?;
+                    let file_name = file_path
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("unknown");
+                    let mime_type = mime_from_extension(file_name);
+
+                    let vault = self
+                        .load_vault(&vault_id)
+                        .ok_or_else(|| format!("vault '{vault_id}' not found"))?;
+                    let key = vault
+                        .unlock(password.as_bytes())
+                        .map_err(|e| format!("unlock error: {e}"))?;
+                    let entry = vault
+                        .encrypt_file(&key, file_name, &mime_type, &data)
+                        .map_err(|e| format!("encryption error: {e}"))?;
+
+                    self.save_vault_entry(&vault_id, &entry)?;
+
+                    self.output.success(&format!(
+                        "Stored '{}' in vault '{}'\n  Size: {} bytes (encrypted)\n  Hash: {}",
+                        file_name,
+                        vault_id,
+                        entry.encrypted.ciphertext.len(),
+                        &entry.content_hash[..16],
+                    ));
+                    Ok(())
+                }
+            },
+        }
+    }
+
+    fn message(&self, cmd: MessageCommand) -> Result<(), String> {
+        match cmd {
+            MessageCommand::Send {
+                channel_id,
+                text,
+                sender: _,
+            } => {
+                let identity = self
+                    .load_identity()
+                    .ok_or("No identity found. Run 'nous init' first.")?;
+
+                // Verify channel exists.
+                let channel = self
+                    .load_channel(&channel_id)
+                    .ok_or_else(|| format!("channel '{channel_id}' not found"))?;
+
+                if !channel.is_member(identity.did()) {
+                    return Err(format!(
+                        "identity {} is not a member of channel '{}'",
+                        truncate_did(identity.did()),
+                        channel_id
+                    ));
+                }
+
+                let msg = MessageBuilder::text(&channel_id, &text)
+                    .sign(&identity)
+                    .map_err(|e| format!("signing error: {e}"))?;
+
+                self.save_message(&msg)?;
+
+                self.output.success(&format!(
+                    "Sent message to '{}'\n  ID: {}\n  From: {}",
+                    channel_id,
+                    msg.id,
+                    truncate_did(&msg.sender_did),
+                ));
+                Ok(())
+            }
+            MessageCommand::List { channel_id, limit } => {
+                let _channel = self
+                    .load_channel(&channel_id)
+                    .ok_or_else(|| format!("channel '{channel_id}' not found"))?;
+
+                let messages = self.load_messages(&channel_id);
+
+                if messages.is_empty() {
+                    self.output.success("No messages.");
+                    return Ok(());
+                }
+
+                let display: Vec<_> = messages.into_iter().take(limit).collect();
+                let rows: Vec<Vec<String>> = display
+                    .iter()
+                    .map(|m| {
+                        let content_str = match &m.content {
+                            MessageContent::Text(t) => t.clone(),
+                            MessageContent::File { name, size, .. } => {
+                                format!("[file: {} ({} B)]", name, size)
+                            }
+                            MessageContent::Reaction { emoji, .. } => {
+                                format!("[reaction: {}]", emoji)
+                            }
+                            MessageContent::System(s) => format!("[system: {}]", s),
+                        };
+                        vec![
+                            truncate_did(&m.sender_did),
+                            m.timestamp.format("%Y-%m-%d %H:%M").to_string(),
+                            content_str,
+                        ]
+                    })
+                    .collect();
+
+                self.output.table(&["Sender", "Time", "Content"], &rows);
+                Ok(())
+            }
+            MessageCommand::Channels { member } => {
+                let did = if let Some(m) = member {
+                    m
+                } else {
+                    let identity = self
+                        .load_identity()
+                        .ok_or("No identity found. Run 'nous init' first.")?;
+                    identity.did().to_string()
+                };
+
+                let channels = self.load_channels_for_member(&did);
+
+                if channels.is_empty() {
+                    self.output.success("No channels found.");
+                } else {
+                    let rows: Vec<Vec<String>> = channels
+                        .iter()
+                        .map(|ch| {
+                            vec![
+                                ch.id.clone(),
+                                format!("{:?}", ch.kind),
+                                ch.name.clone().unwrap_or_default(),
+                                ch.member_count().to_string(),
+                            ]
+                        })
+                        .collect();
+                    self.output.table(&["ID", "Kind", "Name", "Members"], &rows);
+                }
+                Ok(())
+            }
+            MessageCommand::CreateChannel {
+                kind,
+                name,
+                members,
+            } => {
+                let identity = self
+                    .load_identity()
+                    .ok_or("No identity found. Run 'nous init' first.")?;
+
+                let channel = match kind.to_lowercase().as_str() {
+                    "direct" => {
+                        if members.len() != 1 {
+                            return Err("direct channels require exactly one --member".into());
+                        }
+                        Channel::direct(identity.did(), &members[0])
+                    }
+                    "group" => {
+                        let ch_name = name.ok_or("group channels require --name")?;
+                        Channel::group(identity.did(), ch_name, members)
+                    }
+                    "public" => {
+                        let ch_name = name.ok_or("public channels require --name")?;
+                        Channel::public(identity.did(), ch_name)
+                    }
+                    other => {
+                        return Err(format!(
+                            "unknown channel kind: '{}'. Use: direct, group, public",
+                            other
+                        ));
+                    }
+                };
+
+                let channel_id = channel.id.clone();
+                self.save_channel(&channel)?;
+
+                self.output.success(&format!(
+                    "Created {:?} channel\n  ID: {}\n  Members: {}",
+                    channel.kind,
+                    channel_id,
+                    channel.member_count(),
+                ));
                 Ok(())
             }
         }
@@ -816,6 +1173,132 @@ impl Executor {
             .ok()?
             .and_then(|bytes| serde_json::from_slice(&bytes).ok())
     }
+
+    // --- file persistence helpers ---
+
+    fn load_file_store(&self) -> FileStore {
+        self.db
+            .get_kv("file_store")
+            .ok()
+            .flatten()
+            .and_then(|bytes| serde_json::from_slice(&bytes).ok())
+            .unwrap_or_default()
+    }
+
+    fn save_file_store(&self, store: &FileStore) -> Result<(), String> {
+        let json = serde_json::to_vec(store).map_err(|e| format!("serialization: {e}"))?;
+        self.db
+            .put_kv("file_store", &json)
+            .map_err(|e| format!("storage: {e}"))?;
+        Ok(())
+    }
+
+    fn load_shared_folder(&self, owner: &str) -> Option<SharedFolder> {
+        let key = format!("shared_folder:{owner}");
+        self.db
+            .get_kv(&key)
+            .ok()?
+            .and_then(|bytes| serde_json::from_slice(&bytes).ok())
+    }
+
+    fn save_shared_folder(&self, folder: &SharedFolder) -> Result<(), String> {
+        let key = format!("shared_folder:{}", folder.owner);
+        let json = serde_json::to_vec(folder).map_err(|e| format!("serialization: {e}"))?;
+        self.db
+            .put_kv(&key, &json)
+            .map_err(|e| format!("storage: {e}"))?;
+        Ok(())
+    }
+
+    fn save_vault(&self, vault: &Vault) -> Result<(), String> {
+        let key = format!("vault:{}", vault.id);
+        let json = serde_json::to_vec(vault).map_err(|e| format!("serialization: {e}"))?;
+        self.db
+            .put_kv(&key, &json)
+            .map_err(|e| format!("storage: {e}"))?;
+        Ok(())
+    }
+
+    fn load_vault(&self, vault_id: &str) -> Option<Vault> {
+        let key = format!("vault:{vault_id}");
+        self.db
+            .get_kv(&key)
+            .ok()?
+            .and_then(|bytes| serde_json::from_slice(&bytes).ok())
+    }
+
+    fn save_vault_entry(&self, vault_id: &str, entry: &VaultEntry) -> Result<(), String> {
+        let key = format!("vault_entry:{vault_id}:{}", entry.content_hash);
+        let json = serde_json::to_vec(entry).map_err(|e| format!("serialization: {e}"))?;
+        self.db
+            .put_kv(&key, &json)
+            .map_err(|e| format!("storage: {e}"))?;
+        Ok(())
+    }
+
+    // --- messaging persistence helpers ---
+
+    fn save_channel(&self, channel: &Channel) -> Result<(), String> {
+        let key = format!("channel:{}", channel.id);
+        let json = serde_json::to_vec(channel).map_err(|e| format!("serialization: {e}"))?;
+        self.db
+            .put_kv(&key, &json)
+            .map_err(|e| format!("storage: {e}"))?;
+        Ok(())
+    }
+
+    fn load_channel(&self, channel_id: &str) -> Option<Channel> {
+        let key = format!("channel:{channel_id}");
+        self.db
+            .get_kv(&key)
+            .ok()?
+            .and_then(|bytes| serde_json::from_slice(&bytes).ok())
+    }
+
+    fn save_message(&self, msg: &Message) -> Result<(), String> {
+        let key = format!("msg:{}:{}", msg.channel_id, msg.id);
+        let json = serde_json::to_vec(msg).map_err(|e| format!("serialization: {e}"))?;
+        self.db
+            .put_kv(&key, &json)
+            .map_err(|e| format!("storage: {e}"))?;
+        Ok(())
+    }
+
+    fn load_messages(&self, channel_id: &str) -> Vec<Message> {
+        let prefix = format!("msg:{channel_id}:");
+        let conn = self.db.conn();
+        let mut stmt = match conn.prepare("SELECT value FROM kv WHERE key LIKE ?1") {
+            Ok(s) => s,
+            Err(_) => return vec![],
+        };
+        let pattern = format!("{prefix}%");
+        let rows = match stmt.query_map([&pattern], |row| row.get::<_, Vec<u8>>(0)) {
+            Ok(r) => r,
+            Err(_) => return vec![],
+        };
+        let mut messages: Vec<Message> = rows
+            .filter_map(|r| r.ok())
+            .filter_map(|bytes| serde_json::from_slice(&bytes).ok())
+            .collect();
+        messages.sort_by(|a, b| a.timestamp.cmp(&b.timestamp));
+        messages
+    }
+
+    fn load_channels_for_member(&self, did: &str) -> Vec<Channel> {
+        let conn = self.db.conn();
+        let mut stmt = match conn.prepare("SELECT value FROM kv WHERE key LIKE 'channel:%'") {
+            Ok(s) => s,
+            Err(_) => return vec![],
+        };
+        let rows = match stmt.query_map([], |row| row.get::<_, Vec<u8>>(0)) {
+            Ok(r) => r,
+            Err(_) => return vec![],
+        };
+        rows.filter_map(|r| r.ok())
+            .filter_map(|bytes| serde_json::from_slice::<Channel>(&bytes).ok())
+            .filter(|ch| ch.is_member(did))
+            .collect()
+    }
 }
 
 fn truncate_did(did: &str) -> String {
@@ -824,6 +1307,54 @@ fn truncate_did(did: &str) -> String {
     } else {
         did.to_string()
     }
+}
+
+fn format_bytes(bytes: u64) -> String {
+    if bytes < 1024 {
+        format!("{} B", bytes)
+    } else if bytes < 1024 * 1024 {
+        format!("{:.1} KiB", bytes as f64 / 1024.0)
+    } else if bytes < 1024 * 1024 * 1024 {
+        format!("{:.1} MiB", bytes as f64 / (1024.0 * 1024.0))
+    } else {
+        format!("{:.1} GiB", bytes as f64 / (1024.0 * 1024.0 * 1024.0))
+    }
+}
+
+fn mime_from_extension(filename: &str) -> String {
+    match filename
+        .rsplit('.')
+        .next()
+        .unwrap_or("")
+        .to_lowercase()
+        .as_str()
+    {
+        "txt" => "text/plain",
+        "md" => "text/markdown",
+        "html" | "htm" => "text/html",
+        "css" => "text/css",
+        "js" => "application/javascript",
+        "json" => "application/json",
+        "xml" => "application/xml",
+        "pdf" => "application/pdf",
+        "png" => "image/png",
+        "jpg" | "jpeg" => "image/jpeg",
+        "gif" => "image/gif",
+        "webp" => "image/webp",
+        "svg" => "image/svg+xml",
+        "mp3" => "audio/mpeg",
+        "wav" => "audio/wav",
+        "mp4" => "video/mp4",
+        "webm" => "video/webm",
+        "zip" => "application/zip",
+        "tar" => "application/x-tar",
+        "gz" => "application/gzip",
+        "rs" => "text/x-rust",
+        "toml" => "application/toml",
+        "yaml" | "yml" => "application/yaml",
+        _ => "application/octet-stream",
+    }
+    .to_string()
 }
 
 /// Convert a nous-terminal Color to a crossterm Color.
@@ -1202,5 +1733,393 @@ mod tests {
             }))
             .await;
         assert!(result.is_err());
+    }
+
+    // --- File command tests ---
+
+    #[tokio::test]
+    async fn file_upload_and_download() {
+        let exec = test_executor();
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("test.txt");
+        std::fs::write(&file_path, b"hello nous files").unwrap();
+
+        exec.execute(Command::File(FileCommand::Upload {
+            path: file_path.to_str().unwrap().to_string(),
+            owner: "did:key:zTestOwner".into(),
+        }))
+        .await
+        .unwrap();
+
+        // List files to get the content ID.
+        let store = exec.load_file_store();
+        let files = store.list_files("did:key:zTestOwner");
+        assert_eq!(files.len(), 1);
+        let content_id = files[0].id.0.clone();
+
+        // Download.
+        let out_path = dir.path().join("downloaded.txt");
+        exec.execute(Command::File(FileCommand::Download {
+            content_id,
+            output: out_path.to_str().unwrap().to_string(),
+        }))
+        .await
+        .unwrap();
+
+        let downloaded = std::fs::read(&out_path).unwrap();
+        assert_eq!(downloaded, b"hello nous files");
+    }
+
+    #[tokio::test]
+    async fn file_upload_nonexistent() {
+        let exec = test_executor();
+        let result = exec
+            .execute(Command::File(FileCommand::Upload {
+                path: "/tmp/definitely_does_not_exist_nous_test.bin".into(),
+                owner: "did:key:z1".into(),
+            }))
+            .await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn file_list_empty() {
+        let exec = test_executor();
+        exec.execute(Command::File(FileCommand::List {
+            owner: "did:key:z1".into(),
+        }))
+        .await
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn file_versions() {
+        let exec = test_executor();
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("doc.txt");
+
+        std::fs::write(&file_path, b"version 1").unwrap();
+        exec.execute(Command::File(FileCommand::Upload {
+            path: file_path.to_str().unwrap().to_string(),
+            owner: "did:key:z1".into(),
+        }))
+        .await
+        .unwrap();
+
+        std::fs::write(&file_path, b"version 2").unwrap();
+        exec.execute(Command::File(FileCommand::Upload {
+            path: file_path.to_str().unwrap().to_string(),
+            owner: "did:key:z1".into(),
+        }))
+        .await
+        .unwrap();
+
+        exec.execute(Command::File(FileCommand::Versions {
+            name: "doc.txt".into(),
+            owner: "did:key:z1".into(),
+        }))
+        .await
+        .unwrap();
+
+        let store = exec.load_file_store();
+        let history = store.get_history("doc.txt", "did:key:z1").unwrap();
+        assert_eq!(history.version_count(), 2);
+    }
+
+    #[tokio::test]
+    async fn file_stats() {
+        let exec = test_executor();
+        exec.execute(Command::File(FileCommand::Stats))
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn file_share() {
+        let exec = test_executor();
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("shared.txt");
+        std::fs::write(&file_path, b"shared content").unwrap();
+
+        exec.execute(Command::File(FileCommand::Upload {
+            path: file_path.to_str().unwrap().to_string(),
+            owner: "did:key:zalice".into(),
+        }))
+        .await
+        .unwrap();
+
+        exec.execute(Command::File(FileCommand::Share {
+            name: "shared.txt".into(),
+            owner: "did:key:zalice".into(),
+            with: "did:key:zbob".into(),
+        }))
+        .await
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn file_share_nonexistent() {
+        let exec = test_executor();
+        let result = exec
+            .execute(Command::File(FileCommand::Share {
+                name: "nope.txt".into(),
+                owner: "did:key:z1".into(),
+                with: "did:key:z2".into(),
+            }))
+            .await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn file_vault_create_and_store() {
+        let exec = test_executor();
+
+        exec.execute(Command::File(FileCommand::Vault(VaultCommand::Create {
+            password: "strong-pass".into(),
+            name: "my-vault".into(),
+        })))
+        .await
+        .unwrap();
+
+        // Find the vault ID from the DB.
+        let conn = exec.db.conn();
+        let mut stmt = conn
+            .prepare("SELECT key FROM kv WHERE key LIKE 'vault:%'")
+            .unwrap();
+        let keys: Vec<String> = stmt
+            .query_map([], |row| row.get::<_, String>(0))
+            .unwrap()
+            .filter_map(|r| r.ok())
+            .collect();
+        assert_eq!(keys.len(), 1);
+        let vault_id = keys[0].strip_prefix("vault:").unwrap().to_string();
+
+        // Store a file in the vault.
+        let dir = tempfile::tempdir().unwrap();
+        let secret_path = dir.path().join("secret.txt");
+        std::fs::write(&secret_path, b"top secret data").unwrap();
+
+        exec.execute(Command::File(FileCommand::Vault(VaultCommand::Store {
+            path: secret_path.to_str().unwrap().to_string(),
+            vault_id,
+            password: "strong-pass".into(),
+        })))
+        .await
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn file_vault_wrong_password() {
+        let exec = test_executor();
+
+        exec.execute(Command::File(FileCommand::Vault(VaultCommand::Create {
+            password: "correct".into(),
+            name: "vault".into(),
+        })))
+        .await
+        .unwrap();
+
+        let conn = exec.db.conn();
+        let mut stmt = conn
+            .prepare("SELECT key FROM kv WHERE key LIKE 'vault:%'")
+            .unwrap();
+        let keys: Vec<String> = stmt
+            .query_map([], |row| row.get::<_, String>(0))
+            .unwrap()
+            .filter_map(|r| r.ok())
+            .collect();
+        let vault_id = keys[0].strip_prefix("vault:").unwrap().to_string();
+
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("test.bin");
+        std::fs::write(&file_path, b"data").unwrap();
+
+        let result = exec
+            .execute(Command::File(FileCommand::Vault(VaultCommand::Store {
+                path: file_path.to_str().unwrap().to_string(),
+                vault_id,
+                password: "wrong".into(),
+            })))
+            .await;
+        assert!(result.is_err());
+    }
+
+    // --- Messaging command tests ---
+
+    #[tokio::test]
+    async fn message_create_channel_and_send() {
+        let exec = test_executor();
+        exec.execute(Command::Init).await.unwrap();
+        let identity = exec.load_identity().unwrap();
+        let did = identity.did().to_string();
+
+        // Create a public channel.
+        exec.execute(Command::Message(MessageCommand::CreateChannel {
+            kind: "public".into(),
+            name: Some("general".into()),
+            members: vec![],
+        }))
+        .await
+        .unwrap();
+
+        // Find the channel.
+        let channels = exec.load_channels_for_member(&did);
+        assert_eq!(channels.len(), 1);
+        let ch_id = channels[0].id.clone();
+
+        // Send a message.
+        exec.execute(Command::Message(MessageCommand::Send {
+            channel_id: ch_id.clone(),
+            text: "hello from test".into(),
+            sender: None,
+        }))
+        .await
+        .unwrap();
+
+        // List messages.
+        let messages = exec.load_messages(&ch_id);
+        assert_eq!(messages.len(), 1);
+
+        // Execute list command (just verify no errors).
+        exec.execute(Command::Message(MessageCommand::List {
+            channel_id: ch_id,
+            limit: 10,
+        }))
+        .await
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn message_send_to_nonexistent_channel() {
+        let exec = test_executor();
+        exec.execute(Command::Init).await.unwrap();
+
+        let result = exec
+            .execute(Command::Message(MessageCommand::Send {
+                channel_id: "nonexistent".into(),
+                text: "hi".into(),
+                sender: None,
+            }))
+            .await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn message_create_direct_channel() {
+        let exec = test_executor();
+        exec.execute(Command::Init).await.unwrap();
+
+        exec.execute(Command::Message(MessageCommand::CreateChannel {
+            kind: "direct".into(),
+            name: None,
+            members: vec!["did:key:zbob".into()],
+        }))
+        .await
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn message_create_group_channel() {
+        let exec = test_executor();
+        exec.execute(Command::Init).await.unwrap();
+
+        exec.execute(Command::Message(MessageCommand::CreateChannel {
+            kind: "group".into(),
+            name: Some("team".into()),
+            members: vec!["did:key:za".into(), "did:key:zb".into()],
+        }))
+        .await
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn message_create_direct_requires_one_member() {
+        let exec = test_executor();
+        exec.execute(Command::Init).await.unwrap();
+
+        let result = exec
+            .execute(Command::Message(MessageCommand::CreateChannel {
+                kind: "direct".into(),
+                name: None,
+                members: vec![],
+            }))
+            .await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn message_create_group_requires_name() {
+        let exec = test_executor();
+        exec.execute(Command::Init).await.unwrap();
+
+        let result = exec
+            .execute(Command::Message(MessageCommand::CreateChannel {
+                kind: "group".into(),
+                name: None,
+                members: vec![],
+            }))
+            .await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn message_create_invalid_kind() {
+        let exec = test_executor();
+        exec.execute(Command::Init).await.unwrap();
+
+        let result = exec
+            .execute(Command::Message(MessageCommand::CreateChannel {
+                kind: "invalid".into(),
+                name: Some("test".into()),
+                members: vec![],
+            }))
+            .await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn message_channels_empty() {
+        let exec = test_executor();
+        exec.execute(Command::Init).await.unwrap();
+
+        exec.execute(Command::Message(MessageCommand::Channels { member: None }))
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn message_list_nonexistent_channel() {
+        let exec = test_executor();
+        let result = exec
+            .execute(Command::Message(MessageCommand::List {
+                channel_id: "nonexistent".into(),
+                limit: 10,
+            }))
+            .await;
+        assert!(result.is_err());
+    }
+
+    // --- Utility function tests ---
+
+    #[test]
+    fn test_format_bytes() {
+        assert_eq!(format_bytes(0), "0 B");
+        assert_eq!(format_bytes(512), "512 B");
+        assert_eq!(format_bytes(1024), "1.0 KiB");
+        assert_eq!(format_bytes(1024 * 1024), "1.0 MiB");
+        assert_eq!(format_bytes(1024 * 1024 * 1024), "1.0 GiB");
+    }
+
+    #[test]
+    fn test_mime_from_extension() {
+        assert_eq!(mime_from_extension("test.txt"), "text/plain");
+        assert_eq!(mime_from_extension("photo.png"), "image/png");
+        assert_eq!(mime_from_extension("data.json"), "application/json");
+        assert_eq!(mime_from_extension("main.rs"), "text/x-rust");
+        assert_eq!(
+            mime_from_extension("unknown.xyz"),
+            "application/octet-stream"
+        );
+        assert_eq!(mime_from_extension("noext"), "application/octet-stream");
     }
 }
