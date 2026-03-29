@@ -21,6 +21,7 @@ members = [
     "crates/nous-integration",
     "crates/nous-files",
     "crates/nous-wasm",
+    "crates/nous-terminal",
     "crates/nous-bench",
 ]
 
