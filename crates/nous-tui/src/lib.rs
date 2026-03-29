@@ -6,6 +6,7 @@ pub mod tabs;
 #[cfg(unix)]
 pub mod terminal_panel;
 pub mod theme;
+pub mod views;
 pub mod widgets;
 
 pub use app::App;
