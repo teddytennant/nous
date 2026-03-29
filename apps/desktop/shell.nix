@@ -12,5 +12,6 @@ pkgs.mkShell {
     cairo
     atk
     harfbuzz
+    openssl
   ];
 }
