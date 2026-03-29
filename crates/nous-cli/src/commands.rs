@@ -41,6 +41,10 @@ pub enum Command {
     #[command(subcommand)]
     Net(NetCommand),
 
+    /// Governance and DAOs
+    #[command(subcommand)]
+    Governance(GovernanceCommand),
+
     /// Node information
     Status,
 }
@@ -120,6 +124,59 @@ pub enum NetCommand {
     Connect {
         /// Multiaddr of the peer
         addr: String,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum GovernanceCommand {
+    /// Create a DAO
+    CreateDao {
+        /// DAO name
+        name: String,
+        /// Description
+        #[arg(short, long)]
+        description: Option<String>,
+    },
+    /// List DAOs
+    ListDaos,
+    /// Show DAO details
+    ShowDao {
+        /// DAO ID
+        id: String,
+    },
+    /// Submit a proposal
+    Propose {
+        /// DAO ID
+        dao_id: String,
+        /// Proposal title
+        title: String,
+        /// Description
+        #[arg(short, long)]
+        description: Option<String>,
+        /// Voting duration in days
+        #[arg(long, default_value = "7")]
+        voting_days: u64,
+    },
+    /// List proposals
+    ListProposals {
+        /// Filter by DAO ID
+        #[arg(long)]
+        dao_id: Option<String>,
+    },
+    /// Vote on a proposal
+    Vote {
+        /// Proposal ID
+        proposal_id: String,
+        /// Vote choice: for, against, abstain
+        choice: String,
+        /// Quadratic voting credits
+        #[arg(short, long, default_value = "1")]
+        credits: u64,
+    },
+    /// Show vote tally
+    Tally {
+        /// Proposal ID
+        proposal_id: String,
     },
 }
 
@@ -222,5 +279,83 @@ mod tests {
     fn verbose_flag() {
         let cli = Cli::parse_from(["nous", "-v", "status"]);
         assert!(cli.verbose);
+    }
+
+    #[test]
+    fn parse_governance_create_dao() {
+        let cli = Cli::parse_from(["nous", "governance", "create-dao", "TestDAO"]);
+        if let Command::Governance(GovernanceCommand::CreateDao { name, description }) = cli.command
+        {
+            assert_eq!(name, "TestDAO");
+            assert!(description.is_none());
+        } else {
+            panic!("expected governance create-dao");
+        }
+    }
+
+    #[test]
+    fn parse_governance_propose() {
+        let cli = Cli::parse_from([
+            "nous",
+            "governance",
+            "propose",
+            "dao123",
+            "Fund treasury",
+            "-d",
+            "Allocate 1000 NOUS to treasury",
+        ]);
+        if let Command::Governance(GovernanceCommand::Propose {
+            dao_id,
+            title,
+            description,
+            voting_days,
+        }) = cli.command
+        {
+            assert_eq!(dao_id, "dao123");
+            assert_eq!(title, "Fund treasury");
+            assert_eq!(
+                description,
+                Some("Allocate 1000 NOUS to treasury".to_string())
+            );
+            assert_eq!(voting_days, 7);
+        } else {
+            panic!("expected governance propose");
+        }
+    }
+
+    #[test]
+    fn parse_governance_vote() {
+        let cli = Cli::parse_from(["nous", "governance", "vote", "prop123", "for", "-c", "4"]);
+        if let Command::Governance(GovernanceCommand::Vote {
+            proposal_id,
+            choice,
+            credits,
+        }) = cli.command
+        {
+            assert_eq!(proposal_id, "prop123");
+            assert_eq!(choice, "for");
+            assert_eq!(credits, 4);
+        } else {
+            panic!("expected governance vote");
+        }
+    }
+
+    #[test]
+    fn parse_governance_list_daos() {
+        let cli = Cli::parse_from(["nous", "governance", "list-daos"]);
+        assert!(matches!(
+            cli.command,
+            Command::Governance(GovernanceCommand::ListDaos)
+        ));
+    }
+
+    #[test]
+    fn parse_governance_tally() {
+        let cli = Cli::parse_from(["nous", "governance", "tally", "prop123"]);
+        if let Command::Governance(GovernanceCommand::Tally { proposal_id }) = cli.command {
+            assert_eq!(proposal_id, "prop123");
+        } else {
+            panic!("expected governance tally");
+        }
     }
 }
