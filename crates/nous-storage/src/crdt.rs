@@ -168,6 +168,169 @@ impl<T: Clone + Eq + std::hash::Hash + Serialize> Default for ORSet<T> {
     }
 }
 
+/// Positive-Negative Counter: supports both increments and decrements.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PNCounter {
+    positive: GCounter,
+    negative: GCounter,
+}
+
+impl PNCounter {
+    pub fn new() -> Self {
+        Self {
+            positive: GCounter::new(),
+            negative: GCounter::new(),
+        }
+    }
+
+    pub fn increment(&mut self, node_id: &str) {
+        self.positive.increment(node_id);
+    }
+
+    pub fn decrement(&mut self, node_id: &str) {
+        self.negative.increment(node_id);
+    }
+
+    pub fn increment_by(&mut self, node_id: &str, amount: u64) {
+        self.positive.increment_by(node_id, amount);
+    }
+
+    pub fn decrement_by(&mut self, node_id: &str, amount: u64) {
+        self.negative.increment_by(node_id, amount);
+    }
+
+    pub fn value(&self) -> i64 {
+        self.positive.value() as i64 - self.negative.value() as i64
+    }
+
+    pub fn merge(&mut self, other: &PNCounter) {
+        self.positive.merge(&other.positive);
+        self.negative.merge(&other.negative);
+    }
+}
+
+impl Default for PNCounter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Last-Write-Wins Map: each key has an independent LWW timestamp.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LWWMap<V: Clone> {
+    entries: HashMap<String, LWWEntry<V>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct LWWEntry<V: Clone> {
+    value: Option<V>,
+    timestamp: u64,
+    node_id: String,
+    deleted: bool,
+}
+
+impl<V: Clone> LWWMap<V> {
+    pub fn new() -> Self {
+        Self {
+            entries: HashMap::new(),
+        }
+    }
+
+    pub fn set(&mut self, key: &str, value: V, timestamp: u64, node_id: &str) {
+        let entry = self.entries.entry(key.to_string()).or_insert(LWWEntry {
+            value: None,
+            timestamp: 0,
+            node_id: String::new(),
+            deleted: false,
+        });
+
+        if timestamp > entry.timestamp
+            || (timestamp == entry.timestamp && node_id > entry.node_id.as_str())
+        {
+            entry.value = Some(value);
+            entry.timestamp = timestamp;
+            entry.node_id = node_id.to_string();
+            entry.deleted = false;
+        }
+    }
+
+    pub fn remove(&mut self, key: &str, timestamp: u64, node_id: &str) {
+        let entry = self.entries.entry(key.to_string()).or_insert(LWWEntry {
+            value: None,
+            timestamp: 0,
+            node_id: String::new(),
+            deleted: false,
+        });
+
+        if timestamp > entry.timestamp
+            || (timestamp == entry.timestamp && node_id > entry.node_id.as_str())
+        {
+            entry.value = None;
+            entry.timestamp = timestamp;
+            entry.node_id = node_id.to_string();
+            entry.deleted = true;
+        }
+    }
+
+    pub fn get(&self, key: &str) -> Option<&V> {
+        self.entries
+            .get(key)
+            .and_then(|e| if e.deleted { None } else { e.value.as_ref() })
+    }
+
+    pub fn contains_key(&self, key: &str) -> bool {
+        self.entries
+            .get(key)
+            .is_some_and(|e| !e.deleted && e.value.is_some())
+    }
+
+    pub fn keys(&self) -> Vec<&str> {
+        self.entries
+            .iter()
+            .filter(|(_, e)| !e.deleted && e.value.is_some())
+            .map(|(k, _)| k.as_str())
+            .collect()
+    }
+
+    pub fn len(&self) -> usize {
+        self.entries
+            .values()
+            .filter(|e| !e.deleted && e.value.is_some())
+            .count()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    pub fn merge(&mut self, other: &LWWMap<V>) {
+        for (key, other_entry) in &other.entries {
+            let entry = self.entries.entry(key.clone()).or_insert(LWWEntry {
+                value: None,
+                timestamp: 0,
+                node_id: String::new(),
+                deleted: false,
+            });
+
+            if other_entry.timestamp > entry.timestamp
+                || (other_entry.timestamp == entry.timestamp
+                    && other_entry.node_id > entry.node_id)
+            {
+                entry.value = other_entry.value.clone();
+                entry.timestamp = other_entry.timestamp;
+                entry.node_id = other_entry.node_id.clone();
+                entry.deleted = other_entry.deleted;
+            }
+        }
+    }
+}
+
+impl<V: Clone> Default for LWWMap<V> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -362,5 +525,216 @@ mod tests {
         let mut elements: Vec<i32> = s.elements().into_iter().copied().collect();
         elements.sort();
         assert_eq!(elements, vec![1, 2, 3]);
+    }
+
+    // --- PNCounter tests ---
+
+    #[test]
+    fn pncounter_starts_at_zero() {
+        let c = PNCounter::new();
+        assert_eq!(c.value(), 0);
+    }
+
+    #[test]
+    fn pncounter_increment() {
+        let mut c = PNCounter::new();
+        c.increment("a");
+        c.increment("a");
+        assert_eq!(c.value(), 2);
+    }
+
+    #[test]
+    fn pncounter_decrement() {
+        let mut c = PNCounter::new();
+        c.increment_by("a", 10);
+        c.decrement_by("a", 3);
+        assert_eq!(c.value(), 7);
+    }
+
+    #[test]
+    fn pncounter_negative_value() {
+        let mut c = PNCounter::new();
+        c.decrement_by("a", 5);
+        assert_eq!(c.value(), -5);
+    }
+
+    #[test]
+    fn pncounter_merge() {
+        let mut a = PNCounter::new();
+        a.increment_by("node-a", 10);
+        a.decrement_by("node-a", 2);
+
+        let mut b = PNCounter::new();
+        b.increment_by("node-b", 5);
+        b.decrement_by("node-b", 1);
+
+        a.merge(&b);
+        // 10 + 5 - 2 - 1 = 12
+        assert_eq!(a.value(), 12);
+    }
+
+    #[test]
+    fn pncounter_merge_commutative() {
+        let mut a = PNCounter::new();
+        a.increment_by("x", 5);
+        a.decrement("x");
+
+        let mut b = PNCounter::new();
+        b.increment_by("y", 3);
+
+        let mut ab = a.clone();
+        ab.merge(&b);
+
+        let mut ba = b.clone();
+        ba.merge(&a);
+
+        assert_eq!(ab.value(), ba.value());
+    }
+
+    #[test]
+    fn pncounter_merge_idempotent() {
+        let mut a = PNCounter::new();
+        a.increment_by("x", 5);
+        a.decrement_by("x", 2);
+
+        let mut b = a.clone();
+        b.merge(&a);
+        b.merge(&a);
+
+        assert_eq!(b.value(), 3);
+    }
+
+    // --- LWWMap tests ---
+
+    #[test]
+    fn lwwmap_starts_empty() {
+        let m: LWWMap<String> = LWWMap::new();
+        assert!(m.is_empty());
+        assert_eq!(m.len(), 0);
+    }
+
+    #[test]
+    fn lwwmap_set_and_get() {
+        let mut m = LWWMap::new();
+        m.set("key", "value".to_string(), 1, "node-a");
+        assert_eq!(m.get("key"), Some(&"value".to_string()));
+        assert!(m.contains_key("key"));
+    }
+
+    #[test]
+    fn lwwmap_latest_wins() {
+        let mut m = LWWMap::new();
+        m.set("key", "old".to_string(), 1, "node-a");
+        m.set("key", "new".to_string(), 2, "node-a");
+        assert_eq!(m.get("key"), Some(&"new".to_string()));
+    }
+
+    #[test]
+    fn lwwmap_ignores_old_writes() {
+        let mut m = LWWMap::new();
+        m.set("key", "new".to_string(), 10, "node-a");
+        m.set("key", "old".to_string(), 5, "node-a");
+        assert_eq!(m.get("key"), Some(&"new".to_string()));
+    }
+
+    #[test]
+    fn lwwmap_remove() {
+        let mut m = LWWMap::new();
+        m.set("key", "value".to_string(), 1, "node-a");
+        m.remove("key", 2, "node-a");
+        assert!(m.get("key").is_none());
+        assert!(!m.contains_key("key"));
+        assert!(m.is_empty());
+    }
+
+    #[test]
+    fn lwwmap_remove_then_set() {
+        let mut m = LWWMap::new();
+        m.set("key", "first".to_string(), 1, "node-a");
+        m.remove("key", 2, "node-a");
+        m.set("key", "second".to_string(), 3, "node-a");
+        assert_eq!(m.get("key"), Some(&"second".to_string()));
+    }
+
+    #[test]
+    fn lwwmap_old_remove_ignored() {
+        let mut m = LWWMap::new();
+        m.set("key", "value".to_string(), 10, "node-a");
+        m.remove("key", 5, "node-a");
+        assert_eq!(m.get("key"), Some(&"value".to_string()));
+    }
+
+    #[test]
+    fn lwwmap_keys() {
+        let mut m = LWWMap::new();
+        m.set("a", 1, 1, "n");
+        m.set("b", 2, 1, "n");
+        m.set("c", 3, 1, "n");
+        m.remove("b", 2, "n");
+
+        let mut keys = m.keys();
+        keys.sort();
+        assert_eq!(keys, vec!["a", "c"]);
+        assert_eq!(m.len(), 2);
+    }
+
+    #[test]
+    fn lwwmap_merge() {
+        let mut a = LWWMap::new();
+        a.set("key1", "a-value".to_string(), 1, "node-a");
+        a.set("shared", "old".to_string(), 1, "node-a");
+
+        let mut b = LWWMap::new();
+        b.set("key2", "b-value".to_string(), 1, "node-b");
+        b.set("shared", "new".to_string(), 2, "node-b");
+
+        a.merge(&b);
+        assert_eq!(a.get("key1"), Some(&"a-value".to_string()));
+        assert_eq!(a.get("key2"), Some(&"b-value".to_string()));
+        assert_eq!(a.get("shared"), Some(&"new".to_string()));
+    }
+
+    #[test]
+    fn lwwmap_merge_commutative() {
+        let mut a = LWWMap::new();
+        a.set("x", 1, 1, "a");
+
+        let mut b = LWWMap::new();
+        b.set("y", 2, 1, "b");
+
+        let mut ab = a.clone();
+        ab.merge(&b);
+
+        let mut ba = b.clone();
+        ba.merge(&a);
+
+        assert_eq!(ab.get("x"), ba.get("x"));
+        assert_eq!(ab.get("y"), ba.get("y"));
+    }
+
+    #[test]
+    fn lwwmap_merge_with_removal() {
+        let mut a = LWWMap::new();
+        a.set("key", "val".to_string(), 1, "node-a");
+
+        let mut b = LWWMap::new();
+        b.set("key", "val".to_string(), 1, "node-b");
+        b.remove("key", 2, "node-b");
+
+        a.merge(&b);
+        assert!(a.get("key").is_none());
+    }
+
+    #[test]
+    fn lwwmap_tiebreak_by_node_id() {
+        let mut a = LWWMap::new();
+        a.set("key", "a-wins".to_string(), 1, "node-a");
+
+        let mut b = LWWMap::new();
+        b.set("key", "b-wins".to_string(), 1, "node-b");
+
+        a.merge(&b);
+        // node-b > node-a lexicographically, so b wins
+        assert_eq!(a.get("key"), Some(&"b-wins".to_string()));
     }
 }
