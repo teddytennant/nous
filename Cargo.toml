@@ -16,6 +16,7 @@ members = [
     "crates/nous-api",
     "crates/nous-tui",
     "crates/nous-cli",
+    "crates/nous-nostr",
     "crates/nous-integration",
 ]
 
@@ -57,9 +58,19 @@ hmac = "0.12"
 # Networking
 libp2p = { version = "0.54", features = ["tokio", "noise", "yamux", "tcp", "dns", "gossipsub", "kad", "identify", "relay", "dcutr", "mdns", "macros"] }
 futures = "0.3"
+tokio-tungstenite = { version = "0.24", features = ["native-tls"] }
+hex = "0.4"
 
 # GraphQL
 async-graphql = "7"
+
+# gRPC
+tonic = "0.12"
+prost = "0.13"
+tonic-build = "0.12"
+
+# CLI
+clap = { version = "4", features = ["derive"] }
 
 # Storage
 rusqlite = { version = "0.32", features = ["bundled"] }
