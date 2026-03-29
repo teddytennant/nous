@@ -208,6 +208,83 @@ impl DoubleRatchet {
     pub fn public_key(&self) -> [u8; 32] {
         self.dh_self_pub.to_bytes()
     }
+
+    /// Serialize the full ratchet state to a JSON-compatible structure.
+    ///
+    /// The resulting bytes can be stored in SQLite and restored via `from_persisted`.
+    /// WARNING: Contains secret key material. Must be encrypted at rest.
+    pub fn to_persisted(&self) -> Result<Vec<u8>> {
+        let state = PersistedRatchetState {
+            root_key: self.root_key,
+            dh_self_secret: self.dh_self.to_bytes(),
+            dh_self_pub: self.dh_self_pub.to_bytes(),
+            dh_remote: self.dh_remote.map(|pk| pk.to_bytes()),
+            chain_send: self.chain_send,
+            chain_recv: self.chain_recv,
+            send_count: self.send_count,
+            recv_count: self.recv_count,
+            prev_send_count: self.prev_send_count,
+            skipped: self
+                .skipped
+                .iter()
+                .map(|((pk, num), key)| SkippedKey {
+                    dh_public: *pk,
+                    message_num: *num,
+                    message_key: *key,
+                })
+                .collect(),
+        };
+        serde_json::to_vec(&state).map_err(|e| Error::Crypto(format!("ratchet serialize: {e}")))
+    }
+
+    /// Restore a ratchet from persisted bytes (produced by `to_persisted`).
+    pub fn from_persisted(bytes: &[u8]) -> Result<Self> {
+        let state: PersistedRatchetState =
+            serde_json::from_slice(bytes).map_err(|e| Error::Crypto(format!("ratchet deserialize: {e}")))?;
+
+        let dh_self = StaticSecret::from(state.dh_self_secret);
+        let dh_self_pub = X25519PublicKey::from(state.dh_self_pub);
+
+        let mut skipped = HashMap::new();
+        for sk in &state.skipped {
+            skipped.insert((sk.dh_public, sk.message_num), sk.message_key);
+        }
+
+        Ok(Self {
+            root_key: state.root_key,
+            dh_self,
+            dh_self_pub,
+            dh_remote: state.dh_remote.map(X25519PublicKey::from),
+            chain_send: state.chain_send,
+            chain_recv: state.chain_recv,
+            send_count: state.send_count,
+            recv_count: state.recv_count,
+            prev_send_count: state.prev_send_count,
+            skipped,
+        })
+    }
+}
+
+/// Serializable representation of the ratchet state.
+#[derive(Serialize, Deserialize)]
+struct PersistedRatchetState {
+    root_key: [u8; 32],
+    dh_self_secret: [u8; 32],
+    dh_self_pub: [u8; 32],
+    dh_remote: Option<[u8; 32]>,
+    chain_send: Option<[u8; 32]>,
+    chain_recv: Option<[u8; 32]>,
+    send_count: u32,
+    recv_count: u32,
+    prev_send_count: u32,
+    skipped: Vec<SkippedKey>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct SkippedKey {
+    dh_public: [u8; 32],
+    message_num: u32,
+    message_key: [u8; 32],
 }
 
 impl Drop for DoubleRatchet {
@@ -415,5 +492,86 @@ mod tests {
         let spk = StaticSecret::random_from_rng(OsRng);
         let mut bob = DoubleRatchet::init_responder(shared, spk);
         assert!(bob.encrypt(b"premature").is_err());
+    }
+
+    #[test]
+    fn persist_and_restore_initiator() {
+        let (mut alice, mut bob) = create_pair();
+
+        // Send a few messages
+        let m1 = alice.encrypt(b"before persist").unwrap();
+        assert_eq!(bob.decrypt(&m1).unwrap(), b"before persist");
+
+        // Persist alice's state
+        let alice_bytes = alice.to_persisted().unwrap();
+        drop(alice);
+
+        // Restore alice
+        let mut alice2 = DoubleRatchet::from_persisted(&alice_bytes).unwrap();
+
+        // Continue the conversation
+        let m2 = alice2.encrypt(b"after persist").unwrap();
+        assert_eq!(bob.decrypt(&m2).unwrap(), b"after persist");
+    }
+
+    #[test]
+    fn persist_and_restore_responder() {
+        let (mut alice, mut bob) = create_pair();
+
+        // Do a full ratchet cycle
+        let m1 = alice.encrypt(b"hello").unwrap();
+        assert_eq!(bob.decrypt(&m1).unwrap(), b"hello");
+        let m2 = bob.encrypt(b"hi back").unwrap();
+        assert_eq!(alice.decrypt(&m2).unwrap(), b"hi back");
+
+        // Persist bob's state
+        let bob_bytes = bob.to_persisted().unwrap();
+        drop(bob);
+
+        // Restore bob
+        let mut bob2 = DoubleRatchet::from_persisted(&bob_bytes).unwrap();
+
+        // Continue
+        let m3 = alice.encrypt(b"still works?").unwrap();
+        assert_eq!(bob2.decrypt(&m3).unwrap(), b"still works?");
+    }
+
+    #[test]
+    fn persist_preserves_skipped_keys() {
+        let (mut alice, mut bob) = create_pair();
+
+        // Create out-of-order messages
+        let m0 = alice.encrypt(b"first").unwrap();
+        let m1 = alice.encrypt(b"second").unwrap();
+        let m2 = alice.encrypt(b"third").unwrap();
+
+        // Bob decrypts out of order, creating skipped keys
+        assert_eq!(bob.decrypt(&m0).unwrap(), b"first");
+        assert_eq!(bob.decrypt(&m2).unwrap(), b"third");
+        assert_eq!(bob.skipped_count(), 1);
+
+        // Persist and restore bob
+        let bob_bytes = bob.to_persisted().unwrap();
+        let mut bob2 = DoubleRatchet::from_persisted(&bob_bytes).unwrap();
+        assert_eq!(bob2.skipped_count(), 1);
+
+        // Skipped message still decryptable
+        assert_eq!(bob2.decrypt(&m1).unwrap(), b"second");
+        assert_eq!(bob2.skipped_count(), 0);
+    }
+
+    #[test]
+    fn persist_roundtrip_bytes() {
+        let (alice, _) = create_pair();
+        let bytes = alice.to_persisted().unwrap();
+        assert!(!bytes.is_empty());
+
+        // Valid JSON
+        let _: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    }
+
+    #[test]
+    fn persist_invalid_bytes_fails() {
+        assert!(DoubleRatchet::from_persisted(b"not json").is_err());
     }
 }
