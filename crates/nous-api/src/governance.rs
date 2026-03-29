@@ -1,12 +1,10 @@
-use axum::extract::{Path, Query, State};
 use axum::Json;
+use axum::extract::{Path, Query, State};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use utoipa::{IntoParams, ToSchema};
 
-use nous_governance::{
-    Ballot, CommittedVote, Dao, Proposal, VoteChoice, VoteResult, VoteTally,
-};
+use nous_governance::{Ballot, CommittedVote, Dao, Proposal, VoteChoice, VoteResult, VoteTally};
 
 use crate::error::ApiError;
 use crate::state::AppState;
@@ -226,9 +224,7 @@ pub async fn create_dao(
     tag = "governance",
     responses((status = 200, description = "List of all DAOs"))
 )]
-pub async fn list_daos(
-    State(state): State<Arc<AppState>>,
-) -> Json<DaoListResponse> {
+pub async fn list_daos(State(state): State<Arc<AppState>>) -> Json<DaoListResponse> {
     let daos = state.daos.read().await;
     let dao_list: Vec<DaoResponse> = daos.values().map(DaoResponse::from).collect();
     let count = dao_list.len();
@@ -385,16 +381,15 @@ pub async fn list_proposals(
     let filtered: Vec<ProposalResponse> = proposals
         .values()
         .filter(|p| {
-            if let Some(ref dao_id) = query.dao_id {
-                if &p.dao_id != dao_id {
-                    return false;
-                }
+            if let Some(ref dao_id) = query.dao_id
+                && &p.dao_id != dao_id
+            {
+                return false;
             }
-            if let Some(ref status) = query.status {
-                let status_str = format!("{:?}", p.status);
-                if &status_str != status {
-                    return false;
-                }
+            if let Some(ref status) = query.status
+                && &format!("{:?}", p.status) != status
+            {
+                return false;
             }
             true
         })
@@ -494,10 +489,7 @@ pub async fn get_tally(
     drop(proposals);
 
     let daos = state.daos.read().await;
-    let eligible_voters = daos
-        .get(&dao_id)
-        .map(|d| d.member_count())
-        .unwrap_or(0);
+    let eligible_voters = daos.get(&dao_id).map(|d| d.member_count()).unwrap_or(0);
     drop(daos);
 
     let tallies = state.tallies.read().await;
@@ -538,9 +530,7 @@ pub async fn cast_private_vote(
     drop(proposals);
 
     let mut private_votes = state.private_votes.write().await;
-    let votes = private_votes
-        .entry(vote.proposal_id.clone())
-        .or_default();
+    let votes = private_votes.entry(vote.proposal_id.clone()).or_default();
     votes.push(vote);
 
     Ok(Json(MutationResponse {
@@ -640,11 +630,8 @@ pub async fn create_proposal(
         .get(&req.proposer_did)
         .ok_or_else(|| ApiError::not_found("identity not found — create one first"))?;
 
-    let mut builder = nous_governance::proposal::ProposalBuilder::new(
-        &dao_id,
-        &req.title,
-        &req.description,
-    );
+    let mut builder =
+        nous_governance::proposal::ProposalBuilder::new(&dao_id, &req.title, &req.description);
     if let Some(q) = req.quorum {
         builder = builder.quorum(q);
     }
@@ -703,13 +690,19 @@ pub async fn simple_vote(
         "for" => VoteChoice::For,
         "against" => VoteChoice::Against,
         "abstain" => VoteChoice::Abstain,
-        _ => return Err(ApiError::bad_request("choice must be for, against, or abstain")),
+        _ => {
+            return Err(ApiError::bad_request(
+                "choice must be for, against, or abstain",
+            ));
+        }
     };
 
     // Verify proposal exists
     let proposals = state.proposals.read().await;
     if !proposals.contains_key(&proposal_id) {
-        return Err(ApiError::not_found(format!("proposal {proposal_id} not found")));
+        return Err(ApiError::not_found(format!(
+            "proposal {proposal_id} not found"
+        )));
     }
     drop(proposals);
 
@@ -719,8 +712,8 @@ pub async fn simple_vote(
         .get(&req.voter_did)
         .ok_or_else(|| ApiError::not_found("identity not found — create one first"))?;
 
-    let ballot = Ballot::new(&proposal_id, identity, choice, req.credits)
-        .map_err(ApiError::from)?;
+    let ballot =
+        Ballot::new(&proposal_id, identity, choice, req.credits).map_err(ApiError::from)?;
 
     drop(identities);
 
@@ -1039,13 +1032,10 @@ mod tests {
             .await
             .unwrap();
 
-        let proposal = nous_governance::proposal::ProposalBuilder::new(
-            &dao.id,
-            "Vote test",
-            "Test voting",
-        )
-        .submit(&proposer)
-        .unwrap();
+        let proposal =
+            nous_governance::proposal::ProposalBuilder::new(&dao.id, "Vote test", "Test voting")
+                .submit(&proposer)
+                .unwrap();
 
         let proposal_id = proposal.id.clone();
 
@@ -1217,13 +1207,10 @@ mod tests {
             .await
             .unwrap();
 
-        let proposal = nous_governance::proposal::ProposalBuilder::new(
-            &dao.id,
-            "Empty tally",
-            "No votes yet",
-        )
-        .submit(&proposer)
-        .unwrap();
+        let proposal =
+            nous_governance::proposal::ProposalBuilder::new(&dao.id, "Empty tally", "No votes yet")
+                .submit(&proposer)
+                .unwrap();
 
         let proposal_id = proposal.id.clone();
 
