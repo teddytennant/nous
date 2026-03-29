@@ -12,6 +12,7 @@ const nav = [
   { name: "Marketplace", href: "/marketplace" },
   { name: "Files", href: "/files" },
   { name: "Wallet", href: "/wallet" },
+  { name: "AI", href: "/ai" },
   { name: "Identity", href: "/identity" },
   { name: "Settings", href: "/settings" },
 ];
