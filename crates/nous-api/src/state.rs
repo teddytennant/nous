@@ -8,7 +8,7 @@ use nous_governance::{
     CommittedVote, Dao, DelegationRegistry, ExecutionEngine, Proposal, VoteTally,
 };
 use nous_identity::{Credential, Identity, Reputation};
-use nous_marketplace::{Listing, Review};
+use nous_marketplace::{Dispute, Listing, Offer, Order, Review};
 use nous_messaging::{Channel, Message};
 use nous_payments::{Escrow, Invoice, Transaction, Wallet};
 use nous_social::{Feed, FollowGraph};
@@ -50,6 +50,12 @@ pub enum RealtimeEvent {
     },
     /// Listing created or updated in marketplace.
     ListingUpdate { id: String, title: String },
+    /// Order status changed.
+    OrderUpdate { id: String, status: String },
+    /// New dispute opened.
+    DisputeOpened { id: String, order_id: String },
+    /// Offer made on a listing.
+    OfferMade { id: String, listing_id: String },
 }
 
 pub struct AppState {
@@ -65,6 +71,9 @@ pub struct AppState {
     pub execution_engine: RwLock<ExecutionEngine>,
     pub listings: RwLock<HashMap<String, Listing>>,
     pub reviews: RwLock<HashMap<String, Review>>,
+    pub orders: RwLock<HashMap<String, Order>>,
+    pub disputes: RwLock<HashMap<String, Dispute>>,
+    pub offers: RwLock<HashMap<String, Offer>>,
     // Messaging
     pub channels: RwLock<HashMap<String, Channel>>,
     pub messages: RwLock<HashMap<String, Vec<Message>>>,
@@ -100,6 +109,9 @@ impl AppState {
             execution_engine: RwLock::new(ExecutionEngine::new(86400, 259200)), // 1 day timelock, 3 day grace
             listings: RwLock::new(HashMap::new()),
             reviews: RwLock::new(HashMap::new()),
+            orders: RwLock::new(HashMap::new()),
+            disputes: RwLock::new(HashMap::new()),
+            offers: RwLock::new(HashMap::new()),
             channels: RwLock::new(HashMap::new()),
             messages: RwLock::new(HashMap::new()),
             identities: RwLock::new(HashMap::new()),
