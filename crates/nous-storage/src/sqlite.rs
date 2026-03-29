@@ -77,7 +77,26 @@ impl Database {
                     reason      TEXT NOT NULL,
                     timestamp   TEXT NOT NULL
                 );
-                CREATE INDEX IF NOT EXISTS idx_reputation_subject ON reputation_events(subject_did);",
+                CREATE INDEX IF NOT EXISTS idx_reputation_subject ON reputation_events(subject_did);
+
+                CREATE TABLE IF NOT EXISTS ratchet_sessions (
+                    session_id TEXT PRIMARY KEY,
+                    our_did    TEXT NOT NULL,
+                    peer_did   TEXT NOT NULL,
+                    state      BLOB NOT NULL,
+                    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+                );
+                CREATE INDEX IF NOT EXISTS idx_ratchet_peer ON ratchet_sessions(peer_did);
+
+                CREATE TABLE IF NOT EXISTS stored_messages (
+                    id         TEXT PRIMARY KEY,
+                    session_id TEXT NOT NULL,
+                    sender_did TEXT NOT NULL,
+                    payload    BLOB NOT NULL,
+                    timestamp  TEXT NOT NULL,
+                    FOREIGN KEY (session_id) REFERENCES ratchet_sessions(session_id)
+                );
+                CREATE INDEX IF NOT EXISTS idx_stored_messages_session ON stored_messages(session_id, timestamp);",
             )
             .map_err(|e| Error::Storage(format!("migration failed: {e}")))?;
 
@@ -136,6 +155,124 @@ impl Database {
             .map_err(|e| Error::Storage(format!("store identity failed: {e}")))?;
         Ok(())
     }
+
+    // ---- Ratchet session persistence ----
+
+    pub fn store_ratchet_session(
+        &self,
+        session_id: &str,
+        our_did: &str,
+        peer_did: &str,
+        state: &[u8],
+    ) -> Result<()> {
+        self.conn
+            .execute(
+                "INSERT INTO ratchet_sessions (session_id, our_did, peer_did, state, updated_at)
+                 VALUES (?1, ?2, ?3, ?4, datetime('now'))
+                 ON CONFLICT(session_id) DO UPDATE SET state = ?4, updated_at = datetime('now')",
+                params![session_id, our_did, peer_did, state],
+            )
+            .map_err(|e| Error::Storage(format!("store ratchet session failed: {e}")))?;
+        Ok(())
+    }
+
+    pub fn get_ratchet_session(&self, session_id: &str) -> Result<Option<Vec<u8>>> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT state FROM ratchet_sessions WHERE session_id = ?1")
+            .map_err(|e| Error::Storage(format!("prepare failed: {e}")))?;
+
+        let result = stmt
+            .query_row(params![session_id], |row| row.get(0))
+            .optional()
+            .map_err(|e| Error::Storage(format!("get ratchet session failed: {e}")))?;
+
+        Ok(result)
+    }
+
+    pub fn get_ratchet_session_by_peer(&self, peer_did: &str) -> Result<Option<(String, Vec<u8>)>> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT session_id, state FROM ratchet_sessions WHERE peer_did = ?1 ORDER BY updated_at DESC LIMIT 1")
+            .map_err(|e| Error::Storage(format!("prepare failed: {e}")))?;
+
+        let result = stmt
+            .query_row(params![peer_did], |row| Ok((row.get(0)?, row.get(1)?)))
+            .optional()
+            .map_err(|e| Error::Storage(format!("get ratchet by peer failed: {e}")))?;
+
+        Ok(result)
+    }
+
+    pub fn delete_ratchet_session(&self, session_id: &str) -> Result<bool> {
+        let count = self
+            .conn
+            .execute(
+                "DELETE FROM ratchet_sessions WHERE session_id = ?1",
+                params![session_id],
+            )
+            .map_err(|e| Error::Storage(format!("delete ratchet session failed: {e}")))?;
+        Ok(count > 0)
+    }
+
+    pub fn list_ratchet_sessions(&self, our_did: &str) -> Result<Vec<(String, String)>> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT session_id, peer_did FROM ratchet_sessions WHERE our_did = ?1 ORDER BY updated_at DESC")
+            .map_err(|e| Error::Storage(format!("prepare failed: {e}")))?;
+
+        let rows = stmt
+            .query_map(params![our_did], |row| Ok((row.get(0)?, row.get(1)?)))
+            .map_err(|e| Error::Storage(format!("list ratchet sessions failed: {e}")))?;
+
+        rows.collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(|e| Error::Storage(format!("collect sessions failed: {e}")))
+    }
+
+    // ---- Stored messages ----
+
+    pub fn store_message(
+        &self,
+        id: &str,
+        session_id: &str,
+        sender_did: &str,
+        payload: &[u8],
+        timestamp: &str,
+    ) -> Result<()> {
+        self.conn
+            .execute(
+                "INSERT INTO stored_messages (id, session_id, sender_did, payload, timestamp)
+                 VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![id, session_id, sender_did, payload, timestamp],
+            )
+            .map_err(|e| Error::Storage(format!("store message failed: {e}")))?;
+        Ok(())
+    }
+
+    pub fn get_messages(
+        &self,
+        session_id: &str,
+        limit: usize,
+    ) -> Result<Vec<(String, String, Vec<u8>, String)>> {
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT id, sender_did, payload, timestamp FROM stored_messages
+                 WHERE session_id = ?1 ORDER BY timestamp DESC LIMIT ?2",
+            )
+            .map_err(|e| Error::Storage(format!("prepare failed: {e}")))?;
+
+        let rows = stmt
+            .query_map(params![session_id, limit as i64], |row| {
+                Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
+            })
+            .map_err(|e| Error::Storage(format!("get messages failed: {e}")))?;
+
+        rows.collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(|e| Error::Storage(format!("collect messages failed: {e}")))
+    }
+
+    // ---- Identity ----
 
     pub fn get_identity(&self, did: &str) -> Result<Option<(String, Option<Vec<u8>>)>> {
         let mut stmt = self
@@ -233,6 +370,103 @@ mod tests {
     fn get_missing_identity_returns_none() {
         let db = Database::in_memory().unwrap();
         assert!(db.get_identity("did:key:znothing").unwrap().is_none());
+    }
+
+    #[test]
+    fn store_and_get_ratchet_session() {
+        let db = Database::in_memory().unwrap();
+        let state = b"ratchet-state-bytes";
+
+        db.store_ratchet_session("sess1", "did:key:zme", "did:key:zpeer", state)
+            .unwrap();
+
+        let loaded = db.get_ratchet_session("sess1").unwrap().unwrap();
+        assert_eq!(loaded, state);
+    }
+
+    #[test]
+    fn get_ratchet_session_by_peer() {
+        let db = Database::in_memory().unwrap();
+        db.store_ratchet_session("sess1", "did:key:zme", "did:key:zpeer", b"state1")
+            .unwrap();
+
+        let (id, state) = db
+            .get_ratchet_session_by_peer("did:key:zpeer")
+            .unwrap()
+            .unwrap();
+        assert_eq!(id, "sess1");
+        assert_eq!(state, b"state1");
+    }
+
+    #[test]
+    fn ratchet_session_upsert() {
+        let db = Database::in_memory().unwrap();
+        db.store_ratchet_session("sess1", "did:key:zme", "did:key:zpeer", b"v1")
+            .unwrap();
+        db.store_ratchet_session("sess1", "did:key:zme", "did:key:zpeer", b"v2")
+            .unwrap();
+
+        let loaded = db.get_ratchet_session("sess1").unwrap().unwrap();
+        assert_eq!(loaded, b"v2");
+    }
+
+    #[test]
+    fn delete_ratchet_session() {
+        let db = Database::in_memory().unwrap();
+        db.store_ratchet_session("sess1", "did:key:zme", "did:key:zpeer", b"state")
+            .unwrap();
+        assert!(db.delete_ratchet_session("sess1").unwrap());
+        assert!(db.get_ratchet_session("sess1").unwrap().is_none());
+    }
+
+    #[test]
+    fn list_ratchet_sessions() {
+        let db = Database::in_memory().unwrap();
+        db.store_ratchet_session("s1", "did:key:zme", "did:key:za", b"a")
+            .unwrap();
+        db.store_ratchet_session("s2", "did:key:zme", "did:key:zb", b"b")
+            .unwrap();
+        db.store_ratchet_session("s3", "did:key:zother", "did:key:zc", b"c")
+            .unwrap();
+
+        let sessions = db.list_ratchet_sessions("did:key:zme").unwrap();
+        assert_eq!(sessions.len(), 2);
+    }
+
+    #[test]
+    fn store_and_get_messages() {
+        let db = Database::in_memory().unwrap();
+        db.store_ratchet_session("sess1", "did:key:zme", "did:key:zpeer", b"state")
+            .unwrap();
+
+        db.store_message("msg1", "sess1", "did:key:zme", b"hello", "2026-01-01T00:00:00Z")
+            .unwrap();
+        db.store_message("msg2", "sess1", "did:key:zpeer", b"hi", "2026-01-01T00:01:00Z")
+            .unwrap();
+
+        let messages = db.get_messages("sess1", 10).unwrap();
+        assert_eq!(messages.len(), 2);
+    }
+
+    #[test]
+    fn get_messages_respects_limit() {
+        let db = Database::in_memory().unwrap();
+        db.store_ratchet_session("sess1", "did:key:zme", "did:key:zpeer", b"state")
+            .unwrap();
+
+        for i in 0..5 {
+            db.store_message(
+                &format!("msg{i}"),
+                "sess1",
+                "did:key:zme",
+                format!("msg {i}").as_bytes(),
+                &format!("2026-01-01T00:0{i}:00Z"),
+            )
+            .unwrap();
+        }
+
+        let messages = db.get_messages("sess1", 2).unwrap();
+        assert_eq!(messages.len(), 2);
     }
 
     #[test]
