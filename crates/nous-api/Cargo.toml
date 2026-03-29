@@ -19,6 +19,7 @@ nous-messaging = { path = "../nous-messaging" }
 nous-governance = { path = "../nous-governance" }
 nous-social = { path = "../nous-social" }
 nous-storage = { path = "../nous-storage" }
+nous-nostr = { path = "../nous-nostr" }
 axum = { version = "0.8", features = ["json", "query"] }
 tower = { version = "0.5", features = ["timeout", "limit"] }
 tower-http = { version = "0.6", features = ["cors", "trace", "compression-gzip"] }
@@ -43,3 +44,5 @@ tracing-subscriber = { workspace = true }
 hyper = { version = "1", features = ["full"] }
 http-body-util = "0.1"
 tower = { version = "0.5", features = ["util"] }
+ed25519-dalek = { workspace = true }
+rand = { workspace = true }
