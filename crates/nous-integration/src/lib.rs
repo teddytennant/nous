@@ -548,6 +548,218 @@ mod tests {
         assert_eq!(tx.to_did, bob.did());
     }
 
+    // ── E2E: Files → Storage ─────────────────────────────────
+
+    #[test]
+    fn files_upload_chunk_dedup() {
+        use nous_files::FileStore;
+
+        let mut store = FileStore::new();
+        let owner = Identity::generate();
+
+        // Upload a file
+        let data = b"Sovereign file storage, content-addressed.";
+        let manifest = store.put("test.txt", "text/plain", data, owner.did()).unwrap();
+        assert_eq!(manifest.name, "test.txt");
+        assert_eq!(manifest.version, 1);
+
+        // Upload same content again — should dedup chunks
+        let manifest2 = store.put("test.txt", "text/plain", data, owner.did()).unwrap();
+        assert_eq!(manifest2.version, 2);
+
+        // Verify dedup stats
+        let stats = store.stats();
+        assert_eq!(stats.total_files, 1); // Same file, two versions
+        assert!(stats.dedup_ratio >= 1.0);
+
+        // Retrieve content
+        let retrieved = store.get_by_manifest(&manifest2).unwrap();
+        assert_eq!(retrieved, data);
+    }
+
+    // ── E2E: Files + Identity ownership ──────────────────────
+
+    #[test]
+    fn files_owner_isolation() {
+        use nous_files::FileStore;
+
+        let mut store = FileStore::new();
+        let alice = Identity::generate();
+        let bob = Identity::generate();
+
+        store.put("secret.txt", "text/plain", b"alice data", alice.did()).unwrap();
+        store.put("public.txt", "text/plain", b"bob data", bob.did()).unwrap();
+
+        let alice_files = store.list_files(alice.did());
+        let bob_files = store.list_files(bob.did());
+
+        assert_eq!(alice_files.len(), 1);
+        assert_eq!(bob_files.len(), 1);
+        assert_eq!(alice_files[0].name, "secret.txt");
+        assert_eq!(bob_files[0].name, "public.txt");
+    }
+
+    // ── E2E: Governance convenience API ──────────────────────
+
+    #[tokio::test]
+    async fn governance_convenience_full_flow() {
+        use nous_api::{ApiConfig, router};
+        use axum::body::Body;
+        use axum::http::{Request, StatusCode};
+        use http_body_util::BodyExt;
+        use tower::ServiceExt;
+
+        let app = router(ApiConfig::default());
+
+        // 1. Create identity
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/identities")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"display_name":"Voter"}"#))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = response.into_body().collect().await.unwrap().to_bytes();
+        let id: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        let did = id["did"].as_str().unwrap().to_string();
+
+        // 2. Create DAO
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/daos")
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        serde_json::to_vec(&serde_json::json!({
+                            "founder_did": &did,
+                            "name": "IntegrationDAO",
+                            "description": "Full flow test"
+                        }))
+                        .unwrap(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = response.into_body().collect().await.unwrap().to_bytes();
+        let dao: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        let dao_id = dao["id"].as_str().unwrap().to_string();
+
+        // 3. Create proposal via convenience endpoint
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(format!("/api/v1/daos/{}/proposals", dao_id))
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        serde_json::to_vec(&serde_json::json!({
+                            "proposer_did": &did,
+                            "title": "Full integration test",
+                            "description": "Testing the full governance flow"
+                        }))
+                        .unwrap(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = response.into_body().collect().await.unwrap().to_bytes();
+        let proposal: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        let proposal_id = proposal["id"].as_str().unwrap().to_string();
+
+        // 4. Vote via convenience endpoint
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(format!("/api/v1/proposals/{}/vote", proposal_id))
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        serde_json::to_vec(&serde_json::json!({
+                            "voter_did": &did,
+                            "choice": "for",
+                            "credits": 25
+                        }))
+                        .unwrap(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+
+        // 5. Check tally
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/api/v1/votes/{}", proposal_id))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = response.into_body().collect().await.unwrap().to_bytes();
+        let tally: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(tally["votes_for"].as_u64().unwrap(), 5); // sqrt(25) = 5
+        assert_eq!(tally["total_voters"].as_u64().unwrap(), 1);
+    }
+
+    // ── E2E: Payments + Marketplace ──────────────────────────
+
+    #[test]
+    fn marketplace_purchase_with_payment() {
+        use nous_payments::{Wallet, transfer};
+        use nous_marketplace::{Listing, ListingCategory};
+
+        let seller = Identity::generate();
+        let buyer = Identity::generate();
+
+        // Setup wallets
+        let mut buyer_wallet = Wallet::new(buyer.did());
+        let mut seller_wallet = Wallet::new(seller.did());
+        buyer_wallet.credit("USDC", 10000);
+
+        // Create listing
+        let mut listing = Listing::new(
+            seller.did(),
+            "Security Audit Report",
+            "Comprehensive smart contract audit",
+            ListingCategory::Service,
+            "USDC",
+            5000,
+        )
+        .unwrap();
+
+        assert!(listing.is_available());
+
+        // Pay for listing
+        let tx = transfer(&mut buyer_wallet, &mut seller_wallet, "USDC", 5000).unwrap();
+        assert_eq!(tx.amount, 5000);
+
+        // Mark as purchased
+        listing.purchase().unwrap();
+        assert!(!listing.is_available());
+
+        // Verify balances
+        assert_eq!(buyer_wallet.balance("USDC"), 5000);
+        assert_eq!(seller_wallet.balance("USDC"), 5000);
+    }
+
     // ── E2E: NIP-02 Contact List + Social Follow ──────────────
 
     #[test]
