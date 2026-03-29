@@ -6,8 +6,8 @@
 
 use aes_gcm::aead::{Aead, KeyInit};
 use aes_gcm::{Aes256Gcm, Nonce};
-use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
+use base64::engine::general_purpose::STANDARD as BASE64;
 use ed25519_dalek::SigningKey;
 use hkdf::Hkdf;
 use rand::RngCore;
@@ -67,8 +67,8 @@ pub fn encrypt(
     let shared = sender_x25519.diffie_hellman(&recipient_x25519);
     let aes_key = derive_aes_key(shared.as_bytes());
 
-    let cipher = Aes256Gcm::new_from_slice(&aes_key)
-        .map_err(|e| format!("cipher init failed: {e}"))?;
+    let cipher =
+        Aes256Gcm::new_from_slice(&aes_key).map_err(|e| format!("cipher init failed: {e}"))?;
 
     let mut nonce_bytes = [0u8; 12];
     rand::thread_rng().fill_bytes(&mut nonce_bytes);
@@ -114,8 +114,8 @@ pub fn decrypt(
     let shared = recipient_x25519.diffie_hellman(&sender_x25519);
     let aes_key = derive_aes_key(shared.as_bytes());
 
-    let cipher = Aes256Gcm::new_from_slice(&aes_key)
-        .map_err(|e| format!("cipher init failed: {e}"))?;
+    let cipher =
+        Aes256Gcm::new_from_slice(&aes_key).map_err(|e| format!("cipher init failed: {e}"))?;
     let nonce = Nonce::from_slice(&nonce_bytes);
 
     let plaintext = cipher
