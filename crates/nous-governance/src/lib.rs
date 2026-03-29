@@ -2,11 +2,13 @@ pub mod dao;
 pub mod delegation;
 pub mod execution;
 pub mod proposal;
+pub mod treasury;
 pub mod vote;
 pub mod zkvote;
 
 pub use dao::Dao;
 pub use delegation::{Delegation, DelegationRegistry, DelegationScope};
+pub use treasury::{SpendingProposal, SpendingStatus, Treasury};
 pub use execution::{
     ActionResult, ExecutionEngine, ExecutionStatus, ProposalAction, QueuedExecution,
 };
