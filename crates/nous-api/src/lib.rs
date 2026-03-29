@@ -1,6 +1,7 @@
 pub mod config;
 pub mod error;
 pub mod files;
+pub mod governance;
 pub mod graphql;
 pub mod grpc;
 pub mod middleware;
@@ -28,8 +29,10 @@ pub fn router(config: ApiConfig) -> Router {
     let state = AppState::new(config);
 
     let api = Router::new()
+        // Node
         .route("/health", get(routes::health))
         .route("/node", get(routes::node_info))
+        // Social
         .route("/feed", get(routes::get_feed))
         .route("/timeline", get(routes::get_timeline))
         .route("/events", post(routes::create_post))
@@ -37,13 +40,35 @@ pub fn router(config: ApiConfig) -> Router {
         .route("/events/{event_id}", delete(routes::delete_event))
         .route("/follow", post(routes::follow_user))
         .route("/unfollow", post(routes::unfollow_user))
+        // Files
         .route("/files", get(files::list_files))
         .route("/files", post(files::upload_file))
         .route("/files", delete(files::delete_file))
         .route("/files/stats", get(files::store_stats))
         .route("/files/latest", get(files::get_latest))
         .route("/files/history", get(files::get_history))
-        .route("/files/{manifest_id}", get(files::get_file));
+        .route("/files/{manifest_id}", get(files::get_file))
+        // Governance — DAOs
+        .route("/daos", post(governance::create_dao))
+        .route("/daos", get(governance::list_daos))
+        .route("/daos/{dao_id}", get(governance::get_dao))
+        .route("/daos/{dao_id}/members", post(governance::add_member))
+        .route(
+            "/daos/{dao_id}/members/{did}",
+            delete(governance::remove_member),
+        )
+        // Governance — Proposals
+        .route("/proposals", post(governance::submit_proposal))
+        .route("/proposals", get(governance::list_proposals))
+        .route("/proposals/{proposal_id}", get(governance::get_proposal))
+        // Governance — Voting
+        .route("/votes", post(governance::cast_vote))
+        .route("/votes/{proposal_id}", get(governance::get_tally))
+        .route("/votes/private", post(governance::cast_private_vote))
+        .route(
+            "/votes/private/{proposal_id}",
+            get(governance::get_private_tally),
+        );
 
     Router::new()
         .nest("/api/v1", api)
