@@ -20,7 +20,28 @@ pub struct App {
     pub daos: Vec<crate::client::DaoItem>,
     pub proposals: Vec<crate::client::ProposalItem>,
     pub channels: Vec<crate::client::ChannelListItem>,
+    pub listings: Vec<crate::client::ListingItem>,
+    pub orders: Vec<crate::client::OrderItem>,
+    pub marketplace_tab: MarketplaceSubTab,
+    pub browser_urls: Vec<BrowserTabEntry>,
+    pub browser_history_count: usize,
+    pub browser_blocked_count: u64,
+    pub browser_filter_rules: usize,
     pub connected: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MarketplaceSubTab {
+    Listings,
+    Orders,
+}
+
+#[derive(Debug, Clone)]
+pub struct BrowserTabEntry {
+    pub title: String,
+    pub url: String,
+    pub status: String,
+    pub pinned: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -59,6 +80,13 @@ impl App {
             daos: Vec::new(),
             proposals: Vec::new(),
             channels: Vec::new(),
+            listings: Vec::new(),
+            orders: Vec::new(),
+            marketplace_tab: MarketplaceSubTab::Listings,
+            browser_urls: Vec::new(),
+            browser_history_count: 0,
+            browser_blocked_count: 0,
+            browser_filter_rules: 0,
             connected: false,
         }
     }
@@ -231,6 +259,10 @@ mod tests {
         assert!(app.api_client.is_none());
         assert!(app.balances.is_empty());
         assert!(app.daos.is_empty());
+        assert!(app.listings.is_empty());
+        assert!(app.orders.is_empty());
+        assert_eq!(app.marketplace_tab, MarketplaceSubTab::Listings);
+        assert!(app.browser_urls.is_empty());
     }
 
     #[test]
