@@ -65,7 +65,7 @@ export type EventMap = {
   listing_update: ListingUpdateEvent;
 };
 
-type EventType = keyof EventMap;
+export type EventType = keyof EventMap;
 type Listener<T extends EventType> = (data: EventMap[T]) => void;
 
 // ── Client ────────────────────────────────────────────────────────
