@@ -225,8 +225,7 @@ impl SharedFolder {
         }
 
         // Demote current owner to Admin.
-        self.members
-            .insert(self.owner.clone(), AccessLevel::Admin);
+        self.members.insert(self.owner.clone(), AccessLevel::Admin);
         // Promote new owner.
         self.members
             .insert(new_owner_did.to_string(), AccessLevel::Owner);
@@ -395,14 +394,20 @@ mod tests {
     fn change_access() {
         let mut folder = test_folder();
         folder.add_member(OWNER, ALICE, AccessLevel::Read).unwrap();
-        folder.change_access(OWNER, ALICE, AccessLevel::Admin).unwrap();
+        folder
+            .change_access(OWNER, ALICE, AccessLevel::Admin)
+            .unwrap();
         assert_eq!(folder.get_access(ALICE), Some(AccessLevel::Admin));
     }
 
     #[test]
     fn cannot_change_owner_access() {
         let mut folder = test_folder();
-        assert!(folder.change_access(OWNER, OWNER, AccessLevel::Admin).is_err());
+        assert!(
+            folder
+                .change_access(OWNER, OWNER, AccessLevel::Admin)
+                .is_err()
+        );
     }
 
     #[test]
@@ -444,7 +449,11 @@ mod tests {
     #[test]
     fn remove_nonexistent_file() {
         let mut folder = test_folder();
-        assert!(folder.remove_file(OWNER, &ContentId("nope".into())).is_err());
+        assert!(
+            folder
+                .remove_file(OWNER, &ContentId("nope".into()))
+                .is_err()
+        );
     }
 
     #[test]
@@ -473,7 +482,9 @@ mod tests {
     #[test]
     fn create_invite() {
         let folder = test_folder();
-        let invite = folder.create_invite(OWNER, ALICE, AccessLevel::Write).unwrap();
+        let invite = folder
+            .create_invite(OWNER, ALICE, AccessLevel::Write)
+            .unwrap();
         assert_eq!(invite.folder_id, folder.id);
         assert_eq!(invite.invitee, ALICE);
         assert_eq!(invite.access_level, AccessLevel::Write);
