@@ -3,6 +3,7 @@ pub mod client;
 pub mod config;
 pub mod input;
 pub mod poll;
+pub mod runner;
 pub mod tabs;
 #[cfg(unix)]
 pub mod terminal_panel;
@@ -12,5 +13,6 @@ pub mod widgets;
 
 pub use app::App;
 pub use config::TuiConfig;
+pub use runner::run;
 pub use tabs::{Tab, TabState};
 pub use theme::Theme;
