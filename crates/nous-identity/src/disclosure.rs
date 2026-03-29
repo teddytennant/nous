@@ -174,7 +174,7 @@ impl PresentationBuilder {
         Self::default()
     }
 
-    pub fn add(mut self, disclosure: SelectiveDisclosure) -> Self {
+    pub fn with(mut self, disclosure: SelectiveDisclosure) -> Self {
         self.disclosures.push(disclosure);
         self
     }
@@ -378,7 +378,7 @@ mod tests {
         let d2 =
             SelectiveDisclosure::from_credential(&credential, &req2, &fields2, &holder).unwrap();
 
-        let presentation = PresentationBuilder::new().add(d1).add(d2).build();
+        let presentation = PresentationBuilder::new().with(d1).with(d2).build();
 
         assert_eq!(presentation.disclosure_count(), 2);
         assert!(presentation.verify_all().is_ok());
@@ -395,7 +395,7 @@ mod tests {
         let d =
             SelectiveDisclosure::from_credential(&credential, &request, &fields, &holder).unwrap();
 
-        let presentation = PresentationBuilder::new().add(d).build();
+        let presentation = PresentationBuilder::new().with(d).build();
         let dids = presentation.holder_dids();
         assert_eq!(dids.len(), 1);
         assert_eq!(dids[0], holder.did());
@@ -442,7 +442,7 @@ mod tests {
         let d =
             SelectiveDisclosure::from_credential(&credential, &request, &fields, &holder).unwrap();
 
-        let presentation = PresentationBuilder::new().add(d).build();
+        let presentation = PresentationBuilder::new().with(d).build();
         let json = serde_json::to_string(&presentation).unwrap();
         let restored: Presentation = serde_json::from_str(&json).unwrap();
         assert_eq!(restored.disclosure_count(), 1);
