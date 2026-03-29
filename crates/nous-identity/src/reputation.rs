@@ -50,6 +50,7 @@ impl ReputationEvent {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Reputation {
     pub did: String,
     scores: std::collections::HashMap<ReputationCategory, i64>,
@@ -299,5 +300,42 @@ mod tests {
         let json = serde_json::to_string(&event).unwrap();
         let deserialized: ReputationEvent = serde_json::from_str(&json).unwrap();
         assert!(deserialized.verify().is_ok());
+    }
+
+    #[test]
+    fn reputation_serde_roundtrip() {
+        let issuer = Identity::generate();
+        let subject = Identity::generate();
+        let mut rep = Reputation::new(subject.did());
+
+        let gov_event = Reputation::issue_event(
+            &issuer,
+            subject.did(),
+            ReputationCategory::Governance,
+            10,
+            "voted",
+        )
+        .unwrap();
+
+        let trade_event = Reputation::issue_event(
+            &issuer,
+            subject.did(),
+            ReputationCategory::Trading,
+            5,
+            "completed trade",
+        )
+        .unwrap();
+
+        rep.apply(&gov_event).unwrap();
+        rep.apply(&trade_event).unwrap();
+
+        let json = serde_json::to_string(&rep).unwrap();
+        let restored: Reputation = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(restored.did, subject.did());
+        assert_eq!(restored.score(ReputationCategory::Governance), 10);
+        assert_eq!(restored.score(ReputationCategory::Trading), 5);
+        assert_eq!(restored.total_score(), 15);
+        assert_eq!(restored.events().len(), 2);
     }
 }

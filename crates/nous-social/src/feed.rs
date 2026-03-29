@@ -1,7 +1,10 @@
 use std::collections::{BTreeSet, HashMap, HashSet};
 
+use serde::{Deserialize, Serialize};
+
 use crate::event::{EventKind, SignedEvent};
 
+#[derive(Serialize, Deserialize)]
 pub struct Feed {
     events: BTreeSet<SignedEvent>,
     by_author: HashMap<String, Vec<String>>,
@@ -264,5 +267,26 @@ mod tests {
         assert!(feed.remove(&id));
         assert_eq!(feed.len(), 0);
         assert!(!feed.remove(&id)); // already removed
+    }
+
+    #[test]
+    fn feed_serde_roundtrip() {
+        let mut feed = Feed::new();
+        feed.insert(make_event("did:key:alice", "alice post"));
+        feed.insert(make_event("did:key:bob", "bob post"));
+        feed.insert(make_event_with_tags(
+            "did:key:alice",
+            "tagged",
+            vec![Tag::hashtag("nous")],
+        ));
+
+        let json = serde_json::to_string(&feed).unwrap();
+        let restored: Feed = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(restored.len(), 3);
+        assert_eq!(restored.by_author("did:key:alice").len(), 2);
+        assert_eq!(restored.by_author("did:key:bob").len(), 1);
+        assert_eq!(restored.by_hashtag("nous").len(), 1);
+        assert_eq!(restored.text_notes().len(), 3);
     }
 }

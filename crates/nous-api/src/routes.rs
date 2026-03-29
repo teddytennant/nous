@@ -155,6 +155,9 @@ pub async fn create_post(
     let mut feed = state.feed.write().await;
     feed.insert(event.clone());
 
+    // Persist feed to SQLite
+    state.persist_feed(&feed).await;
+
     state.emit(crate::state::RealtimeEvent::NewPost {
         id: event.id.clone(),
         author: event.pubkey.clone(),
@@ -203,6 +206,8 @@ pub async fn delete_event(
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let mut feed = state.feed.write().await;
     if feed.remove(&event_id) {
+        // Persist feed to SQLite
+        state.persist_feed(&feed).await;
         Ok(Json(serde_json::json!({"deleted": event_id})))
     } else {
         Err(ApiError::not_found(format!("event {event_id} not found")))

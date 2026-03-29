@@ -70,6 +70,7 @@ impl Document {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Identity {
     keypair: KeyPair,
     document: Document,
@@ -231,5 +232,30 @@ mod tests {
         let a = Identity::generate();
         let b = Identity::generate();
         assert_ne!(a.did(), b.did());
+    }
+
+    #[test]
+    fn identity_serde_roundtrip() {
+        let id = Identity::generate().with_display_name("Zarathustra");
+        let did = id.did().to_string();
+        let signing_pub = id.keypair().signing_public_bytes();
+
+        let json = serde_json::to_string(&id).unwrap();
+        let restored: Identity = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(restored.did(), did);
+        assert_eq!(restored.display_name(), Some("Zarathustra"));
+        assert_eq!(restored.keypair().signing_public_bytes(), signing_pub);
+    }
+
+    #[test]
+    fn identity_serde_preserves_signing() {
+        let id = Identity::generate();
+        let json = serde_json::to_string(&id).unwrap();
+        let restored: Identity = serde_json::from_str(&json).unwrap();
+
+        let message = b"persistence signing test";
+        let sig = restored.sign(message);
+        assert!(Verifier::verify(&id.keypair().verifying_key(), message, &sig).is_ok());
     }
 }

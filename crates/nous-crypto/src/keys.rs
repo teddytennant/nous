@@ -18,6 +18,64 @@ pub struct KeyPair {
     exchange_public: X25519PublicKey,
 }
 
+// Custom Serialize/Deserialize for KeyPair.
+//
+// We persist the 32-byte signing secret and 32-byte exchange secret as hex
+// strings.  On deserialization we reconstruct the full KeyPair (including
+// derived public keys) from these bytes.  The signing key is the ed25519
+// secret scalar; the exchange key is the x25519 static secret.
+//
+// SECURITY NOTE: the serialized form contains private key material.
+// Callers must ensure it is stored in an encrypted or access-controlled
+// backend (e.g. the SQLite KV store with appropriate file permissions).
+
+impl Serialize for KeyPair {
+    fn serialize<S: serde::Serializer>(
+        &self,
+        serializer: S,
+    ) -> std::result::Result<S::Ok, S::Error> {
+        use serde::ser::SerializeStruct;
+        let mut state = serializer.serialize_struct("KeyPair", 2)?;
+        state.serialize_field("signing", &hex::encode(self.signing.to_bytes()))?;
+        state.serialize_field("exchange", &hex::encode(self.exchange.to_bytes()))?;
+        state.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for KeyPair {
+    fn deserialize<D: serde::Deserializer<'de>>(
+        deserializer: D,
+    ) -> std::result::Result<Self, D::Error> {
+        #[derive(Deserialize)]
+        struct Raw {
+            signing: String,
+            exchange: String,
+        }
+
+        let raw = Raw::deserialize(deserializer)?;
+
+        let signing_bytes: [u8; 32] = hex::decode(&raw.signing)
+            .map_err(serde::de::Error::custom)?
+            .try_into()
+            .map_err(|_| serde::de::Error::custom("signing key must be 32 bytes"))?;
+
+        let exchange_bytes: [u8; 32] = hex::decode(&raw.exchange)
+            .map_err(serde::de::Error::custom)?
+            .try_into()
+            .map_err(|_| serde::de::Error::custom("exchange key must be 32 bytes"))?;
+
+        let signing = SigningKey::from_bytes(&signing_bytes);
+        let exchange = StaticSecret::from(exchange_bytes);
+        let exchange_public = X25519PublicKey::from(&exchange);
+
+        Ok(Self {
+            signing,
+            exchange,
+            exchange_public,
+        })
+    }
+}
+
 impl KeyPair {
     pub fn generate() -> Self {
         let signing = SigningKey::generate(&mut OsRng);
@@ -221,5 +279,32 @@ mod tests {
         let bundle = kp.public_bundle();
         assert_eq!(bundle.signing.len(), 32);
         assert_eq!(bundle.exchange.len(), 32);
+    }
+
+    #[test]
+    fn keypair_serde_roundtrip() {
+        let kp = KeyPair::generate();
+        let signing_pub = kp.signing_public_bytes();
+        let exchange_pub = kp.exchange_public_bytes();
+
+        let json = serde_json::to_string(&kp).unwrap();
+        let restored: KeyPair = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(restored.signing_public_bytes(), signing_pub);
+        assert_eq!(restored.exchange_public_bytes(), exchange_pub);
+        assert_eq!(restored.signing_secret_bytes(), kp.signing_secret_bytes());
+    }
+
+    #[test]
+    fn keypair_serde_preserves_signing_capability() {
+        use crate::signing::{Signer, Verifier};
+
+        let kp = KeyPair::generate();
+        let json = serde_json::to_string(&kp).unwrap();
+        let restored: KeyPair = serde_json::from_str(&json).unwrap();
+
+        let message = b"serialization roundtrip signing test";
+        let sig = Signer::new(&restored).sign(message);
+        assert!(Verifier::verify(&kp.verifying_key(), message, &sig).is_ok());
     }
 }

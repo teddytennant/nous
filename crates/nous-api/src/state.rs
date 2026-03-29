@@ -119,6 +119,9 @@ pub mod kv_ns {
     pub const INVOICES: &str = "api:invoices";
     pub const AGENTS: &str = "api:agents";
     pub const CONVERSATIONS: &str = "api:conversations";
+    pub const IDENTITIES: &str = "api:identities";
+    pub const REPUTATIONS: &str = "api:reputations";
+    pub const FEED: &str = "api:feed";
     pub const FOLLOW_GRAPH: &str = "api:follow_graph";
     pub const FILE_STORE: &str = "api:file_store";
 }
@@ -139,8 +142,7 @@ impl AppState {
         let proposals = load_kv_map(&db, kv_ns::PROPOSALS);
         let tallies = load_kv_map(&db, kv_ns::TALLIES);
         let private_votes = load_kv_map(&db, kv_ns::PRIVATE_VOTES);
-        let delegations =
-            load_kv_singleton(&db, kv_ns::DELEGATIONS).unwrap_or_default();
+        let delegations = load_kv_singleton(&db, kv_ns::DELEGATIONS).unwrap_or_default();
         let execution_engine = load_kv_singleton(&db, kv_ns::EXECUTION_ENGINE)
             .unwrap_or_else(|| ExecutionEngine::new(86400, 259200));
         let listings = load_kv_map(&db, kv_ns::LISTINGS);
@@ -150,22 +152,22 @@ impl AppState {
         let offers = load_kv_map(&db, kv_ns::OFFERS);
         let channels = load_kv_map(&db, kv_ns::CHANNELS);
         let messages = load_kv_map(&db, kv_ns::MESSAGES);
+        let identities: HashMap<String, Identity> = load_kv_map(&db, kv_ns::IDENTITIES);
+        let reputations = load_kv_map(&db, kv_ns::REPUTATIONS);
         let credentials = load_kv_map(&db, kv_ns::CREDENTIALS);
         let wallets = load_kv_map(&db, kv_ns::WALLETS);
-        let transactions =
-            load_kv_singleton(&db, kv_ns::TRANSACTIONS).unwrap_or_default();
+        let transactions = load_kv_singleton(&db, kv_ns::TRANSACTIONS).unwrap_or_default();
         let escrows = load_kv_map(&db, kv_ns::ESCROWS);
         let invoices = load_kv_map(&db, kv_ns::INVOICES);
         let agents = load_kv_map(&db, kv_ns::AGENTS);
         let conversations = load_kv_map(&db, kv_ns::CONVERSATIONS);
-        let follow_graph = load_kv_singleton(&db, kv_ns::FOLLOW_GRAPH)
-            .unwrap_or_else(FollowGraph::new);
-        let file_store =
-            load_kv_singleton(&db, kv_ns::FILE_STORE).unwrap_or_else(FileStore::new);
+        let follow_graph =
+            load_kv_singleton(&db, kv_ns::FOLLOW_GRAPH).unwrap_or_else(FollowGraph::new);
+        let file_store = load_kv_singleton(&db, kv_ns::FILE_STORE).unwrap_or_else(FileStore::new);
 
         Arc::new(Self {
             config,
-            feed: RwLock::new(Feed::new()), // TODO: Feed is not Serialize — kept in-memory only
+            feed: RwLock::new(load_kv_singleton(&db, kv_ns::FEED).unwrap_or_else(Feed::new)),
             follow_graph: RwLock::new(follow_graph),
             file_store: RwLock::new(file_store),
             daos: RwLock::new(daos),
@@ -181,9 +183,9 @@ impl AppState {
             offers: RwLock::new(offers),
             channels: RwLock::new(channels),
             messages: RwLock::new(messages),
-            identities: RwLock::new(HashMap::new()), // TODO: Identity is not Serialize — kept in-memory only
+            identities: RwLock::new(identities),
             credentials: RwLock::new(credentials),
-            reputations: RwLock::new(HashMap::new()), // TODO: Reputation is not Serialize — kept in-memory only
+            reputations: RwLock::new(reputations),
             wallets: RwLock::new(wallets),
             transactions: RwLock::new(transactions),
             escrows: RwLock::new(escrows),
@@ -300,6 +302,20 @@ impl AppState {
             .await;
     }
 
+    pub async fn persist_identity(&self, did: &str, identity: &Identity) {
+        self.persist_map_entry(kv_ns::IDENTITIES, did, identity)
+            .await;
+    }
+
+    pub async fn persist_reputation(&self, did: &str, reputation: &Reputation) {
+        self.persist_map_entry(kv_ns::REPUTATIONS, did, reputation)
+            .await;
+    }
+
+    pub async fn persist_feed(&self, feed: &Feed) {
+        self.persist_singleton(kv_ns::FEED, feed).await;
+    }
+
     pub async fn persist_credentials(&self, did: &str, creds: &[Credential]) {
         self.persist_map_entry(kv_ns::CREDENTIALS, did, &creds)
             .await;
@@ -334,8 +350,7 @@ impl AppState {
     }
 
     pub async fn persist_conversation(&self, id: &str, conv: &Conversation) {
-        self.persist_map_entry(kv_ns::CONVERSATIONS, id, conv)
-            .await;
+        self.persist_map_entry(kv_ns::CONVERSATIONS, id, conv).await;
     }
 
     pub async fn delete_conversation_entry(&self, id: &str) {

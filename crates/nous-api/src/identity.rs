@@ -119,9 +119,20 @@ pub async fn create_identity(
     let mut identities = state.identities.write().await;
     identities.insert(did.clone(), identity);
 
+    // Persist identity to SQLite
+    if let Some(id) = identities.get(&did) {
+        state.persist_identity(&did, id).await;
+    }
+
     // Initialize reputation tracker
+    let reputation = Reputation::new(&resp.did);
     let mut reputations = state.reputations.write().await;
-    reputations.insert(did, Reputation::new(&resp.did));
+    reputations.insert(did.clone(), reputation);
+
+    // Persist initial reputation to SQLite
+    if let Some(rep) = reputations.get(&did) {
+        state.persist_reputation(&did, rep).await;
+    }
 
     Ok(Json(resp))
 }
@@ -371,6 +382,9 @@ pub async fn add_reputation_event(
     reputation
         .apply(&event)
         .map_err(|e| ApiError::internal(e.to_string()))?;
+
+    // Persist updated reputation to SQLite
+    state.persist_reputation(&did, reputation).await;
 
     Ok(Json(serde_json::json!({
         "subject": did,
