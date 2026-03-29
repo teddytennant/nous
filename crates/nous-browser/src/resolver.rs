@@ -112,7 +112,8 @@ impl UrlResolver {
     }
 
     pub fn cache_ens(&mut self, name: &str, resolved: &str) {
-        self.ens_cache.insert(name.to_string(), resolved.to_string());
+        self.ens_cache
+            .insert(name.to_string(), resolved.to_string());
     }
 }
 
