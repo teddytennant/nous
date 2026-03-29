@@ -168,8 +168,8 @@ export default function FilesPage() {
           {[
             { label: "Files", value: String(stats.total_files) },
             { label: "Stored", value: formatBytes(stats.stored_bytes) },
-            { label: "Chunks", value: String(stats.unique_chunks) },
-            { label: "Saved", value: formatBytes(stats.deduplicated_bytes) },
+            { label: "Chunks", value: String(stats.total_chunks) },
+            { label: "Dedup", value: `${stats.dedup_ratio.toFixed(1)}x` },
           ].map((s) => (
             <div key={s.label}>
               <p className="text-[10px] font-mono uppercase tracking-wider text-neutral-600">
