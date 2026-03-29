@@ -999,7 +999,7 @@ impl Executor {
             AiCommand::Agents => {
                 use nous_ai::Agent;
 
-                let agents = vec![
+                let agents = [
                     Agent::new("researcher", "Researcher")
                         .with_system_prompt(
                             "Research agent for finding and summarizing information.",
