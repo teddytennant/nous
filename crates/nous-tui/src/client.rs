@@ -103,6 +103,44 @@ pub struct ProposalListResponse {
     pub count: usize,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+pub struct ListingItem {
+    pub id: String,
+    pub seller_did: String,
+    pub title: String,
+    pub description: String,
+    pub category: String,
+    pub price_token: String,
+    pub price_amount: String,
+    pub status: String,
+    pub created_at: String,
+    pub tags: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ListingListResponse {
+    pub listings: Vec<ListingItem>,
+    pub count: usize,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct OrderItem {
+    pub id: String,
+    pub listing_id: String,
+    pub buyer_did: String,
+    pub seller_did: String,
+    pub token: String,
+    pub amount: String,
+    pub status: String,
+    pub created_at: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct OrderListResponse {
+    pub orders: Vec<OrderItem>,
+    pub count: usize,
+}
+
 impl ApiClient {
     pub fn new(base_url: &str) -> Self {
         Self {
@@ -192,6 +230,30 @@ impl ApiClient {
             .json()
             .await
     }
+
+    pub async fn marketplace_listings(
+        &self,
+        limit: usize,
+    ) -> Result<ListingListResponse, reqwest::Error> {
+        self.client
+            .get(format!(
+                "{}/marketplace/listings?limit={}",
+                self.base_url, limit
+            ))
+            .send()
+            .await?
+            .json()
+            .await
+    }
+
+    pub async fn marketplace_orders(&self, did: &str) -> Result<OrderListResponse, reqwest::Error> {
+        self.client
+            .get(format!("{}/marketplace/orders?did={}", self.base_url, did))
+            .send()
+            .await?
+            .json()
+            .await
+    }
 }
 
 #[cfg(test)]
@@ -274,5 +336,23 @@ mod tests {
         let resp: Vec<MessageItem> = serde_json::from_str(json).unwrap();
         assert_eq!(resp.len(), 1);
         assert_eq!(resp[0].content, "hi");
+    }
+
+    #[test]
+    fn listing_list_deserialize() {
+        let json = r#"{"listings":[{"id":"listing:abc","seller_did":"did:key:z","title":"Widget","description":"Nice","category":"Physical","price_token":"ETH","price_amount":"100","status":"Active","created_at":"2026-03-29","tags":["electronics"]}],"count":1}"#;
+        let resp: ListingListResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(resp.listings.len(), 1);
+        assert_eq!(resp.listings[0].title, "Widget");
+        assert_eq!(resp.listings[0].tags, vec!["electronics"]);
+    }
+
+    #[test]
+    fn order_list_deserialize() {
+        let json = r#"{"orders":[{"id":"order:xyz","listing_id":"listing:abc","buyer_did":"did:key:buyer","seller_did":"did:key:seller","token":"ETH","amount":"500","status":"Shipped","created_at":"2026-03-29"}],"count":1}"#;
+        let resp: OrderListResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(resp.orders.len(), 1);
+        assert_eq!(resp.orders[0].status, "Shipped");
+        assert_eq!(resp.orders[0].amount, "500");
     }
 }
