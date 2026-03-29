@@ -3,6 +3,8 @@ pub mod client;
 pub mod config;
 pub mod input;
 pub mod tabs;
+#[cfg(unix)]
+pub mod terminal_panel;
 pub mod theme;
 pub mod widgets;
 
