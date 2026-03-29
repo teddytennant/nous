@@ -5,9 +5,11 @@
 
 use std::sync::Arc;
 
-use async_graphql::{Context, EmptySubscription, InputObject, Object, Schema, SimpleObject};
+use async_graphql::{Context, InputObject, Object, Schema, SimpleObject, Subscription};
 use axum::Json;
 use axum::extract::State;
+use futures::Stream;
+use tokio_stream::StreamExt;
 
 use nous_governance::{Dao, Proposal};
 use nous_marketplace::{Listing, ListingCategory, Review, SellerRating};
@@ -707,12 +709,87 @@ impl MutationRoot {
     }
 }
 
-// ── Schema ─────────────────────────��───────────────────────────
+// ── Subscriptions ─────────────────────────────────────────────
 
-pub type NousSchema = Schema<QueryRoot, MutationRoot, EmptySubscription>;
+#[derive(SimpleObject)]
+pub struct PostEvent {
+    pub id: String,
+    pub author: String,
+    pub content: String,
+}
+
+#[derive(SimpleObject)]
+pub struct MessageEvent {
+    pub channel_id: String,
+    pub sender: String,
+    pub content: String,
+}
+
+#[derive(SimpleObject)]
+pub struct VoteEvent {
+    pub proposal_id: String,
+    pub voter: String,
+}
+
+pub struct SubscriptionRoot;
+
+#[Subscription]
+impl SubscriptionRoot {
+    /// Subscribe to new posts in the social feed.
+    async fn on_new_post(&self, ctx: &Context<'_>) -> impl Stream<Item = PostEvent> {
+        let state = ctx.data_unchecked::<Arc<AppState>>();
+        let rx = state.events.subscribe();
+        tokio_stream::wrappers::BroadcastStream::new(rx).filter_map(|result| match result {
+            Ok(crate::state::RealtimeEvent::NewPost {
+                id,
+                author,
+                content,
+            }) => Some(PostEvent {
+                id,
+                author,
+                content,
+            }),
+            _ => None,
+        })
+    }
+
+    /// Subscribe to new messages in any channel.
+    async fn on_new_message(&self, ctx: &Context<'_>) -> impl Stream<Item = MessageEvent> {
+        let state = ctx.data_unchecked::<Arc<AppState>>();
+        let rx = state.events.subscribe();
+        tokio_stream::wrappers::BroadcastStream::new(rx).filter_map(|result| match result {
+            Ok(crate::state::RealtimeEvent::NewMessage {
+                channel_id,
+                sender,
+                content,
+            }) => Some(MessageEvent {
+                channel_id,
+                sender,
+                content,
+            }),
+            _ => None,
+        })
+    }
+
+    /// Subscribe to votes cast on proposals.
+    async fn on_vote_cast(&self, ctx: &Context<'_>) -> impl Stream<Item = VoteEvent> {
+        let state = ctx.data_unchecked::<Arc<AppState>>();
+        let rx = state.events.subscribe();
+        tokio_stream::wrappers::BroadcastStream::new(rx).filter_map(|result| match result {
+            Ok(crate::state::RealtimeEvent::VoteCast { proposal_id, voter }) => {
+                Some(VoteEvent { proposal_id, voter })
+            }
+            _ => None,
+        })
+    }
+}
+
+// ── Schema ────────────────────────────────────────────────────
+
+pub type NousSchema = Schema<QueryRoot, MutationRoot, SubscriptionRoot>;
 
 pub fn build_schema(state: Arc<AppState>) -> NousSchema {
-    Schema::build(QueryRoot, MutationRoot, EmptySubscription)
+    Schema::build(QueryRoot, MutationRoot, SubscriptionRoot)
         .data(state)
         .finish()
 }
