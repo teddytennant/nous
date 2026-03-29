@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+use nous_files::FileStore;
 use nous_social::{Feed, FollowGraph};
 
 use crate::config::ApiConfig;
@@ -9,6 +10,7 @@ pub struct AppState {
     pub config: ApiConfig,
     pub feed: RwLock<Feed>,
     pub follow_graph: RwLock<FollowGraph>,
+    pub file_store: RwLock<FileStore>,
 }
 
 impl AppState {
@@ -17,6 +19,7 @@ impl AppState {
             config,
             feed: RwLock::new(Feed::new()),
             follow_graph: RwLock::new(FollowGraph::new()),
+            file_store: RwLock::new(FileStore::new()),
         })
     }
 }
