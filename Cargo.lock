@@ -3173,6 +3173,7 @@ name = "nous-bench"
 version = "0.1.0"
 dependencies = [
  "criterion",
+ "nous-ai",
  "nous-browser",
  "nous-crypto",
  "nous-files",
@@ -3208,6 +3209,7 @@ dependencies = [
  "chrono",
  "clap",
  "crossterm",
+ "nous-ai",
  "nous-core",
  "nous-crypto",
  "nous-files",
