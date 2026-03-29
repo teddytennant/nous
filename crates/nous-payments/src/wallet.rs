@@ -81,12 +81,7 @@ pub enum TxStatus {
 }
 
 impl Transaction {
-    pub fn new(
-        from: &str,
-        to: &str,
-        token: &str,
-        amount: u128,
-    ) -> Self {
+    pub fn new(from: &str, to: &str, token: &str, amount: u128) -> Self {
         Self {
             id: format!("tx:{}", Uuid::new_v4()),
             from_did: from.to_string(),
@@ -227,15 +222,13 @@ mod tests {
 
     #[test]
     fn transaction_with_memo() {
-        let tx = Transaction::new("alice", "bob", "ETH", 100)
-            .with_memo("for coffee");
+        let tx = Transaction::new("alice", "bob", "ETH", 100).with_memo("for coffee");
         assert_eq!(tx.memo.as_deref(), Some("for coffee"));
     }
 
     #[test]
     fn transaction_with_fee() {
-        let tx = Transaction::new("alice", "bob", "ETH", 100)
-            .with_fee(5);
+        let tx = Transaction::new("alice", "bob", "ETH", 100).with_fee(5);
         assert_eq!(tx.total_cost(), 105);
     }
 
