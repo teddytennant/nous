@@ -1,5 +1,5 @@
-use axum::extract::{Path, Query, State};
 use axum::Json;
+use axum::extract::{Path, Query, State};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use utoipa::{IntoParams, ToSchema};
@@ -228,10 +228,10 @@ pub async fn search_listings(
     if let Some(ref text) = params.text {
         query = query.text(text);
     }
-    if let Some(ref cat) = params.category {
-        if let Ok(c) = parse_category(cat) {
-            query = query.category(c);
-        }
+    if let Some(ref cat) = params.category
+        && let Ok(c) = parse_category(cat)
+    {
+        query = query.category(c);
     }
     if let (Some(min), Some(max)) = (params.min_price, params.max_price) {
         query = query.price_range(min, max);
@@ -414,15 +414,15 @@ pub async fn list_reviews(
     let filtered: Vec<ReviewResponse> = reviews
         .values()
         .filter(|r| {
-            if let Some(ref lid) = query.listing_id {
-                if &r.listing_id != lid {
-                    return false;
-                }
+            if let Some(ref lid) = query.listing_id
+                && &r.listing_id != lid
+            {
+                return false;
             }
-            if let Some(ref sdid) = query.seller_did {
-                if &r.seller_did != sdid {
-                    return false;
-                }
+            if let Some(ref sdid) = query.seller_did
+                && &r.seller_did != sdid
+            {
+                return false;
             }
             true
         })
