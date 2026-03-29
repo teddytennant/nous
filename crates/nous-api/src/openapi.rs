@@ -2,6 +2,7 @@ use utoipa::OpenApi;
 
 use crate::files;
 use crate::governance;
+use crate::marketplace;
 use crate::routes;
 
 #[derive(OpenApi)]
@@ -42,6 +43,14 @@ use crate::routes;
         governance::get_tally,
         governance::cast_private_vote,
         governance::get_private_tally,
+        marketplace::create_listing,
+        marketplace::search_listings,
+        marketplace::get_listing,
+        marketplace::purchase_listing,
+        marketplace::cancel_listing,
+        marketplace::create_review,
+        marketplace::list_reviews,
+        marketplace::get_seller_rating,
     ),
     components(schemas(
         routes::HealthResponse,
@@ -59,12 +68,17 @@ use crate::routes;
         governance::CreateDaoRequest,
         governance::AddMemberRequest,
         governance::ProposalQuery,
+        marketplace::CreateListingRequest,
+        marketplace::CreateReviewRequest,
+        marketplace::PurchaseRequest,
+        marketplace::SearchQueryParams,
     )),
     tags(
         (name = "node", description = "Node status and health"),
         (name = "social", description = "Social feed, posts, follows, timeline"),
         (name = "files", description = "Decentralized file storage with versioning and deduplication"),
         (name = "governance", description = "DAOs, proposals, voting, and ZK private voting"),
+        (name = "marketplace", description = "P2P marketplace: listings, purchases, reviews, seller ratings"),
     )
 )]
 pub struct NousApiDoc;
@@ -83,6 +97,8 @@ mod tests {
         assert!(json.contains("/api/v1/daos"));
         assert!(json.contains("/api/v1/proposals"));
         assert!(json.contains("/api/v1/votes"));
+        assert!(json.contains("/api/v1/listings"));
+        assert!(json.contains("/api/v1/reviews"));
     }
 
     #[test]
@@ -102,6 +118,7 @@ mod tests {
         assert!(tag_names.contains(&"social"));
         assert!(tag_names.contains(&"files"));
         assert!(tag_names.contains(&"governance"));
+        assert!(tag_names.contains(&"marketplace"));
     }
 
     #[test]
@@ -114,5 +131,7 @@ mod tests {
         assert!(schemas.contains_key("DeleteResponse"));
         assert!(schemas.contains_key("CreateDaoRequest"));
         assert!(schemas.contains_key("AddMemberRequest"));
+        assert!(schemas.contains_key("CreateListingRequest"));
+        assert!(schemas.contains_key("CreateReviewRequest"));
     }
 }
