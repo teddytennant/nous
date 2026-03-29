@@ -174,7 +174,6 @@ pub fn reconstruct_secret(shares: &[(u8, &[u8])]) -> Result<Vec<u8>> {
 }
 
 /// GF(256) arithmetic with irreducible polynomial x^8 + x^4 + x^3 + x + 1 (0x11B).
-
 fn gf256_add(a: u8, b: u8) -> u8 {
     a ^ b
 }
