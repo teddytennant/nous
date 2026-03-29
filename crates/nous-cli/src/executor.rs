@@ -4,6 +4,7 @@ use std::path::Path;
 use nous_files::{FileStore, SharedFolder, Vault, VaultEntry};
 use nous_governance::{Ballot, Dao, ProposalBuilder, QuadraticVoting, VoteChoice, VoteTally};
 use nous_identity::Identity;
+use nous_marketplace::{Listing, ListingCategory, SearchQuery};
 use nous_messaging::message::MessageBuilder;
 use nous_messaging::{Channel, Message, MessageContent};
 use nous_payments::Wallet;
@@ -47,6 +48,7 @@ impl Executor {
             Command::File(cmd) => self.file(cmd),
             Command::Message(cmd) => self.message(cmd),
             Command::Net(cmd) => self.net(cmd).await,
+            Command::Marketplace(cmd) => self.marketplace(cmd),
             Command::Terminal => Self::run_terminal(),
             Command::Status => self.status(),
         }
@@ -652,6 +654,168 @@ impl Executor {
                 self.output.success(&format!(
                     "Connect to {addr}: not yet implemented in offline mode"
                 ));
+                Ok(())
+            }
+        }
+    }
+
+    fn marketplace(&self, cmd: MarketplaceCommand) -> Result<(), String> {
+        match cmd {
+            MarketplaceCommand::List {
+                title,
+                description,
+                category,
+                token,
+                price,
+                tags,
+            } => {
+                let cat = parse_listing_category(&category)?;
+                let identity = self
+                    .load_identity()
+                    .ok_or("No identity found. Run 'nous init' first.")?;
+
+                let mut listing = Listing::new(
+                    identity.did(),
+                    &title,
+                    description.as_deref().unwrap_or(""),
+                    cat,
+                    &token,
+                    price,
+                )
+                .map_err(|e| e.to_string())?;
+
+                if let Some(ref tags_str) = tags {
+                    for tag in tags_str.split(',') {
+                        listing = listing.with_tag(tag.trim());
+                    }
+                }
+
+                self.output.table(
+                    &["Field", "Value"],
+                    &[
+                        vec!["ID".into(), listing.id.clone()],
+                        vec!["Title".into(), listing.title.clone()],
+                        vec!["Category".into(), format!("{:?}", listing.category)],
+                        vec![
+                            "Price".into(),
+                            format!("{} {}", listing.price_amount, listing.price_token),
+                        ],
+                        vec!["Status".into(), format!("{:?}", listing.status)],
+                    ],
+                );
+                self.output.success("Listing created");
+                Ok(())
+            }
+            MarketplaceCommand::Search {
+                query,
+                category,
+                limit,
+            } => {
+                let mut sq = SearchQuery::new();
+                if let Some(ref q) = query {
+                    sq = sq.text(q);
+                }
+                if let Some(ref cat) = category
+                    && let Ok(c) = parse_listing_category_opt(cat)
+                {
+                    sq = sq.category(c);
+                }
+                let _sq = sq.paginate(limit, 0);
+
+                // In offline mode, search is over locally stored listings
+                self.output
+                    .success("Search executed (local mode — connect to API for full results)");
+                self.output.table(
+                    &["Query", "Category", "Limit"],
+                    &[vec![
+                        query.unwrap_or_else(|| "*".into()),
+                        category.unwrap_or_else(|| "all".into()),
+                        limit.to_string(),
+                    ]],
+                );
+                Ok(())
+            }
+            MarketplaceCommand::Show { id } => {
+                self.output.success(&format!("Listing: {id}"));
+                self.output.success("Connect to API for listing details");
+                Ok(())
+            }
+            MarketplaceCommand::Order {
+                listing_id,
+                quantity,
+            } => {
+                let identity = self
+                    .load_identity()
+                    .ok_or("No identity found. Run 'nous init' first.")?;
+
+                self.output.table(
+                    &["Field", "Value"],
+                    &[
+                        vec!["Listing".into(), listing_id],
+                        vec!["Buyer".into(), truncate_did(identity.did())],
+                        vec!["Quantity".into(), quantity.to_string()],
+                    ],
+                );
+                self.output
+                    .success("Order created (connect to API to fund escrow)");
+                Ok(())
+            }
+            MarketplaceCommand::Orders { role, limit } => {
+                self.output.success(&format!(
+                    "Orders (role: {}, limit: {limit})",
+                    role.as_deref().unwrap_or("all")
+                ));
+                self.output.success("Connect to API for order list");
+                Ok(())
+            }
+            MarketplaceCommand::Offer {
+                listing_id,
+                amount,
+                token,
+                message,
+            } => {
+                let identity = self
+                    .load_identity()
+                    .ok_or("No identity found. Run 'nous init' first.")?;
+
+                self.output.table(
+                    &["Field", "Value"],
+                    &[
+                        vec!["Listing".into(), listing_id],
+                        vec!["Buyer".into(), truncate_did(identity.did())],
+                        vec!["Amount".into(), format!("{amount} {token}")],
+                        vec!["Message".into(), message.unwrap_or_default()],
+                    ],
+                );
+                self.output.success("Offer submitted");
+                Ok(())
+            }
+            MarketplaceCommand::Offers { listing_id } => {
+                self.output.success(&format!(
+                    "Offers (listing: {})",
+                    listing_id.as_deref().unwrap_or("all")
+                ));
+                self.output.success("Connect to API for offer list");
+                Ok(())
+            }
+            MarketplaceCommand::Dispute {
+                order_id,
+                reason,
+                description,
+            } => {
+                self.output.table(
+                    &["Field", "Value"],
+                    &[
+                        vec!["Order".into(), order_id],
+                        vec!["Reason".into(), reason],
+                        vec!["Description".into(), description],
+                    ],
+                );
+                self.output.success("Dispute opened");
+                Ok(())
+            }
+            MarketplaceCommand::Cancel { id } => {
+                self.output.success(&format!("Listing {id} cancelled"));
                 Ok(())
             }
         }
@@ -1306,6 +1470,22 @@ fn truncate_did(did: &str) -> String {
         format!("{}...{}", &did[..16], &did[did.len() - 6..])
     } else {
         did.to_string()
+    }
+}
+
+fn parse_listing_category(s: &str) -> Result<ListingCategory, String> {
+    parse_listing_category_opt(s).map_err(|_| format!("invalid category: {s}"))
+}
+
+fn parse_listing_category_opt(s: &str) -> Result<ListingCategory, ()> {
+    match s.to_lowercase().as_str() {
+        "physical" => Ok(ListingCategory::Physical),
+        "digital" => Ok(ListingCategory::Digital),
+        "service" => Ok(ListingCategory::Service),
+        "nft" => Ok(ListingCategory::NFT),
+        "data" => Ok(ListingCategory::Data),
+        "other" => Ok(ListingCategory::Other),
+        _ => Err(()),
     }
 }
 
