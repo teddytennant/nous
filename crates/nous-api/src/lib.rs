@@ -1,10 +1,12 @@
 pub mod config;
 pub mod error;
+pub mod graphql;
 pub mod middleware;
 pub mod routes;
 pub mod state;
 
 pub use config::ApiConfig;
+pub use graphql::NousSchema;
 
 use axum::middleware as axum_mw;
 use axum::routing::{delete, get, post};
@@ -29,6 +31,7 @@ pub fn router(config: ApiConfig) -> Router {
 
     Router::new()
         .nest("/api/v1", api)
+        .route("/graphql", post(graphql::graphql_handler))
         .layer(axum_mw::from_fn(middleware::request_logger))
         .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive())
