@@ -256,6 +256,65 @@ export const marketplace = {
     }),
 };
 
+// ── Files ─────────────────────────────────────────────────────────────────
+
+export interface FileManifestResponse {
+  id: { "0": string };
+  name: string;
+  mime_type: string;
+  total_size: number;
+  chunk_count: number;
+  content_hash: string;
+  owner: string;
+  version: number;
+  created_at: string;
+}
+
+export interface FileListResponse {
+  files: FileManifestResponse[];
+  count: number;
+}
+
+export interface FileContentResponse {
+  manifest: FileManifestResponse;
+  data_base64: string;
+  size: number;
+}
+
+export interface FileStoreStats {
+  total_files: number;
+  stored_bytes: number;
+  unique_chunks: number;
+  deduplicated_bytes: number;
+}
+
+export const files = {
+  list: (owner: string) =>
+    request<FileListResponse>(`/files?owner=${encodeURIComponent(owner)}`),
+
+  upload: (data: {
+    name: string;
+    mime_type: string;
+    owner: string;
+    data_base64: string;
+  }) =>
+    request<FileManifestResponse>("/files", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  get: (manifestId: string) =>
+    request<FileContentResponse>(`/files/${manifestId}`),
+
+  delete: (name: string, owner: string) =>
+    request<{ deleted: boolean; name: string; freed_bytes: number }>(
+      `/files?name=${encodeURIComponent(name)}&owner=${encodeURIComponent(owner)}`,
+      { method: "DELETE" }
+    ),
+
+  stats: () => request<FileStoreStats>("/files/stats"),
+};
+
 // ── Messaging ─────────────────────────────────────────────────────────────
 
 export interface ChannelResponse {
