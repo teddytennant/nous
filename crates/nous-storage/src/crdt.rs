@@ -313,8 +313,7 @@ impl<V: Clone> LWWMap<V> {
             });
 
             if other_entry.timestamp > entry.timestamp
-                || (other_entry.timestamp == entry.timestamp
-                    && other_entry.node_id > entry.node_id)
+                || (other_entry.timestamp == entry.timestamp && other_entry.node_id > entry.node_id)
             {
                 entry.value = other_entry.value.clone();
                 entry.timestamp = other_entry.timestamp;

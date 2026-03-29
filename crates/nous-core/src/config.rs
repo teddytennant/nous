@@ -28,10 +28,14 @@ impl Config {
 
     pub fn validate(&self) -> crate::Result<()> {
         if self.node.name.is_empty() {
-            return Err(crate::Error::InvalidInput("node name cannot be empty".into()));
+            return Err(crate::Error::InvalidInput(
+                "node name cannot be empty".into(),
+            ));
         }
         if self.network.max_peers == 0 {
-            return Err(crate::Error::InvalidInput("max_peers must be positive".into()));
+            return Err(crate::Error::InvalidInput(
+                "max_peers must be positive".into(),
+            ));
         }
         if self.api.rate_limit_per_minute == 0 {
             return Err(crate::Error::InvalidInput(

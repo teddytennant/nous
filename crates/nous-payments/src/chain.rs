@@ -191,7 +191,9 @@ impl Token {
     }
 
     pub fn parse_amount(&self, display: &str) -> Result<u128> {
-        let s = display.trim().trim_end_matches(&format!(" {}", self.symbol));
+        let s = display
+            .trim()
+            .trim_end_matches(&format!(" {}", self.symbol));
         let s = s.trim();
 
         let divisor = 10u128.pow(self.decimals as u32);
@@ -299,17 +301,18 @@ mod tests {
 
     #[test]
     fn valid_evm_address() {
-        let addr =
-            ChainAddress::new(Chain::Ethereum, "0x1234567890abcdef1234567890abcdef12345678")
-                .unwrap();
+        let addr = ChainAddress::new(
+            Chain::Ethereum,
+            "0x1234567890abcdef1234567890abcdef12345678",
+        )
+        .unwrap();
         assert_eq!(addr.chain, Chain::Ethereum);
     }
 
     #[test]
     fn invalid_evm_address_no_prefix() {
         assert!(
-            ChainAddress::new(Chain::Ethereum, "1234567890abcdef1234567890abcdef12345678")
-                .is_err()
+            ChainAddress::new(Chain::Ethereum, "1234567890abcdef1234567890abcdef12345678").is_err()
         );
     }
 
@@ -321,8 +324,11 @@ mod tests {
     #[test]
     fn invalid_evm_address_non_hex() {
         assert!(
-            ChainAddress::new(Chain::Ethereum, "0xGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG")
-                .is_err()
+            ChainAddress::new(
+                Chain::Ethereum,
+                "0xGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG"
+            )
+            .is_err()
         );
     }
 
@@ -333,9 +339,11 @@ mod tests {
 
     #[test]
     fn display_short_address() {
-        let addr =
-            ChainAddress::new(Chain::Ethereum, "0x1234567890abcdef1234567890abcdef12345678")
-                .unwrap();
+        let addr = ChainAddress::new(
+            Chain::Ethereum,
+            "0x1234567890abcdef1234567890abcdef12345678",
+        )
+        .unwrap();
         assert_eq!(addr.display_short(), "0x1234...5678");
     }
 
@@ -389,10 +397,7 @@ mod tests {
     #[test]
     fn parse_amount_fractional() {
         let eth = Token::native(Chain::Ethereum);
-        assert_eq!(
-            eth.parse_amount("1.5").unwrap(),
-            1_500_000_000_000_000_000
-        );
+        assert_eq!(eth.parse_amount("1.5").unwrap(), 1_500_000_000_000_000_000);
     }
 
     #[test]
@@ -444,9 +449,11 @@ mod tests {
 
     #[test]
     fn chain_address_serializes() {
-        let addr =
-            ChainAddress::new(Chain::Ethereum, "0x1234567890abcdef1234567890abcdef12345678")
-                .unwrap();
+        let addr = ChainAddress::new(
+            Chain::Ethereum,
+            "0x1234567890abcdef1234567890abcdef12345678",
+        )
+        .unwrap();
         let json = serde_json::to_string(&addr).unwrap();
         let restored: ChainAddress = serde_json::from_str(&json).unwrap();
         assert_eq!(restored.chain, Chain::Ethereum);

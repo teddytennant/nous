@@ -94,8 +94,7 @@ impl SwapOrder {
         if self.status != SwapStatus::Locked {
             return Err(Error::InvalidInput("swap is not locked".into()));
         }
-        let is_party = caller == self.initiator
-            || self.counterparty.as_deref() == Some(caller);
+        let is_party = caller == self.initiator || self.counterparty.as_deref() == Some(caller);
         if !is_party {
             return Err(Error::PermissionDenied(
                 "only swap parties can complete".into(),
@@ -111,9 +110,7 @@ impl SwapOrder {
             return Err(Error::InvalidInput("swap cannot be refunded".into()));
         }
         if caller != self.initiator {
-            return Err(Error::PermissionDenied(
-                "only initiator can refund".into(),
-            ));
+            return Err(Error::PermissionDenied("only initiator can refund".into()));
         }
         if self.status == SwapStatus::Locked && !self.is_expired() {
             return Err(Error::InvalidInput(
@@ -174,10 +171,17 @@ impl SwapBook {
             .collect()
     }
 
-    pub fn find_match(&self, want_token: &str, offer_token: &str, max_rate: f64) -> Option<&SwapOrder> {
-        self.pending()
-            .into_iter()
-            .find(|o| o.offer_token == want_token && o.want_token == offer_token && o.exchange_rate() <= max_rate)
+    pub fn find_match(
+        &self,
+        want_token: &str,
+        offer_token: &str,
+        max_rate: f64,
+    ) -> Option<&SwapOrder> {
+        self.pending().into_iter().find(|o| {
+            o.offer_token == want_token
+                && o.want_token == offer_token
+                && o.exchange_rate() <= max_rate
+        })
     }
 
     pub fn by_initiator(&self, initiator: &str) -> Vec<&SwapOrder> {

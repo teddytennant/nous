@@ -92,9 +92,7 @@ impl Capability {
     }
 
     pub fn is_expired(&self) -> bool {
-        self.expires_at
-            .map(|exp| exp < Utc::now())
-            .unwrap_or(false)
+        self.expires_at.map(|exp| exp < Utc::now()).unwrap_or(false)
     }
 
     pub fn is_valid(&self) -> bool {
@@ -107,7 +105,9 @@ impl Capability {
 
     pub fn check(&self, caller: &str, perm: Permission) -> Result<()> {
         if self.revoked {
-            return Err(Error::PermissionDenied("capability has been revoked".into()));
+            return Err(Error::PermissionDenied(
+                "capability has been revoked".into(),
+            ));
         }
         if self.is_expired() {
             return Err(Error::Expired("capability has expired".into()));
@@ -188,9 +188,7 @@ impl CapabilityStore {
             .iter()
             .find(|c| c.subject == caller && c.resource == resource && c.is_valid())
             .ok_or_else(|| {
-                Error::PermissionDenied(format!(
-                    "no valid capability for {caller} on {resource}"
-                ))
+                Error::PermissionDenied(format!("no valid capability for {caller} on {resource}"))
             })?;
 
         cap.check(caller, perm)
@@ -254,24 +252,21 @@ mod tests {
 
     #[test]
     fn check_correct_caller_passes() {
-        let cap = Capability::new("alice", "bob", "/data")
-            .with_permission(Permission::Read);
+        let cap = Capability::new("alice", "bob", "/data").with_permission(Permission::Read);
 
         assert!(cap.check("bob", Permission::Read).is_ok());
     }
 
     #[test]
     fn check_wrong_caller_fails() {
-        let cap = Capability::new("alice", "bob", "/data")
-            .with_permission(Permission::Read);
+        let cap = Capability::new("alice", "bob", "/data").with_permission(Permission::Read);
 
         assert!(cap.check("charlie", Permission::Read).is_err());
     }
 
     #[test]
     fn check_missing_permission_fails() {
-        let cap = Capability::new("alice", "bob", "/data")
-            .with_permission(Permission::Read);
+        let cap = Capability::new("alice", "bob", "/data").with_permission(Permission::Read);
 
         assert!(cap.check("bob", Permission::Write).is_err());
     }
@@ -299,8 +294,7 @@ mod tests {
 
     #[test]
     fn revoked_capability_is_invalid() {
-        let mut cap = Capability::new("alice", "bob", "/data")
-            .with_permission(Permission::Read);
+        let mut cap = Capability::new("alice", "bob", "/data").with_permission(Permission::Read);
 
         cap.revoke();
         assert!(!cap.is_valid());
@@ -327,12 +321,12 @@ mod tests {
 
     #[test]
     fn delegate_non_delegatable_fails() {
-        let cap = Capability::new("alice", "bob", "/data")
-            .with_permission(Permission::Read);
+        let cap = Capability::new("alice", "bob", "/data").with_permission(Permission::Read);
 
-        assert!(cap
-            .delegate("charlie", HashSet::from([Permission::Read]))
-            .is_err());
+        assert!(
+            cap.delegate("charlie", HashSet::from([Permission::Read]))
+                .is_err()
+        );
     }
 
     #[test]
@@ -341,18 +335,16 @@ mod tests {
             .with_permission(Permission::Read)
             .delegatable();
 
-        assert!(cap
-            .delegate("charlie", HashSet::from([Permission::Write]))
-            .is_err());
+        assert!(
+            cap.delegate("charlie", HashSet::from([Permission::Write]))
+                .is_err()
+        );
     }
 
     #[test]
     fn capability_store_grant_and_check() {
         let mut store = CapabilityStore::new();
-        store.grant(
-            Capability::new("alice", "bob", "/data")
-                .with_permission(Permission::Read),
-        );
+        store.grant(Capability::new("alice", "bob", "/data").with_permission(Permission::Read));
 
         assert!(store.check("bob", "/data", Permission::Read).is_ok());
         assert!(store.check("bob", "/data", Permission::Write).is_err());
@@ -362,8 +354,7 @@ mod tests {
     #[test]
     fn capability_store_revoke() {
         let mut store = CapabilityStore::new();
-        let cap = Capability::new("alice", "bob", "/data")
-            .with_permission(Permission::Read);
+        let cap = Capability::new("alice", "bob", "/data").with_permission(Permission::Read);
         let cap_id = cap.id.clone();
         store.grant(cap);
 
@@ -375,18 +366,9 @@ mod tests {
     #[test]
     fn capability_store_for_subject() {
         let mut store = CapabilityStore::new();
-        store.grant(
-            Capability::new("alice", "bob", "/data")
-                .with_permission(Permission::Read),
-        );
-        store.grant(
-            Capability::new("alice", "bob", "/files")
-                .with_permission(Permission::Write),
-        );
-        store.grant(
-            Capability::new("alice", "charlie", "/data")
-                .with_permission(Permission::Read),
-        );
+        store.grant(Capability::new("alice", "bob", "/data").with_permission(Permission::Read));
+        store.grant(Capability::new("alice", "bob", "/files").with_permission(Permission::Write));
+        store.grant(Capability::new("alice", "charlie", "/data").with_permission(Permission::Read));
 
         assert_eq!(store.for_subject("bob").len(), 2);
         assert_eq!(store.for_subject("charlie").len(), 1);
@@ -396,14 +378,9 @@ mod tests {
     #[test]
     fn capability_store_for_resource() {
         let mut store = CapabilityStore::new();
-        store.grant(
-            Capability::new("alice", "bob", "/data")
-                .with_permission(Permission::Read),
-        );
-        store.grant(
-            Capability::new("alice", "charlie", "/data")
-                .with_permission(Permission::Write),
-        );
+        store.grant(Capability::new("alice", "bob", "/data").with_permission(Permission::Read));
+        store
+            .grant(Capability::new("alice", "charlie", "/data").with_permission(Permission::Write));
 
         assert_eq!(store.for_resource("/data").len(), 2);
         assert_eq!(store.for_resource("/files").len(), 0);
@@ -437,8 +414,11 @@ mod tests {
 
     #[test]
     fn with_permissions_batch() {
-        let cap = Capability::new("alice", "bob", "/dao")
-            .with_permissions([Permission::Read, Permission::Vote, Permission::Propose]);
+        let cap = Capability::new("alice", "bob", "/dao").with_permissions([
+            Permission::Read,
+            Permission::Vote,
+            Permission::Propose,
+        ]);
 
         assert_eq!(cap.permissions.len(), 3);
         assert!(cap.has_permission(Permission::Vote));

@@ -195,17 +195,11 @@ impl AuditLog {
     }
 
     pub fn by_actor(&self, actor: &str) -> Vec<&AuditEntry> {
-        self.entries
-            .iter()
-            .filter(|e| e.actor == actor)
-            .collect()
+        self.entries.iter().filter(|e| e.actor == actor).collect()
     }
 
     pub fn by_action(&self, action: AuditAction) -> Vec<&AuditEntry> {
-        self.entries
-            .iter()
-            .filter(|e| e.action == action)
-            .collect()
+        self.entries.iter().filter(|e| e.action == action).collect()
     }
 
     pub fn by_severity(&self, severity: AuditSeverity) -> Vec<&AuditEntry> {
@@ -287,8 +281,7 @@ mod tests {
         let mut log = AuditLog::new(3);
         for i in 0..5 {
             log.record(
-                AuditEntry::new("alice", AuditAction::MessageSent)
-                    .with_detail(format!("msg {i}")),
+                AuditEntry::new("alice", AuditAction::MessageSent).with_detail(format!("msg {i}")),
             );
         }
         assert_eq!(log.len(), 3);
@@ -299,15 +292,9 @@ mod tests {
     #[test]
     fn audit_log_recent() {
         let mut log = AuditLog::new(100);
-        log.record(
-            AuditEntry::new("alice", AuditAction::MessageSent).with_detail("first"),
-        );
-        log.record(
-            AuditEntry::new("alice", AuditAction::MessageSent).with_detail("second"),
-        );
-        log.record(
-            AuditEntry::new("alice", AuditAction::MessageSent).with_detail("third"),
-        );
+        log.record(AuditEntry::new("alice", AuditAction::MessageSent).with_detail("first"));
+        log.record(AuditEntry::new("alice", AuditAction::MessageSent).with_detail("second"));
+        log.record(AuditEntry::new("alice", AuditAction::MessageSent).with_detail("third"));
 
         let recent = log.recent(2);
         assert_eq!(recent.len(), 2);

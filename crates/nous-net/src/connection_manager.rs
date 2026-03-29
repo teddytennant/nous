@@ -173,10 +173,7 @@ mod tests {
         mgr.register(peer, Direction::Inbound).unwrap();
         mgr.register(peer, Direction::Outbound).unwrap();
         assert_eq!(mgr.connected_count(), 1);
-        assert_eq!(
-            mgr.get_info(&peer).unwrap().direction,
-            Direction::Outbound
-        );
+        assert_eq!(mgr.get_info(&peer).unwrap().direction, Direction::Outbound);
     }
 
     #[test]

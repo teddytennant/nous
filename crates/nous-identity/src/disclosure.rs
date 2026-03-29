@@ -257,8 +257,7 @@ mod tests {
         let fields: HashSet<String> = ["role", "level"].iter().map(|s| s.to_string()).collect();
 
         let disclosure =
-            SelectiveDisclosure::from_credential(&credential, &request, &fields, &holder)
-                .unwrap();
+            SelectiveDisclosure::from_credential(&credential, &request, &fields, &holder).unwrap();
 
         assert_eq!(disclosure.field_count(), 2);
         assert_eq!(
@@ -283,8 +282,7 @@ mod tests {
         let fields: HashSet<String> = ["role"].iter().map(|s| s.to_string()).collect();
 
         let disclosure =
-            SelectiveDisclosure::from_credential(&credential, &request, &fields, &holder)
-                .unwrap();
+            SelectiveDisclosure::from_credential(&credential, &request, &fields, &holder).unwrap();
 
         assert!(disclosure.verify().is_ok());
     }
@@ -299,8 +297,7 @@ mod tests {
         let fields: HashSet<String> = ["role"].iter().map(|s| s.to_string()).collect();
 
         let mut disclosure =
-            SelectiveDisclosure::from_credential(&credential, &request, &fields, &holder)
-                .unwrap();
+            SelectiveDisclosure::from_credential(&credential, &request, &fields, &holder).unwrap();
 
         // Tamper with disclosed claims
         disclosure.disclosed_claims = serde_json::json!({"role": "admin"});
@@ -314,8 +311,8 @@ mod tests {
         let holder = Identity::generate();
         let credential = test_credential(&issuer, &holder);
 
-        let request = DisclosureRequest::new("did:key:zverifier", "check")
-            .require_type("AgeCredential");
+        let request =
+            DisclosureRequest::new("did:key:zverifier", "check").require_type("AgeCredential");
 
         let fields: HashSet<String> = ["role"].iter().map(|s| s.to_string()).collect();
 
@@ -411,8 +408,7 @@ mod tests {
         let fields: HashSet<String> = ["role", "level"].iter().map(|s| s.to_string()).collect();
 
         let disclosure =
-            SelectiveDisclosure::from_credential(&credential, &request, &fields, &holder)
-                .unwrap();
+            SelectiveDisclosure::from_credential(&credential, &request, &fields, &holder).unwrap();
 
         let json = serde_json::to_string(&disclosure).unwrap();
         let restored: SelectiveDisclosure = serde_json::from_str(&json).unwrap();

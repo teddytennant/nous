@@ -299,9 +299,7 @@ impl NousNode {
                         .send(NodeEvent::PeerDisconnected(peer_id))
                         .await;
                 }
-                SwarmEvent::OutgoingConnectionError {
-                    error, peer_id, ..
-                } => {
+                SwarmEvent::OutgoingConnectionError { error, peer_id, .. } => {
                     if let Some(pid) = peer_id {
                         self.peer_store.record_dial_failure(&pid);
                     }
@@ -418,8 +416,7 @@ impl NousNode {
                 result, ..
             }) => match result {
                 kad::QueryResult::GetRecord(Ok(kad::GetRecordOk::FoundRecord(record))) => {
-                    let key_str =
-                        String::from_utf8_lossy(record.record.key.as_ref()).to_string();
+                    let key_str = String::from_utf8_lossy(record.record.key.as_ref()).to_string();
                     debug!(key = %key_str, "DHT record found");
                     let _ = self
                         .event_tx

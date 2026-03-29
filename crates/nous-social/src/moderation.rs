@@ -160,10 +160,7 @@ impl ModerationQueue {
     }
 
     pub fn reports_by_reason(&self, reason: ReportReason) -> Vec<&Report> {
-        self.reports
-            .iter()
-            .filter(|r| r.reason == reason)
-            .collect()
+        self.reports.iter().filter(|r| r.reason == reason).collect()
     }
 
     pub fn report_count_for_target(&self, target_did: &str) -> usize {
@@ -242,8 +239,7 @@ mod tests {
 
     #[test]
     fn report_review_and_resolve() {
-        let mut report =
-            Report::new("alice", "bob", ReportReason::Spam, "spam").unwrap();
+        let mut report = Report::new("alice", "bob", ReportReason::Spam, "spam").unwrap();
 
         report.review("moderator").unwrap();
         assert_eq!(report.status, ReportStatus::UnderReview);
@@ -257,8 +253,7 @@ mod tests {
 
     #[test]
     fn report_dismiss() {
-        let mut report =
-            Report::new("alice", "bob", ReportReason::Other, "not sure").unwrap();
+        let mut report = Report::new("alice", "bob", ReportReason::Other, "not sure").unwrap();
         report.review("mod").unwrap();
         report.resolve(ModerationAction::None).unwrap();
         assert_eq!(report.status, ReportStatus::Dismissed);
@@ -267,16 +262,14 @@ mod tests {
 
     #[test]
     fn review_already_reviewed_fails() {
-        let mut report =
-            Report::new("alice", "bob", ReportReason::Spam, "spam").unwrap();
+        let mut report = Report::new("alice", "bob", ReportReason::Spam, "spam").unwrap();
         report.review("mod").unwrap();
         assert!(report.review("mod2").is_err());
     }
 
     #[test]
     fn resolve_without_review_fails() {
-        let mut report =
-            Report::new("alice", "bob", ReportReason::Spam, "spam").unwrap();
+        let mut report = Report::new("alice", "bob", ReportReason::Spam, "spam").unwrap();
         assert!(report.resolve(ModerationAction::Warn).is_err());
     }
 
@@ -284,9 +277,7 @@ mod tests {
     fn moderation_queue_submit_and_filter() {
         let mut queue = ModerationQueue::new();
         queue.submit(Report::new("alice", "bob", ReportReason::Spam, "spam").unwrap());
-        queue.submit(
-            Report::new("carol", "bob", ReportReason::Harassment, "mean").unwrap(),
-        );
+        queue.submit(Report::new("carol", "bob", ReportReason::Harassment, "mean").unwrap());
         queue.submit(Report::new("alice", "dave", ReportReason::Spam, "spam").unwrap());
 
         assert_eq!(queue.open_reports().len(), 3);

@@ -1,4 +1,4 @@
-use nous_crypto::keys::{did_to_public_key, KeyPair};
+use nous_crypto::keys::{KeyPair, did_to_public_key};
 use nous_crypto::signing::{Signature, Signer, Verifier};
 
 use crate::events::WireMessage;

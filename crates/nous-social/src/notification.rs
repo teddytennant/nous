@@ -188,7 +188,12 @@ mod tests {
 
     #[test]
     fn create_notification() {
-        let n = Notification::new("alice", "bob", NotificationType::Mention, "bob mentioned you");
+        let n = Notification::new(
+            "alice",
+            "bob",
+            NotificationType::Mention,
+            "bob mentioned you",
+        );
         assert!(n.id.starts_with("notif:"));
         assert!(!n.read);
         assert_eq!(n.recipient, "alice");
@@ -308,7 +313,10 @@ mod tests {
     #[test]
     fn notification_type_as_str() {
         assert_eq!(NotificationType::Mention.as_str(), "mention");
-        assert_eq!(NotificationType::TransferReceived.as_str(), "transfer.received");
+        assert_eq!(
+            NotificationType::TransferReceived.as_str(),
+            "transfer.received"
+        );
     }
 
     #[test]

@@ -127,20 +127,26 @@ impl PromptLibrary {
     }
 
     pub fn with_defaults(mut self) -> Self {
-        self.register(PromptTemplate::new(
-            "summarize",
-            "Summarize the following text concisely:\n\n{{text}}",
-        ).with_description("Summarize text"));
+        self.register(
+            PromptTemplate::new(
+                "summarize",
+                "Summarize the following text concisely:\n\n{{text}}",
+            )
+            .with_description("Summarize text"),
+        );
 
         self.register(PromptTemplate::new(
             "analyze_proposal",
             "Analyze this governance proposal and provide your assessment:\n\nTitle: {{title}}\nDescription: {{description}}\n\nConsider: impact, risks, feasibility, and alignment with community values.",
         ).with_description("Analyze a governance proposal"));
 
-        self.register(PromptTemplate::new(
-            "explain",
-            "Explain {{topic}} in {{style}} terms. Target audience: {{audience}}.",
-        ).with_description("Explain a topic"));
+        self.register(
+            PromptTemplate::new(
+                "explain",
+                "Explain {{topic}} in {{style}} terms. Target audience: {{audience}}.",
+            )
+            .with_description("Explain a topic"),
+        );
 
         self.register(PromptTemplate::new(
             "code_review",
@@ -276,8 +282,7 @@ mod tests {
 
     #[test]
     fn template_serializes() {
-        let tmpl = PromptTemplate::new("test", "Hello {{name}}")
-            .with_description("greeting");
+        let tmpl = PromptTemplate::new("test", "Hello {{name}}").with_description("greeting");
         let json = serde_json::to_string(&tmpl).unwrap();
         let restored: PromptTemplate = serde_json::from_str(&json).unwrap();
         assert_eq!(restored.name, "test");

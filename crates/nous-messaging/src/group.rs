@@ -185,9 +185,7 @@ impl Group {
                 self.pending_joins.insert(did.to_string());
                 Ok(())
             }
-            JoinPolicy::InviteOnly => Err(Error::PermissionDenied(
-                "group is invite only".into(),
-            )),
+            JoinPolicy::InviteOnly => Err(Error::PermissionDenied("group is invite only".into())),
         }
     }
 
@@ -229,9 +227,7 @@ impl Group {
             .ok_or_else(|| Error::NotFound("target is not a member".into()))?;
 
         if !kicker_role.can_kick() {
-            return Err(Error::PermissionDenied(
-                "insufficient role to kick".into(),
-            ));
+            return Err(Error::PermissionDenied("insufficient role to kick".into()));
         }
 
         if target_role >= kicker_role {
@@ -393,7 +389,9 @@ mod tests {
         group.promote("alice", "bob", GroupRole::Moderator).unwrap();
         // Moderator cannot kick another moderator
         group.invite("alice", "carol").unwrap();
-        group.promote("alice", "carol", GroupRole::Moderator).unwrap();
+        group
+            .promote("alice", "carol", GroupRole::Moderator)
+            .unwrap();
         assert!(group.kick("bob", "carol").is_err());
     }
 

@@ -129,9 +129,7 @@ impl PeerStore {
     pub fn import(&mut self, records: Vec<PeerRecord>) {
         for record in records {
             if self.peers.len() < self.max_peers {
-                self.peers
-                    .entry(record.peer_id.clone())
-                    .or_insert(record);
+                self.peers.entry(record.peer_id.clone()).or_insert(record);
             }
         }
     }

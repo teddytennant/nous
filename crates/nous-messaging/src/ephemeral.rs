@@ -291,8 +291,7 @@ mod tests {
     #[test]
     fn store_collect_read() {
         let mut store = EphemeralStore::new();
-        let mut msg =
-            EphemeralMessage::new("msg1", "ch1", Ttl::Hours(1)).delete_on_read();
+        let mut msg = EphemeralMessage::new("msg1", "ch1", Ttl::Hours(1)).delete_on_read();
         msg.mark_read("alice");
         msg.mark_read("bob");
         store.track(msg);

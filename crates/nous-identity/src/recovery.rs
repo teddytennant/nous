@@ -103,7 +103,9 @@ pub fn split_secret(secret: &[u8], threshold: u8, num_shares: u8) -> Result<Vec<
     // num_shares is u8 so max is already 255
 
     let mut rng = rand::thread_rng();
-    let mut shares: Vec<Vec<u8>> = (0..num_shares).map(|_| Vec::with_capacity(secret.len())).collect();
+    let mut shares: Vec<Vec<u8>> = (0..num_shares)
+        .map(|_| Vec::with_capacity(secret.len()))
+        .collect();
 
     for &byte in secret {
         // Generate random polynomial coefficients: a[0] = byte, a[1..threshold] = random
@@ -156,9 +158,7 @@ pub fn reconstruct_secret(shares: &[(u8, &[u8])]) -> Result<Vec<u8>> {
                     let num = xj;
                     let den = gf256_sub(xj, xi);
                     if den == 0 {
-                        return Err(Error::InvalidInput(
-                            "duplicate share indices".into(),
-                        ));
+                        return Err(Error::InvalidInput("duplicate share indices".into()));
                     }
                     basis = gf256_mul(basis, gf256_mul(num, gf256_inv(den)));
                 }
@@ -257,11 +257,15 @@ impl RecoveryConfig {
     }
 
     pub fn generate_shares(&mut self, secret: &[u8]) -> Result<Vec<RecoveryShare>> {
-        let raw_shares =
-            split_secret(secret, self.threshold, self.guardians.len() as u8)?;
+        let raw_shares = split_secret(secret, self.threshold, self.guardians.len() as u8)?;
 
         let mut result = Vec::new();
-        for (i, (guardian, data)) in self.guardians.iter().zip(raw_shares.into_iter()).enumerate() {
+        for (i, (guardian, data)) in self
+            .guardians
+            .iter()
+            .zip(raw_shares.into_iter())
+            .enumerate()
+        {
             self.shares.insert(guardian.clone(), data.clone());
             result.push(RecoveryShare {
                 index: (i + 1) as u8,
@@ -346,8 +350,7 @@ mod tests {
         let secret = b"hello";
         let shares = split_secret(secret, 2, 3).unwrap();
 
-        let indexed: Vec<(u8, &[u8])> =
-            vec![(1, &shares[0]), (2, &shares[1]), (3, &shares[2])];
+        let indexed: Vec<(u8, &[u8])> = vec![(1, &shares[0]), (2, &shares[1]), (3, &shares[2])];
         let recovered = reconstruct_secret(&indexed).unwrap();
         assert_eq!(recovered, secret);
     }
@@ -489,11 +492,7 @@ mod tests {
         let shares = split_secret(&key_bytes, 3, 5).unwrap();
 
         // Use shares 1, 3, 5
-        let indexed: Vec<(u8, &[u8])> = vec![
-            (1, &shares[0]),
-            (3, &shares[2]),
-            (5, &shares[4]),
-        ];
+        let indexed: Vec<(u8, &[u8])> = vec![(1, &shares[0]), (3, &shares[2]), (5, &shares[4])];
         let recovered = reconstruct_secret(&indexed).unwrap();
         assert_eq!(recovered, key_bytes);
     }

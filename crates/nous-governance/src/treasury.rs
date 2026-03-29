@@ -69,7 +69,9 @@ impl SpendingProposal {
 
     pub fn approve(&mut self) -> Result<()> {
         if self.status != SpendingStatus::Proposed {
-            return Err(Error::InvalidInput("spending is not in proposed state".into()));
+            return Err(Error::InvalidInput(
+                "spending is not in proposed state".into(),
+            ));
         }
         self.status = SpendingStatus::Approved;
         Ok(())
@@ -86,7 +88,9 @@ impl SpendingProposal {
 
     pub fn reject(&mut self) -> Result<()> {
         if self.status != SpendingStatus::Proposed {
-            return Err(Error::InvalidInput("can only reject proposed spending".into()));
+            return Err(Error::InvalidInput(
+                "can only reject proposed spending".into(),
+            ));
         }
         self.status = SpendingStatus::Rejected;
         Ok(())
@@ -94,7 +98,9 @@ impl SpendingProposal {
 
     pub fn cancel(&mut self) -> Result<()> {
         if self.status == SpendingStatus::Executed {
-            return Err(Error::InvalidInput("cannot cancel executed spending".into()));
+            return Err(Error::InvalidInput(
+                "cannot cancel executed spending".into(),
+            ));
         }
         self.status = SpendingStatus::Cancelled;
         Ok(())
@@ -140,7 +146,9 @@ impl Treasury {
 
     pub fn submit_spending(&mut self, proposal: SpendingProposal) -> Result<()> {
         if proposal.dao_id != self.dao_id {
-            return Err(Error::InvalidInput("proposal is for a different DAO".into()));
+            return Err(Error::InvalidInput(
+                "proposal is for a different DAO".into(),
+            ));
         }
 
         let balance = self.balance(&proposal.token);
@@ -183,10 +191,7 @@ impl Treasury {
         }
 
         *self.balances.entry(proposal.token.clone()).or_insert(0) -= proposal.amount;
-        *self
-            .total_spent
-            .entry(proposal.token.clone())
-            .or_insert(0) += proposal.amount;
+        *self.total_spent.entry(proposal.token.clone()).or_insert(0) += proposal.amount;
 
         proposal.status = SpendingStatus::Executed;
         proposal.executed_at = Some(Utc::now());
@@ -251,15 +256,8 @@ mod tests {
 
     #[test]
     fn create_spending_proposal() {
-        let proposal = SpendingProposal::new(
-            "dao-1",
-            "alice",
-            "bob",
-            "ETH",
-            100,
-            "Fund development",
-        )
-        .unwrap();
+        let proposal =
+            SpendingProposal::new("dao-1", "alice", "bob", "ETH", 100, "Fund development").unwrap();
         assert_eq!(proposal.status, SpendingStatus::Proposed);
         assert!(proposal.id.starts_with("spend:"));
     }
@@ -271,17 +269,13 @@ mod tests {
 
     #[test]
     fn reject_self_spending() {
-        assert!(
-            SpendingProposal::new("dao-1", "alice", "alice", "ETH", 100, "test").is_err()
-        );
+        assert!(SpendingProposal::new("dao-1", "alice", "alice", "ETH", 100, "test").is_err());
     }
 
     #[test]
     fn spending_lifecycle() {
-        let mut proposal = SpendingProposal::new(
-            "dao-1", "alice", "bob", "ETH", 100, "test",
-        )
-        .unwrap();
+        let mut proposal =
+            SpendingProposal::new("dao-1", "alice", "bob", "ETH", 100, "test").unwrap();
 
         proposal.approve().unwrap();
         assert_eq!(proposal.status, SpendingStatus::Approved);
@@ -293,10 +287,8 @@ mod tests {
 
     #[test]
     fn reject_spending() {
-        let mut proposal = SpendingProposal::new(
-            "dao-1", "alice", "bob", "ETH", 100, "test",
-        )
-        .unwrap();
+        let mut proposal =
+            SpendingProposal::new("dao-1", "alice", "bob", "ETH", 100, "test").unwrap();
 
         proposal.reject().unwrap();
         assert_eq!(proposal.status, SpendingStatus::Rejected);
@@ -304,10 +296,8 @@ mod tests {
 
     #[test]
     fn cancel_spending() {
-        let mut proposal = SpendingProposal::new(
-            "dao-1", "alice", "bob", "ETH", 100, "test",
-        )
-        .unwrap();
+        let mut proposal =
+            SpendingProposal::new("dao-1", "alice", "bob", "ETH", 100, "test").unwrap();
 
         proposal.cancel().unwrap();
         assert_eq!(proposal.status, SpendingStatus::Cancelled);
@@ -315,10 +305,8 @@ mod tests {
 
     #[test]
     fn cannot_cancel_executed() {
-        let mut proposal = SpendingProposal::new(
-            "dao-1", "alice", "bob", "ETH", 100, "test",
-        )
-        .unwrap();
+        let mut proposal =
+            SpendingProposal::new("dao-1", "alice", "bob", "ETH", 100, "test").unwrap();
         proposal.approve().unwrap();
         proposal.execute().unwrap();
         assert!(proposal.cancel().is_err());
@@ -329,10 +317,7 @@ mod tests {
         let mut treasury = Treasury::new("dao-1");
         treasury.deposit("ETH", 1000);
 
-        let proposal = SpendingProposal::new(
-            "dao-1", "alice", "bob", "ETH", 500, "grant",
-        )
-        .unwrap();
+        let proposal = SpendingProposal::new("dao-1", "alice", "bob", "ETH", 500, "grant").unwrap();
 
         treasury.submit_spending(proposal).unwrap();
         assert_eq!(treasury.pending_proposals().len(), 1);
@@ -343,10 +328,8 @@ mod tests {
         let mut treasury = Treasury::new("dao-1");
         treasury.deposit("ETH", 100);
 
-        let proposal = SpendingProposal::new(
-            "dao-1", "alice", "bob", "ETH", 500, "too much",
-        )
-        .unwrap();
+        let proposal =
+            SpendingProposal::new("dao-1", "alice", "bob", "ETH", 500, "too much").unwrap();
 
         assert!(treasury.submit_spending(proposal).is_err());
     }
@@ -356,17 +339,13 @@ mod tests {
         let mut treasury = Treasury::new("dao-1").with_spending_limit(200);
         treasury.deposit("ETH", 1000);
 
-        let proposal = SpendingProposal::new(
-            "dao-1", "alice", "bob", "ETH", 500, "over limit",
-        )
-        .unwrap();
+        let proposal =
+            SpendingProposal::new("dao-1", "alice", "bob", "ETH", 500, "over limit").unwrap();
 
         assert!(treasury.submit_spending(proposal).is_err());
 
-        let small = SpendingProposal::new(
-            "dao-1", "alice", "bob", "ETH", 100, "under limit",
-        )
-        .unwrap();
+        let small =
+            SpendingProposal::new("dao-1", "alice", "bob", "ETH", 100, "under limit").unwrap();
 
         treasury.submit_spending(small).unwrap();
     }
@@ -376,10 +355,8 @@ mod tests {
         let mut treasury = Treasury::new("dao-1");
         treasury.deposit("ETH", 1000);
 
-        let proposal = SpendingProposal::new(
-            "dao-2", "alice", "bob", "ETH", 100, "wrong dao",
-        )
-        .unwrap();
+        let proposal =
+            SpendingProposal::new("dao-2", "alice", "bob", "ETH", 100, "wrong dao").unwrap();
 
         assert!(treasury.submit_spending(proposal).is_err());
     }
@@ -389,10 +366,8 @@ mod tests {
         let mut treasury = Treasury::new("dao-1");
         treasury.deposit("ETH", 1000);
 
-        let mut proposal = SpendingProposal::new(
-            "dao-1", "alice", "bob", "ETH", 300, "grant",
-        )
-        .unwrap();
+        let mut proposal =
+            SpendingProposal::new("dao-1", "alice", "bob", "ETH", 300, "grant").unwrap();
         proposal.approve().unwrap();
         let pid = proposal.id.clone();
         treasury.proposals.push(proposal);
@@ -409,10 +384,7 @@ mod tests {
         let mut treasury = Treasury::new("dao-1");
         treasury.deposit("ETH", 1000);
 
-        let proposal = SpendingProposal::new(
-            "dao-1", "alice", "bob", "ETH", 100, "test",
-        )
-        .unwrap();
+        let proposal = SpendingProposal::new("dao-1", "alice", "bob", "ETH", 100, "test").unwrap();
         let pid = proposal.id.clone();
         treasury.proposals.push(proposal);
 
@@ -421,20 +393,17 @@ mod tests {
 
     #[test]
     fn link_proposal() {
-        let mut proposal = SpendingProposal::new(
-            "dao-1", "alice", "bob", "ETH", 100, "test",
-        )
-        .unwrap();
+        let mut proposal =
+            SpendingProposal::new("dao-1", "alice", "bob", "ETH", 100, "test").unwrap();
         proposal.link_proposal("prop-123");
         assert_eq!(proposal.proposal_id.as_deref(), Some("prop-123"));
     }
 
     #[test]
     fn spending_proposal_serializes() {
-        let proposal = SpendingProposal::new(
-            "dao-1", "alice", "bob", "ETH", 1000, "Development fund",
-        )
-        .unwrap();
+        let proposal =
+            SpendingProposal::new("dao-1", "alice", "bob", "ETH", 1000, "Development fund")
+                .unwrap();
         let json = serde_json::to_string(&proposal).unwrap();
         let restored: SpendingProposal = serde_json::from_str(&json).unwrap();
         assert_eq!(restored.amount, 1000);
