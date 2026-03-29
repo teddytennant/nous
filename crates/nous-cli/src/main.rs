@@ -8,11 +8,7 @@ mod executor;
 async fn main() {
     let cli = Cli::parse();
 
-    let filter = if cli.verbose {
-        "debug"
-    } else {
-        "warn"
-    };
+    let filter = if cli.verbose { "debug" } else { "warn" };
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| filter.into()))
         .init();
@@ -28,10 +24,7 @@ async fn main() {
 
     if let Err(e) = exec.execute(cli.command).await {
         if cli.json {
-            eprintln!(
-                "{}",
-                serde_json::json!({"status": "error", "message": e})
-            );
+            eprintln!("{}", serde_json::json!({"status": "error", "message": e}));
         } else {
             eprintln!("error: {e}");
         }
