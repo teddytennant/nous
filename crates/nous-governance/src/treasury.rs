@@ -159,13 +159,13 @@ impl Treasury {
             )));
         }
 
-        if let Some(limit) = self.spending_limit {
-            if proposal.amount > limit {
-                return Err(Error::InvalidInput(format!(
-                    "amount {} exceeds spending limit {limit}",
-                    proposal.amount
-                )));
-            }
+        if let Some(limit) = self.spending_limit
+            && proposal.amount > limit
+        {
+            return Err(Error::InvalidInput(format!(
+                "amount {} exceeds spending limit {limit}",
+                proposal.amount
+            )));
         }
 
         self.proposals.push(proposal);
