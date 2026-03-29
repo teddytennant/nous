@@ -53,6 +53,10 @@ pub enum Command {
     #[command(subcommand)]
     Message(MessageCommand),
 
+    /// Marketplace
+    #[command(subcommand)]
+    Marketplace(MarketplaceCommand),
+
     /// Node information
     Status,
 
@@ -302,6 +306,97 @@ pub enum MessageCommand {
         /// Member DIDs (can be specified multiple times)
         #[arg(long = "member")]
         members: Vec<String>,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum MarketplaceCommand {
+    /// Create a new listing
+    List {
+        /// Title of the listing
+        title: String,
+        /// Description
+        #[arg(short, long)]
+        description: Option<String>,
+        /// Category: physical, digital, service, nft, data, other
+        #[arg(short, long, default_value = "digital")]
+        category: String,
+        /// Price token (e.g., ETH, USDC, NOUS)
+        #[arg(long, default_value = "NOUS")]
+        token: String,
+        /// Price amount in minor units
+        #[arg(short, long)]
+        price: u128,
+        /// Tags (comma-separated)
+        #[arg(short, long)]
+        tags: Option<String>,
+    },
+    /// Search listings
+    Search {
+        /// Search query text
+        query: Option<String>,
+        /// Filter by category
+        #[arg(short, long)]
+        category: Option<String>,
+        /// Maximum results
+        #[arg(short, long, default_value = "20")]
+        limit: usize,
+    },
+    /// Show listing details
+    Show {
+        /// Listing ID
+        id: String,
+    },
+    /// Create an order for a listing
+    Order {
+        /// Listing ID to purchase
+        listing_id: String,
+        /// Quantity
+        #[arg(short, long, default_value = "1")]
+        quantity: u32,
+    },
+    /// List your orders
+    Orders {
+        /// Filter: buying or selling
+        #[arg(long)]
+        role: Option<String>,
+        /// Maximum results
+        #[arg(short, long, default_value = "20")]
+        limit: usize,
+    },
+    /// Make an offer on a listing
+    Offer {
+        /// Listing ID
+        listing_id: String,
+        /// Offer amount
+        amount: u128,
+        /// Token
+        #[arg(long, default_value = "NOUS")]
+        token: String,
+        /// Optional message
+        #[arg(short, long)]
+        message: Option<String>,
+    },
+    /// List offers (sent or received)
+    Offers {
+        /// Filter by listing
+        #[arg(long)]
+        listing_id: Option<String>,
+    },
+    /// Open a dispute on an order
+    Dispute {
+        /// Order ID
+        order_id: String,
+        /// Reason: item_not_received, item_not_as_described, quality_issue, counterfeit, seller_unresponsive, other
+        #[arg(short, long)]
+        reason: String,
+        /// Description of the dispute
+        description: String,
+    },
+    /// Cancel a listing
+    Cancel {
+        /// Listing ID to cancel
+        id: String,
     },
 }
 
@@ -748,6 +843,144 @@ mod tests {
             assert_eq!(proposal_id, "prop123");
         } else {
             panic!("expected governance tally");
+        }
+    }
+
+    #[test]
+    fn parse_marketplace_list() {
+        let cli = Cli::parse_from([
+            "nous",
+            "marketplace",
+            "list",
+            "Vintage Camera",
+            "-p",
+            "500",
+            "-c",
+            "physical",
+            "-t",
+            "vintage,camera",
+        ]);
+        if let Command::Marketplace(MarketplaceCommand::List {
+            title,
+            price,
+            category,
+            tags,
+            ..
+        }) = cli.command
+        {
+            assert_eq!(title, "Vintage Camera");
+            assert_eq!(price, 500);
+            assert_eq!(category, "physical");
+            assert_eq!(tags, Some("vintage,camera".to_string()));
+        } else {
+            panic!("expected marketplace list");
+        }
+    }
+
+    #[test]
+    fn parse_marketplace_search() {
+        let cli = Cli::parse_from(["nous", "marketplace", "search", "camera", "-l", "10"]);
+        if let Command::Marketplace(MarketplaceCommand::Search {
+            query,
+            limit,
+            category,
+        }) = cli.command
+        {
+            assert_eq!(query, Some("camera".to_string()));
+            assert_eq!(limit, 10);
+            assert!(category.is_none());
+        } else {
+            panic!("expected marketplace search");
+        }
+    }
+
+    #[test]
+    fn parse_marketplace_search_empty() {
+        let cli = Cli::parse_from(["nous", "marketplace", "search"]);
+        if let Command::Marketplace(MarketplaceCommand::Search { query, limit, .. }) = cli.command {
+            assert!(query.is_none());
+            assert_eq!(limit, 20);
+        } else {
+            panic!("expected marketplace search");
+        }
+    }
+
+    #[test]
+    fn parse_marketplace_order() {
+        let cli = Cli::parse_from(["nous", "marketplace", "order", "listing:abc", "-q", "3"]);
+        if let Command::Marketplace(MarketplaceCommand::Order {
+            listing_id,
+            quantity,
+        }) = cli.command
+        {
+            assert_eq!(listing_id, "listing:abc");
+            assert_eq!(quantity, 3);
+        } else {
+            panic!("expected marketplace order");
+        }
+    }
+
+    #[test]
+    fn parse_marketplace_offer() {
+        let cli = Cli::parse_from([
+            "nous",
+            "marketplace",
+            "offer",
+            "listing:abc",
+            "400",
+            "--token",
+            "ETH",
+            "-m",
+            "Would you take 400?",
+        ]);
+        if let Command::Marketplace(MarketplaceCommand::Offer {
+            listing_id,
+            amount,
+            token,
+            message,
+        }) = cli.command
+        {
+            assert_eq!(listing_id, "listing:abc");
+            assert_eq!(amount, 400);
+            assert_eq!(token, "ETH");
+            assert_eq!(message, Some("Would you take 400?".to_string()));
+        } else {
+            panic!("expected marketplace offer");
+        }
+    }
+
+    #[test]
+    fn parse_marketplace_dispute() {
+        let cli = Cli::parse_from([
+            "nous",
+            "marketplace",
+            "dispute",
+            "order:xyz",
+            "-r",
+            "item_not_received",
+            "Never arrived",
+        ]);
+        if let Command::Marketplace(MarketplaceCommand::Dispute {
+            order_id,
+            reason,
+            description,
+        }) = cli.command
+        {
+            assert_eq!(order_id, "order:xyz");
+            assert_eq!(reason, "item_not_received");
+            assert_eq!(description, "Never arrived");
+        } else {
+            panic!("expected marketplace dispute");
+        }
+    }
+
+    #[test]
+    fn parse_marketplace_cancel() {
+        let cli = Cli::parse_from(["nous", "marketplace", "cancel", "listing:abc"]);
+        if let Command::Marketplace(MarketplaceCommand::Cancel { id }) = cli.command {
+            assert_eq!(id, "listing:abc");
+        } else {
+            panic!("expected marketplace cancel");
         }
     }
 }
