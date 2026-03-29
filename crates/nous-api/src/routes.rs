@@ -1,5 +1,5 @@
-use axum::extract::{Path, Query, State};
 use axum::Json;
+use axum::extract::{Path, Query, State};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use utoipa::{IntoParams, ToSchema};
@@ -84,7 +84,11 @@ pub async fn get_feed(
     let limit = query.limit.unwrap_or(50).min(200);
 
     let events: Vec<SignedEvent> = if let Some(ref author) = query.author {
-        feed.by_author(author).into_iter().take(limit).cloned().collect()
+        feed.by_author(author)
+            .into_iter()
+            .take(limit)
+            .cloned()
+            .collect()
     } else if let Some(kind) = query.kind {
         feed.by_kind(EventKind::from(kind))
             .into_iter()
@@ -92,7 +96,11 @@ pub async fn get_feed(
             .cloned()
             .collect()
     } else if let Some(ref tag) = query.tag {
-        feed.by_hashtag(tag).into_iter().take(limit).cloned().collect()
+        feed.by_hashtag(tag)
+            .into_iter()
+            .take(limit)
+            .cloned()
+            .collect()
     } else {
         feed.latest(limit).into_iter().cloned().collect()
     };
