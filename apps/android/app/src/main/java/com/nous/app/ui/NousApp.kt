@@ -98,7 +98,7 @@ fun NousApp() {
             composable(Screen.Messages.route) { MessagesScreen(viewModel = sharedViewModel) }
             composable(Screen.Governance.route) { GovernanceScreen(viewModel = sharedViewModel) }
             composable(Screen.Wallet.route) { WalletScreen(viewModel = sharedViewModel) }
-            composable(Screen.Identity.route) { IdentityScreen() }
+            composable(Screen.Identity.route) { IdentityScreen(viewModel = sharedViewModel) }
         }
     }
 }

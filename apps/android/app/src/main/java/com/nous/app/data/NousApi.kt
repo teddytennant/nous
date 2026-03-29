@@ -169,7 +169,16 @@ data class CreateIdentityRequest(
     val display_name: String? = null,
 )
 
-class NousApi(private val baseUrl: String = "http://10.0.2.2:8080/api/v1") {
+/**
+ * API base URL configuration.
+ * - Emulator: use "http://10.0.2.2:8080/api/v1" (10.0.2.2 maps to host localhost)
+ * - Physical device: use your machine's local IP, e.g. "http://192.168.x.x:8080/api/v1"
+ */
+object ApiConfig {
+    const val DEFAULT_BASE_URL = "http://10.0.2.2:8080/api/v1"
+}
+
+class NousApi(private val baseUrl: String = ApiConfig.DEFAULT_BASE_URL) {
 
     private val client = HttpClient(OkHttp) {
         install(ContentNegotiation) {

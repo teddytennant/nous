@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useConnection } from "@/components/connection-status";
 
 const nav = [
   { name: "Dashboard", href: "/dashboard" },
@@ -19,6 +20,7 @@ const nav = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { status } = useConnection();
 
   return (
     <aside className="w-56 shrink-0 border-r border-white/[0.06] flex flex-col h-screen sticky top-0">
@@ -42,7 +44,7 @@ export function Sidebar() {
                 "block px-3 py-2.5 text-sm font-light tracking-wide transition-colors duration-150",
                 active
                   ? "text-[#d4af37]"
-                  : "text-neutral-500 hover:text-white"
+                  : "text-neutral-500 hover:text-white",
               )}
             >
               {item.name}
@@ -52,9 +54,25 @@ export function Sidebar() {
       </nav>
 
       <div className="px-6 py-6 border-t border-white/[0.04]">
-        <p className="text-[10px] font-mono text-neutral-700 tracking-wider uppercase">
-          nous v0.1.0
-        </p>
+        <div className="flex items-center gap-2">
+          <span
+            className={cn(
+              "inline-block w-1.5 h-1.5 rounded-full",
+              status === "online"
+                ? "bg-emerald-500"
+                : status === "connecting"
+                  ? "bg-yellow-500 animate-pulse"
+                  : "bg-red-500",
+            )}
+          />
+          <p className="text-[10px] font-mono text-neutral-700 tracking-wider uppercase">
+            {status === "online"
+              ? "connected"
+              : status === "connecting"
+                ? "connecting"
+                : "offline"}
+          </p>
+        </div>
       </div>
     </aside>
   );

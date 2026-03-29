@@ -201,6 +201,15 @@ struct ProposalListResponse: Codable {
     let count: Int
 }
 
+// MARK: - Configuration
+
+enum APIConfig {
+    /// Default API base URL. Override with a custom URL in NousAPI init.
+    /// Use "http://localhost:8080/api/v1" for simulator/macOS.
+    /// Use your machine's local IP for physical device testing.
+    static let defaultBaseURL = "http://localhost:8080/api/v1"
+}
+
 // MARK: - API Client
 
 final class NousAPI: @unchecked Sendable {
@@ -210,7 +219,7 @@ final class NousAPI: @unchecked Sendable {
     private let session: URLSession
     private let decoder: JSONDecoder
 
-    init(baseURL: String = "http://localhost:8080/api/v1") {
+    init(baseURL: String = APIConfig.defaultBaseURL) {
         self.baseURL = baseURL
         self.session = URLSession.shared
         self.decoder = JSONDecoder()

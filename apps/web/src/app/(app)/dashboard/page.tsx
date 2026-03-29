@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { node, type HealthResponse, type NodeInfo } from "@/lib/api";
+import { node, type NodeInfo } from "@/lib/api";
+import { useConnection } from "@/components/connection-status";
 
 const features = [
   { name: "X3DH", description: "Extended Triple Diffie-Hellman key agreement" },
@@ -24,23 +25,20 @@ const features = [
 ];
 
 export default function DashboardPage() {
-  const [health, setHealth] = useState<HealthResponse | null>(null);
+  const { status: apiStatus, health } = useConnection();
   const [nodeInfo, setNodeInfo] = useState<NodeInfo | null>(null);
-  const [apiStatus, setApiStatus] = useState<"connecting" | "online" | "offline">("connecting");
 
   useEffect(() => {
-    async function checkStatus() {
+    async function fetchNodeInfo() {
       try {
-        const [h, n] = await Promise.all([node.health(), node.info()]);
-        setHealth(h);
+        const n = await node.info();
         setNodeInfo(n);
-        setApiStatus("online");
       } catch {
-        setApiStatus("offline");
+        setNodeInfo(null);
       }
     }
-    checkStatus();
-    const interval = setInterval(checkStatus, 30000);
+    fetchNodeInfo();
+    const interval = setInterval(fetchNodeInfo, 30000);
     return () => clearInterval(interval);
   }, []);
 
