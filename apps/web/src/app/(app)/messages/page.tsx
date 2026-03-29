@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, startTransition } from "react";
 import { cn } from "@/lib/utils";
 import { messaging, type ChannelResponse, type MessageResponse } from "@/lib/api";
+import { useRealtime } from "@/lib/use-realtime";
 
 type CreateMode = "dm" | "group" | null;
 
@@ -78,6 +79,23 @@ export default function MessagesPage() {
       return () => clearInterval(interval);
     }
   }, [selected, fetchMessages]);
+
+  // Live message updates via SSE
+  useRealtime("new_message", useCallback((data) => {
+    if (selected && data.channel_id === selected) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `live-${Date.now()}`,
+          channel_id: data.channel_id,
+          sender: data.sender,
+          content: data.content,
+          reply_to: null,
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+    }
+  }, [selected]));
 
   // Auto-scroll
   useEffect(() => {
