@@ -47,6 +47,9 @@ pub enum Command {
 
     /// Node information
     Status,
+
+    /// Launch an embedded terminal
+    Terminal,
 }
 
 #[derive(Debug, Subcommand)]
@@ -340,6 +343,12 @@ mod tests {
         } else {
             panic!("expected governance vote");
         }
+    }
+
+    #[test]
+    fn parse_terminal() {
+        let cli = Cli::parse_from(["nous", "terminal"]);
+        assert!(matches!(cli.command, Command::Terminal));
     }
 
     #[test]
