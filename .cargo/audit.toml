@@ -1,0 +1,11 @@
+# cargo-audit configuration
+# https://github.com/rustsec/rustsec/tree/main/cargo-audit
+
+[advisories]
+ignore = [
+    # ring 0.16.20 (RUSTSEC-2025-0009): AES overflow panic.
+    # This version is a phantom Cargo.lock entry pulled by rcgen 0.11.3,
+    # which is not reachable from any workspace member. Safe to ignore
+    # until libp2p upgrades its transitive dependency chain.
+    "RUSTSEC-2025-0009",
+]
