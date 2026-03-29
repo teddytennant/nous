@@ -13,12 +13,22 @@ nous-crypto = { path = "../nous-crypto" }
 nous-identity = { path = "../nous-identity" }
 nous-messaging = { path = "../nous-messaging" }
 nous-governance = { path = "../nous-governance" }
+nous-social = { path = "../nous-social" }
 nous-storage = { path = "../nous-storage" }
+axum = { version = "0.8", features = ["json", "query"] }
+tower = { version = "0.5", features = ["timeout", "limit"] }
+tower-http = { version = "0.6", features = ["cors", "trace", "compression-gzip"] }
 tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
+tracing-subscriber = { workspace = true }
+hyper = { version = "1", features = ["full"] }
+http-body-util = "0.1"
+tower = { version = "0.5", features = ["util"] }
