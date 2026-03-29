@@ -11,9 +11,11 @@ final class NousStore {
 
     var identity: IdentityResponse?
     var balances: [BalanceEntry] = []
+    var transactions: [TransactionResponse] = []
     var daos: [DaoResponse] = []
     var proposals: [ProposalResponse] = []
     var feedEvents: [FeedEvent] = []
+    var channels: [ChannelResponse] = []
 
     var loading = true
 
@@ -23,9 +25,24 @@ final class NousStore {
         await loadHealth()
         await loadIdentity()
         await loadWallet()
+        await loadTransactions()
         await loadGovernance()
         await loadFeed()
+        await loadChannels()
         loading = false
+    }
+
+    func refreshWallet() async {
+        await loadWallet()
+        await loadTransactions()
+    }
+
+    func refreshFeed() async {
+        await loadFeed()
+    }
+
+    func refreshChannels() async {
+        await loadChannels()
     }
 
     private func loadHealth() async {
@@ -59,6 +76,15 @@ final class NousStore {
         }
     }
 
+    private func loadTransactions() async {
+        guard let did = identity?.did else { return }
+        do {
+            transactions = try await api.getTransactions(did: did)
+        } catch {
+            // Offline
+        }
+    }
+
     private func loadGovernance() async {
         do {
             let daoList = try await api.listDaos()
@@ -76,6 +102,74 @@ final class NousStore {
             feedEvents = feed.events
         } catch {
             // Offline
+        }
+    }
+
+    private func loadChannels() async {
+        guard let did = identity?.did else { return }
+        do {
+            channels = try await api.listChannels(did: did)
+        } catch {
+            // Offline
+        }
+    }
+
+    // MARK: - Actions
+
+    func sendTransfer(toDid: String, token: String, amount: Int, memo: String?) async {
+        guard let fromDid = identity?.did else { return }
+        let request = TransferRequest(
+            fromDid: fromDid,
+            toDid: toDid,
+            token: token,
+            amount: amount,
+            memo: memo
+        )
+        do {
+            let tx = try await api.createTransfer(request: request)
+            transactions.insert(tx, at: 0)
+            await loadWallet()
+        } catch {
+            // Handle error
+        }
+    }
+
+    func publishPost(content: String, hashtags: [String]?) async {
+        guard let authorDid = identity?.did else { return }
+        let request = CreatePostRequest(
+            authorDid: authorDid,
+            content: content,
+            replyTo: nil,
+            hashtags: hashtags
+        )
+        do {
+            let event = try await api.createPost(request: request)
+            feedEvents.insert(event, at: 0)
+        } catch {
+            // Handle error
+        }
+    }
+
+    func sendMessage(channelId: String, content: String) async -> MessageResponse? {
+        guard let senderDid = identity?.did else { return nil }
+        let request = SendMessageRequest(
+            channelId: channelId,
+            senderDid: senderDid,
+            content: content,
+            replyTo: nil
+        )
+        do {
+            return try await api.sendMessage(request: request)
+        } catch {
+            return nil
+        }
+    }
+
+    func getMessages(channelId: String) async -> [MessageResponse] {
+        do {
+            return try await api.getChannelMessages(channelId: channelId)
+        } catch {
+            return []
         }
     }
 }
