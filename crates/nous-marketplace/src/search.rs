@@ -81,27 +81,12 @@ pub fn search<'a>(listings: &'a [Listing], query: &SearchQuery) -> Vec<&'a Listi
     let mut results: Vec<&Listing> = listings
         .iter()
         .filter(|l| l.status == ListingStatus::Active)
-        .filter(|l| {
-            query
-                .text
-                .as_ref()
-                .map_or(true, |q| l.matches_search(q))
-        })
-        .filter(|l| query.category.map_or(true, |c| l.category == c))
-        .filter(|l| query.min_price.map_or(true, |min| l.price_amount >= min))
-        .filter(|l| query.max_price.map_or(true, |max| l.price_amount <= max))
-        .filter(|l| {
-            query
-                .token
-                .as_ref()
-                .map_or(true, |t| l.price_token == *t)
-        })
-        .filter(|l| {
-            query
-                .seller_did
-                .as_ref()
-                .map_or(true, |s| l.seller_did == *s)
-        })
+        .filter(|l| query.text.as_ref().is_none_or(|q| l.matches_search(q)))
+        .filter(|l| query.category.is_none_or(|c| l.category == c))
+        .filter(|l| query.min_price.is_none_or(|min| l.price_amount >= min))
+        .filter(|l| query.max_price.is_none_or(|max| l.price_amount <= max))
+        .filter(|l| query.token.as_ref().is_none_or(|t| l.price_token == *t))
+        .filter(|l| query.seller_did.as_ref().is_none_or(|s| l.seller_did == *s))
         .filter(|l| {
             query.tags.is_empty()
                 || query
@@ -130,18 +115,46 @@ mod tests {
 
     fn make_listings() -> Vec<Listing> {
         vec![
-            Listing::new("s1", "Laptop", "Fast laptop", ListingCategory::Physical, "ETH", 1000)
-                .unwrap()
-                .with_tag("electronics"),
-            Listing::new("s1", "Ebook", "Programming guide", ListingCategory::Digital, "ETH", 50)
-                .unwrap()
-                .with_tag("books"),
-            Listing::new("s2", "Consulting", "1 hour", ListingCategory::Service, "ETH", 200)
-                .unwrap()
-                .with_tag("service"),
-            Listing::new("s1", "Phone", "Smartphone", ListingCategory::Physical, "BTC", 500)
-                .unwrap()
-                .with_tag("electronics"),
+            Listing::new(
+                "s1",
+                "Laptop",
+                "Fast laptop",
+                ListingCategory::Physical,
+                "ETH",
+                1000,
+            )
+            .unwrap()
+            .with_tag("electronics"),
+            Listing::new(
+                "s1",
+                "Ebook",
+                "Programming guide",
+                ListingCategory::Digital,
+                "ETH",
+                50,
+            )
+            .unwrap()
+            .with_tag("books"),
+            Listing::new(
+                "s2",
+                "Consulting",
+                "1 hour",
+                ListingCategory::Service,
+                "ETH",
+                200,
+            )
+            .unwrap()
+            .with_tag("service"),
+            Listing::new(
+                "s1",
+                "Phone",
+                "Smartphone",
+                ListingCategory::Physical,
+                "BTC",
+                500,
+            )
+            .unwrap()
+            .with_tag("electronics"),
         ]
     }
 
@@ -225,7 +238,9 @@ mod tests {
 
     #[test]
     fn search_query_serializes() {
-        let query = SearchQuery::new().text("test").category(ListingCategory::Digital);
+        let query = SearchQuery::new()
+            .text("test")
+            .category(ListingCategory::Digital);
         let json = serde_json::to_string(&query).unwrap();
         let _: SearchQuery = serde_json::from_str(&json).unwrap();
     }
