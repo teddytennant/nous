@@ -1,0 +1,22 @@
+[package]
+name = "nous-terminal"
+description = "Embedded terminal emulator for Nous — PTY management, VT parsing, and platform-agnostic rendering"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+nous-core = { path = "../nous-core" }
+vt100-ctt = "0.17"
+thiserror = { workspace = true }
+tokio = { workspace = true }
+bytes = { workspace = true }
+tracing = { workspace = true }
+
+[target.'cfg(unix)'.dependencies]
+nix = { version = "0.30", features = ["term", "process", "signal", "fs"] }
+libc = "0.2"
+
+[dev-dependencies]
+tempfile = { workspace = true }
+tokio = { workspace = true }
