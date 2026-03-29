@@ -80,37 +80,36 @@ impl Filter {
     /// Check if an event matches this filter. All specified fields must match (AND logic).
     /// Prefix matching is used for ids and authors per NIP-01.
     pub fn matches(&self, event: &Event) -> bool {
-        if let Some(ids) = &self.ids {
-            if !ids.iter().any(|prefix| event.id.starts_with(prefix)) {
-                return false;
-            }
+        if let Some(ids) = &self.ids
+            && !ids.iter().any(|prefix| event.id.starts_with(prefix))
+        {
+            return false;
         }
 
-        if let Some(authors) = &self.authors {
-            if !authors
+        if let Some(authors) = &self.authors
+            && !authors
                 .iter()
                 .any(|prefix| event.pubkey.starts_with(prefix))
-            {
-                return false;
-            }
+        {
+            return false;
         }
 
-        if let Some(kinds) = &self.kinds {
-            if !kinds.contains(&event.kind) {
-                return false;
-            }
+        if let Some(kinds) = &self.kinds
+            && !kinds.contains(&event.kind)
+        {
+            return false;
         }
 
-        if let Some(since) = self.since {
-            if event.created_at < since {
-                return false;
-            }
+        if let Some(since) = self.since
+            && event.created_at < since
+        {
+            return false;
         }
 
-        if let Some(until) = self.until {
-            if event.created_at > until {
-                return false;
-            }
+        if let Some(until) = self.until
+            && event.created_at > until
+        {
+            return false;
         }
 
         if let Some(event_refs) = &self.event_refs {
@@ -318,7 +317,10 @@ mod tests {
         let json = serde_json::to_string(&f).unwrap();
         let deserialized: Filter = serde_json::from_str(&json).unwrap();
 
-        assert_eq!(deserialized.kinds.unwrap(), vec![Kind::TEXT_NOTE, Kind::METADATA]);
+        assert_eq!(
+            deserialized.kinds.unwrap(),
+            vec![Kind::TEXT_NOTE, Kind::METADATA]
+        );
         assert_eq!(deserialized.authors.unwrap(), vec!["abc".to_string()]);
         assert_eq!(deserialized.since.unwrap(), 1000);
         assert_eq!(deserialized.limit.unwrap(), 50);
