@@ -14,6 +14,7 @@ nous-files = { path = "../nous-files" }
 nous-governance = { path = "../nous-governance" }
 nous-marketplace = { path = "../nous-marketplace" }
 nous-browser = { path = "../nous-browser" }
+nous-ai = { path = "../nous-ai" }
 rand = { workspace = true }
 serde_json = { workspace = true }
 criterion = { workspace = true }
@@ -32,4 +33,8 @@ harness = false
 
 [[bench]]
 name = "browser_bench"
+harness = false
+
+[[bench]]
+name = "ai_bench"
 harness = false
