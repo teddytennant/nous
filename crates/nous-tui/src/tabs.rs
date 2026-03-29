@@ -6,6 +6,8 @@ pub enum Tab {
     Messages,
     Governance,
     Wallet,
+    Marketplace,
+    Browser,
     Identity,
     Peers,
     Settings,
@@ -18,6 +20,8 @@ impl Tab {
             Self::Messages => "Messages",
             Self::Governance => "Governance",
             Self::Wallet => "Wallet",
+            Self::Marketplace => "Market",
+            Self::Browser => "Browser",
             Self::Identity => "Identity",
             Self::Peers => "Peers",
             Self::Settings => "Settings",
@@ -30,9 +34,11 @@ impl Tab {
             Self::Messages => '2',
             Self::Governance => '3',
             Self::Wallet => '4',
-            Self::Identity => '5',
-            Self::Peers => '6',
-            Self::Settings => '7',
+            Self::Marketplace => '5',
+            Self::Browser => '6',
+            Self::Identity => '7',
+            Self::Peers => '8',
+            Self::Settings => '9',
         }
     }
 
@@ -42,6 +48,8 @@ impl Tab {
             Tab::Messages,
             Tab::Governance,
             Tab::Wallet,
+            Tab::Marketplace,
+            Tab::Browser,
             Tab::Identity,
             Tab::Peers,
             Tab::Settings,
@@ -54,9 +62,11 @@ impl Tab {
             '2' => Some(Self::Messages),
             '3' => Some(Self::Governance),
             '4' => Some(Self::Wallet),
-            '5' => Some(Self::Identity),
-            '6' => Some(Self::Peers),
-            '7' => Some(Self::Settings),
+            '5' => Some(Self::Marketplace),
+            '6' => Some(Self::Browser),
+            '7' => Some(Self::Identity),
+            '8' => Some(Self::Peers),
+            '9' => Some(Self::Settings),
             _ => None,
         }
     }
@@ -145,7 +155,7 @@ mod tests {
 
     #[test]
     fn all_tabs_count() {
-        assert_eq!(Tab::all().len(), 7);
+        assert_eq!(Tab::all().len(), 9);
     }
 
     #[test]
