@@ -214,6 +214,15 @@ impl EventBuilder {
         Self::new(Kind::CONTACTS, "").tags(tags)
     }
 
+    /// NIP-09: Create a deletion event for the given event IDs.
+    ///
+    /// The `reason` field is optional and stored in the content field.
+    /// Only events authored by the same pubkey will be deleted by the relay.
+    pub fn deletion(event_ids: &[&str], reason: impl Into<String>) -> Self {
+        let tags: Vec<Tag> = event_ids.iter().map(|id| Tag::event(id)).collect();
+        Self::new(Kind::DELETE, reason).tags(tags)
+    }
+
     /// NIP-04: Create an encrypted direct message.
     ///
     /// Uses x25519 key exchange (ed25519 key converted to x25519) and
@@ -404,6 +413,41 @@ mod tests {
         assert_eq!(tag.0[1], "pubkey1");
         assert_eq!(tag.0[2], "wss://relay.test");
         assert_eq!(tag.0[3], "petname1");
+    }
+
+    // ── NIP-09: Event Deletion ─────────────────────────────────
+
+    #[test]
+    fn nip09_deletion_event() {
+        let key = test_key();
+        let event = EventBuilder::deletion(&["event1", "event2"], "spam")
+            .sign(&key);
+
+        assert_eq!(event.kind, Kind::DELETE);
+        assert_eq!(event.content, "spam");
+        assert_eq!(event.tags.len(), 2);
+        assert!(event.has_tag("e", "event1"));
+        assert!(event.has_tag("e", "event2"));
+        assert!(event.verify());
+    }
+
+    #[test]
+    fn nip09_deletion_empty_reason() {
+        let key = test_key();
+        let event = EventBuilder::deletion(&["abc"], "").sign(&key);
+        assert_eq!(event.kind, Kind::DELETE);
+        assert_eq!(event.content, "");
+        assert_eq!(event.tags.len(), 1);
+        assert!(event.verify());
+    }
+
+    #[test]
+    fn nip09_deletion_no_events() {
+        let key = test_key();
+        let event = EventBuilder::deletion(&[], "cleanup").sign(&key);
+        assert_eq!(event.kind, Kind::DELETE);
+        assert!(event.tags.is_empty());
+        assert!(event.verify());
     }
 
     // ── NIP-04: Encrypted DMs ─────────────────────────────────
