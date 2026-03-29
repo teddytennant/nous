@@ -21,6 +21,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.nous.app.data.NousViewModel
 import com.nous.app.ui.screens.DashboardScreen
 import com.nous.app.ui.screens.GovernanceScreen
 import com.nous.app.ui.screens.IdentityScreen
@@ -50,6 +52,7 @@ fun NousApp() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+    val sharedViewModel: NousViewModel = viewModel()
 
     Scaffold(
         containerColor = Color.Black,
@@ -93,11 +96,11 @@ fun NousApp() {
             startDestination = Screen.Dashboard.route,
             modifier = Modifier.padding(padding),
         ) {
-            composable(Screen.Dashboard.route) { DashboardScreen() }
-            composable(Screen.Social.route) { SocialScreen() }
-            composable(Screen.Messages.route) { MessagesScreen() }
-            composable(Screen.Governance.route) { GovernanceScreen() }
-            composable(Screen.Wallet.route) { WalletScreen() }
+            composable(Screen.Dashboard.route) { DashboardScreen(viewModel = sharedViewModel) }
+            composable(Screen.Social.route) { SocialScreen(viewModel = sharedViewModel) }
+            composable(Screen.Messages.route) { MessagesScreen(viewModel = sharedViewModel) }
+            composable(Screen.Governance.route) { GovernanceScreen(viewModel = sharedViewModel) }
+            composable(Screen.Wallet.route) { WalletScreen(viewModel = sharedViewModel) }
             composable(Screen.Identity.route) { IdentityScreen() }
         }
     }
