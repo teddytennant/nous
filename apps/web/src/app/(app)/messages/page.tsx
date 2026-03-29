@@ -81,7 +81,7 @@ export default function MessagesPage() {
   }, [selected, fetchMessages]);
 
   // Live message updates via SSE
-  useRealtime("new_message", useCallback((data) => {
+  useRealtime("new_message", (data) => {
     if (selected && data.channel_id === selected) {
       setMessages((prev) => [
         ...prev,
@@ -95,7 +95,7 @@ export default function MessagesPage() {
         },
       ]);
     }
-  }, [selected]));
+  });
 
   // Auto-scroll
   useEffect(() => {
