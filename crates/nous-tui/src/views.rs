@@ -15,6 +15,8 @@ pub fn render_tab(f: &mut Frame, area: Rect, app: &App) {
         Tab::Messages => render_messages(f, area, app),
         Tab::Governance => render_governance(f, area, app),
         Tab::Wallet => render_wallet(f, area, app),
+        Tab::Marketplace => render_marketplace(f, area, app),
+        Tab::Browser => render_browser(f, area, app),
         Tab::Identity => render_identity(f, area, app),
         Tab::Peers => render_peers(f, area, app),
         Tab::Settings => render_settings(f, area, app),
@@ -180,6 +182,201 @@ fn render_wallet(f: &mut Frame, area: Rect, app: &App) {
     f.render_widget(list, area);
 }
 
+fn render_marketplace(f: &mut Frame, area: Rect, app: &App) {
+    use crate::app::MarketplaceSubTab;
+
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(3), Constraint::Min(1)])
+        .split(area);
+
+    // Sub-tab bar
+    let tabs_line = Line::from(vec![
+        Span::styled(
+            " Listings ",
+            if app.marketplace_tab == MarketplaceSubTab::Listings {
+                Theme::accent()
+            } else {
+                Theme::dim()
+            },
+        ),
+        Span::styled("  ", Theme::base()),
+        Span::styled(
+            " Orders ",
+            if app.marketplace_tab == MarketplaceSubTab::Orders {
+                Theme::accent()
+            } else {
+                Theme::dim()
+            },
+        ),
+        Span::styled("  ", Theme::base()),
+        Span::styled(format!("{} listings", app.listings.len()), Theme::dim()),
+        Span::styled("  ", Theme::base()),
+        Span::styled(format!("{} orders", app.orders.len()), Theme::dim()),
+    ]);
+    let tab_bar = Paragraph::new(tabs_line).block(render_content_block("Marketplace"));
+    f.render_widget(tab_bar, chunks[0]);
+
+    match app.marketplace_tab {
+        MarketplaceSubTab::Listings => render_marketplace_listings(f, chunks[1], app),
+        MarketplaceSubTab::Orders => render_marketplace_orders(f, chunks[1], app),
+    }
+}
+
+fn render_marketplace_listings(f: &mut Frame, area: Rect, app: &App) {
+    if app.listings.is_empty() {
+        let empty = Paragraph::new(Line::from(Span::styled(
+            "No listings available",
+            Theme::dim(),
+        )))
+        .block(render_content_block("Listings"));
+        f.render_widget(empty, area);
+        return;
+    }
+
+    let items: Vec<ListItem> = app
+        .listings
+        .iter()
+        .map(|listing| {
+            let header = Line::from(vec![
+                Span::styled(&listing.title, Theme::bold()),
+                Span::styled("  ", Theme::base()),
+                Span::styled(
+                    format!("{} {}", listing.price_amount, listing.price_token),
+                    Theme::accent(),
+                ),
+            ]);
+            let meta = Line::from(vec![
+                Span::styled(&listing.category, Theme::dim()),
+                Span::styled("  ", Theme::base()),
+                Span::styled(
+                    &listing.status,
+                    match listing.status.as_str() {
+                        "Active" => Theme::success(),
+                        "Sold" => Theme::dim(),
+                        _ => Theme::error(),
+                    },
+                ),
+                Span::styled("  ", Theme::base()),
+                Span::styled(listing.tags.join(", "), Theme::dim()),
+            ]);
+            let blank = Line::from("");
+            ListItem::new(vec![header, meta, blank])
+        })
+        .collect();
+
+    let list = List::new(items).block(render_content_block("Listings"));
+    f.render_widget(list, area);
+}
+
+fn render_marketplace_orders(f: &mut Frame, area: Rect, app: &App) {
+    if app.orders.is_empty() {
+        let empty = Paragraph::new(Line::from(Span::styled("No orders", Theme::dim())))
+            .block(render_content_block("Orders"));
+        f.render_widget(empty, area);
+        return;
+    }
+
+    let items: Vec<ListItem> = app
+        .orders
+        .iter()
+        .map(|order| {
+            let status_style = match order.status.as_str() {
+                "Completed" => Theme::success(),
+                "Cancelled" | "Refunded" => Theme::error(),
+                "Disputed" => Theme::error(),
+                _ => Theme::accent(),
+            };
+            let header = Line::from(vec![
+                Span::styled(&order.id, Theme::bold()),
+                Span::styled("  ", Theme::base()),
+                Span::styled(&order.status, status_style),
+            ]);
+            let detail = Line::from(vec![
+                Span::styled(format!("{} {}", order.amount, order.token), Theme::accent()),
+                Span::styled("  ", Theme::base()),
+                Span::styled(&order.created_at, Theme::dim()),
+            ]);
+            let blank = Line::from("");
+            ListItem::new(vec![header, detail, blank])
+        })
+        .collect();
+
+    let list = List::new(items).block(render_content_block("Orders"));
+    f.render_widget(list, area);
+}
+
+fn render_browser(f: &mut Frame, area: Rect, app: &App) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(5), Constraint::Min(1)])
+        .split(area);
+
+    // Browser stats panel
+    let stats = vec![
+        Line::from(vec![
+            Span::styled("Open tabs  ", Theme::dim()),
+            Span::styled(app.browser_urls.len().to_string(), Theme::accent()),
+        ]),
+        Line::from(vec![
+            Span::styled("History  ", Theme::dim()),
+            Span::styled(
+                format!("{} entries", app.browser_history_count),
+                Theme::base(),
+            ),
+        ]),
+        Line::from(vec![
+            Span::styled("Blocked  ", Theme::dim()),
+            Span::styled(
+                format!("{} requests", app.browser_blocked_count),
+                Theme::success(),
+            ),
+            Span::styled("  ", Theme::base()),
+            Span::styled(format!("{} rules", app.browser_filter_rules), Theme::dim()),
+        ]),
+    ];
+    let stats_widget = Paragraph::new(stats)
+        .block(render_content_block("Browser"))
+        .wrap(Wrap { trim: false });
+    f.render_widget(stats_widget, chunks[0]);
+
+    // Open tabs list
+    if app.browser_urls.is_empty() {
+        let empty = Paragraph::new(Line::from(Span::styled("No tabs open", Theme::dim())))
+            .block(render_content_block("Tabs"));
+        f.render_widget(empty, chunks[1]);
+    } else {
+        let items: Vec<ListItem> = app
+            .browser_urls
+            .iter()
+            .map(|tab| {
+                let pin_marker = if tab.pinned { "[pin] " } else { "" };
+                let header = Line::from(vec![
+                    Span::styled(pin_marker, Theme::dim()),
+                    Span::styled(&tab.title, Theme::bold()),
+                ]);
+                let url_line = Line::from(vec![
+                    Span::styled(&tab.url, Theme::dim()),
+                    Span::styled("  ", Theme::base()),
+                    Span::styled(
+                        &tab.status,
+                        match tab.status.as_str() {
+                            "Ready" => Theme::success(),
+                            "Loading" => Theme::accent(),
+                            _ => Theme::error(),
+                        },
+                    ),
+                ]);
+                let blank = Line::from("");
+                ListItem::new(vec![header, url_line, blank])
+            })
+            .collect();
+
+        let list = List::new(items).block(render_content_block("Tabs"));
+        f.render_widget(list, chunks[1]);
+    }
+}
+
 fn render_identity(f: &mut Frame, area: Rect, app: &App) {
     let did_display = if app.local_did.is_empty() {
         "No identity".to_string()
@@ -297,8 +494,8 @@ fn format_uptime(ms: Option<u64>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::app::{DisplayMessage, FeedItem};
-    use crate::client::{BalanceEntry, DaoItem, ProposalItem};
+    use crate::app::{BrowserTabEntry, DisplayMessage, FeedItem, MarketplaceSubTab};
+    use crate::client::{BalanceEntry, DaoItem, ListingItem, OrderItem, ProposalItem};
     use crate::config::TuiConfig;
     use ratatui::Terminal;
     use ratatui::backend::TestBackend;
@@ -465,6 +662,74 @@ mod tests {
     #[test]
     fn format_uptime_hours() {
         assert_eq!(format_uptime(Some(3661000)), "1h 1m");
+    }
+
+    #[test]
+    fn render_empty_marketplace() {
+        let app = test_app();
+        render_test(&app, render_marketplace);
+    }
+
+    #[test]
+    fn render_marketplace_with_listings() {
+        let mut app = test_app();
+        app.listings.push(ListingItem {
+            id: "listing:abc".into(),
+            seller_did: "did:key:z123".into(),
+            title: "Vintage Keyboard".into(),
+            description: "Mechanical, cherry blues".into(),
+            category: "Physical".into(),
+            price_token: "ETH".into(),
+            price_amount: "0.5".into(),
+            status: "Active".into(),
+            created_at: "2026-03-29".into(),
+            tags: vec!["electronics".into(), "vintage".into()],
+        });
+        render_test(&app, render_marketplace);
+    }
+
+    #[test]
+    fn render_marketplace_orders_tab() {
+        let mut app = test_app();
+        app.marketplace_tab = MarketplaceSubTab::Orders;
+        app.orders.push(OrderItem {
+            id: "order:xyz".into(),
+            listing_id: "listing:abc".into(),
+            buyer_did: "did:key:buyer".into(),
+            seller_did: "did:key:seller".into(),
+            token: "ETH".into(),
+            amount: "0.5".into(),
+            status: "Shipped".into(),
+            created_at: "2026-03-29".into(),
+        });
+        render_test(&app, render_marketplace);
+    }
+
+    #[test]
+    fn render_empty_browser() {
+        let app = test_app();
+        render_test(&app, render_browser);
+    }
+
+    #[test]
+    fn render_browser_with_tabs() {
+        let mut app = test_app();
+        app.browser_urls.push(BrowserTabEntry {
+            title: "Nous Docs".into(),
+            url: "https://nous.dev/docs".into(),
+            status: "Ready".into(),
+            pinned: false,
+        });
+        app.browser_urls.push(BrowserTabEntry {
+            title: "IPFS Gateway".into(),
+            url: "ipfs://QmTest123".into(),
+            status: "Loading".into(),
+            pinned: true,
+        });
+        app.browser_history_count = 42;
+        app.browser_blocked_count = 1337;
+        app.browser_filter_rules = 15;
+        render_test(&app, render_browser);
     }
 
     #[test]
