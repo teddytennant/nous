@@ -57,6 +57,9 @@ hmac = "0.12"
 libp2p = { version = "0.54", features = ["tokio", "noise", "yamux", "tcp", "dns", "gossipsub", "kad", "identify", "relay", "dcutr", "mdns", "macros"] }
 futures = "0.3"
 
+# GraphQL
+async-graphql = "7"
+
 # Storage
 rusqlite = { version = "0.32", features = ["bundled"] }
 
