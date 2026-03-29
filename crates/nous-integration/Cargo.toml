@@ -1,0 +1,20 @@
+[package]
+name = "nous-integration"
+description = "Cross-crate integration tests for Nous"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+nous-core = { path = "../nous-core" }
+nous-crypto = { path = "../nous-crypto" }
+nous-identity = { path = "../nous-identity" }
+nous-messaging = { path = "../nous-messaging" }
+nous-social = { path = "../nous-social" }
+nous-storage = { path = "../nous-storage" }
+nous-governance = { path = "../nous-governance" }
+curve25519-dalek = { workspace = true }
+rand = { workspace = true }
+x25519-dalek = { workspace = true }
+tempfile = { workspace = true }
