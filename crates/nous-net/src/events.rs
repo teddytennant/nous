@@ -22,6 +22,13 @@ pub enum NodeEvent {
         topic: NousTopic,
     },
     ListeningOn(libp2p::Multiaddr),
+    DhtRecordFound {
+        key: String,
+        value: Vec<u8>,
+    },
+    DhtRecordStored {
+        key: String,
+    },
     Error(String),
 }
 
