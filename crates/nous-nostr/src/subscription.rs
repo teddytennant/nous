@@ -110,10 +110,7 @@ mod tests {
 
     #[test]
     fn subscription_matches_event() {
-        let sub = Subscription::new(
-            "test",
-            vec![Filter::new().kinds(vec![Kind::TEXT_NOTE])],
-        );
+        let sub = Subscription::new("test", vec![Filter::new().kinds(vec![Kind::TEXT_NOTE])]);
         let k = key();
         let note = EventBuilder::text_note("hi").created_at(1000).sign(&k);
         let meta = EventBuilder::metadata("{}").created_at(1000).sign(&k);
@@ -170,10 +167,7 @@ mod tests {
 
         assert_eq!(mgr.len(), 1);
         let sub = mgr.get("s1").unwrap();
-        assert_eq!(
-            sub.filters[0].kinds.as_ref().unwrap(),
-            &[Kind::METADATA]
-        );
+        assert_eq!(sub.filters[0].kinds.as_ref().unwrap(), &[Kind::METADATA]);
     }
 
     #[test]
