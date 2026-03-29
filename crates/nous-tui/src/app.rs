@@ -23,7 +23,9 @@ pub struct App {
     pub listings: Vec<crate::client::ListingItem>,
     pub orders: Vec<crate::client::OrderItem>,
     pub marketplace_tab: MarketplaceSubTab,
+    pub marketplace_selected: usize,
     pub browser_urls: Vec<BrowserTabEntry>,
+    pub browser_selected: usize,
     pub browser_history_count: usize,
     pub browser_blocked_count: u64,
     pub browser_filter_rules: usize,
@@ -83,7 +85,9 @@ impl App {
             listings: Vec::new(),
             orders: Vec::new(),
             marketplace_tab: MarketplaceSubTab::Listings,
+            marketplace_selected: 0,
             browser_urls: Vec::new(),
+            browser_selected: 0,
             browser_history_count: 0,
             browser_blocked_count: 0,
             browser_filter_rules: 0,
@@ -128,6 +132,43 @@ impl App {
         self.messages.push(msg);
         if self.messages.len() > self.config.max_visible_messages {
             self.messages.remove(0);
+        }
+    }
+
+    pub fn marketplace_list_len(&self) -> usize {
+        match self.marketplace_tab {
+            MarketplaceSubTab::Listings => self.listings.len(),
+            MarketplaceSubTab::Orders => self.orders.len(),
+        }
+    }
+
+    pub fn marketplace_select_up(&mut self) {
+        self.marketplace_selected = self.marketplace_selected.saturating_sub(1);
+    }
+
+    pub fn marketplace_select_down(&mut self) {
+        let max = self.marketplace_list_len().saturating_sub(1);
+        if self.marketplace_selected < max {
+            self.marketplace_selected += 1;
+        }
+    }
+
+    pub fn marketplace_toggle_tab(&mut self) {
+        self.marketplace_tab = match self.marketplace_tab {
+            MarketplaceSubTab::Listings => MarketplaceSubTab::Orders,
+            MarketplaceSubTab::Orders => MarketplaceSubTab::Listings,
+        };
+        self.marketplace_selected = 0;
+    }
+
+    pub fn browser_select_up(&mut self) {
+        self.browser_selected = self.browser_selected.saturating_sub(1);
+    }
+
+    pub fn browser_select_down(&mut self) {
+        let max = self.browser_urls.len().saturating_sub(1);
+        if self.browser_selected < max {
+            self.browser_selected += 1;
         }
     }
 
@@ -250,6 +291,82 @@ mod tests {
             replies: 0,
         });
         assert_eq!(app.feed_items[0].content, "second");
+    }
+
+    #[test]
+    fn marketplace_navigation() {
+        let mut app = App::new(TuiConfig::default());
+        app.listings.push(crate::client::ListingItem {
+            id: "l1".into(),
+            seller_did: "d".into(),
+            title: "A".into(),
+            description: "".into(),
+            category: "Physical".into(),
+            price_token: "ETH".into(),
+            price_amount: "1".into(),
+            status: "Active".into(),
+            created_at: "".into(),
+            tags: vec![],
+        });
+        app.listings.push(crate::client::ListingItem {
+            id: "l2".into(),
+            seller_did: "d".into(),
+            title: "B".into(),
+            description: "".into(),
+            category: "Digital".into(),
+            price_token: "ETH".into(),
+            price_amount: "2".into(),
+            status: "Active".into(),
+            created_at: "".into(),
+            tags: vec![],
+        });
+
+        assert_eq!(app.marketplace_selected, 0);
+        app.marketplace_select_down();
+        assert_eq!(app.marketplace_selected, 1);
+        app.marketplace_select_down(); // at max
+        assert_eq!(app.marketplace_selected, 1);
+        app.marketplace_select_up();
+        assert_eq!(app.marketplace_selected, 0);
+        app.marketplace_select_up(); // at min
+        assert_eq!(app.marketplace_selected, 0);
+    }
+
+    #[test]
+    fn marketplace_toggle_tab() {
+        let mut app = App::new(TuiConfig::default());
+        assert_eq!(app.marketplace_tab, MarketplaceSubTab::Listings);
+        app.marketplace_selected = 5;
+        app.marketplace_toggle_tab();
+        assert_eq!(app.marketplace_tab, MarketplaceSubTab::Orders);
+        assert_eq!(app.marketplace_selected, 0); // reset on toggle
+        app.marketplace_toggle_tab();
+        assert_eq!(app.marketplace_tab, MarketplaceSubTab::Listings);
+    }
+
+    #[test]
+    fn browser_navigation() {
+        let mut app = App::new(TuiConfig::default());
+        app.browser_urls.push(BrowserTabEntry {
+            title: "A".into(),
+            url: "a".into(),
+            status: "Ready".into(),
+            pinned: false,
+        });
+        app.browser_urls.push(BrowserTabEntry {
+            title: "B".into(),
+            url: "b".into(),
+            status: "Ready".into(),
+            pinned: false,
+        });
+
+        assert_eq!(app.browser_selected, 0);
+        app.browser_select_down();
+        assert_eq!(app.browser_selected, 1);
+        app.browser_select_down();
+        assert_eq!(app.browser_selected, 1);
+        app.browser_select_up();
+        assert_eq!(app.browser_selected, 0);
     }
 
     #[test]
