@@ -1,0 +1,68 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/nous-core",
+    "crates/nous-crypto",
+    "crates/nous-identity",
+    "crates/nous-net",
+    "crates/nous-messaging",
+    "crates/nous-social",
+    "crates/nous-governance",
+    "crates/nous-payments",
+    "crates/nous-storage",
+    "crates/nous-ai",
+    "crates/nous-marketplace",
+    "crates/nous-browser",
+    "crates/nous-api",
+    "crates/nous-tui",
+    "crates/nous-cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/teddytennant/nous"
+authors = ["Teddy Tennant <teddytennant@icloud.com>"]
+
+[workspace.dependencies]
+# Core
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+bytes = "1"
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+async-trait = "0.1"
+
+# Crypto
+ed25519-dalek = { version = "2", features = ["serde", "rand_core"] }
+x25519-dalek = { version = "2", features = ["serde", "static_secrets"] }
+aes-gcm = "0.10"
+sha2 = "0.10"
+rand = "0.8"
+base64 = "0.22"
+bs58 = "0.5"
+zeroize = { version = "1", features = ["derive"] }
+argon2 = "0.5"
+hkdf = "0.12"
+hmac = "0.12"
+
+# Networking
+libp2p = { version = "0.54", features = ["tokio", "noise", "yamux", "tcp", "dns", "gossipsub", "kad", "identify", "relay", "dcutr", "mdns"] }
+
+# Storage
+rusqlite = { version = "0.32", features = ["bundled"] }
+
+# Testing
+tempfile = "3"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
