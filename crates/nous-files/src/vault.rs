@@ -138,7 +138,13 @@ impl Vault {
     }
 
     /// Encrypt a file for storage in this vault.
-    pub fn encrypt_file(&self, key: &VaultKey, name: &str, mime_type: &str, data: &[u8]) -> Result<VaultEntry> {
+    pub fn encrypt_file(
+        &self,
+        key: &VaultKey,
+        name: &str,
+        mime_type: &str,
+        data: &[u8],
+    ) -> Result<VaultEntry> {
         let content_hash = sha256_hex(data);
         let encrypted = encrypt_blob(&key.0, data)?;
 
@@ -159,7 +165,9 @@ impl Vault {
         // Verify integrity.
         let actual_hash = sha256_hex(&plaintext);
         if actual_hash != entry.content_hash {
-            return Err(Error::Crypto("file integrity check failed — hash mismatch".into()));
+            return Err(Error::Crypto(
+                "file integrity check failed — hash mismatch".into(),
+            ));
         }
 
         Ok(plaintext)
@@ -267,7 +275,9 @@ mod tests {
         let key = vault.unlock(b"password").unwrap();
 
         let data = b"the sovereign individual needs sovereign storage";
-        let entry = vault.encrypt_file(&key, "manifesto.txt", "text/plain", data).unwrap();
+        let entry = vault
+            .encrypt_file(&key, "manifesto.txt", "text/plain", data)
+            .unwrap();
 
         assert_eq!(entry.name, "manifesto.txt");
         assert_eq!(entry.mime_type, "text/plain");
@@ -282,8 +292,12 @@ mod tests {
         let vault = Vault::create("v", b"pass").unwrap();
         let key = vault.unlock(b"pass").unwrap();
 
-        let e1 = vault.encrypt_file(&key, "a.txt", "text/plain", b"same data").unwrap();
-        let e2 = vault.encrypt_file(&key, "a.txt", "text/plain", b"same data").unwrap();
+        let e1 = vault
+            .encrypt_file(&key, "a.txt", "text/plain", b"same data")
+            .unwrap();
+        let e2 = vault
+            .encrypt_file(&key, "a.txt", "text/plain", b"same data")
+            .unwrap();
 
         assert_ne!(e1.encrypted.nonce, e2.encrypted.nonce);
     }
@@ -293,7 +307,9 @@ mod tests {
         let vault = Vault::create("v", b"pass").unwrap();
         let key = vault.unlock(b"pass").unwrap();
 
-        let mut entry = vault.encrypt_file(&key, "a.txt", "text/plain", b"integrity test").unwrap();
+        let mut entry = vault
+            .encrypt_file(&key, "a.txt", "text/plain", b"integrity test")
+            .unwrap();
         if let Some(byte) = entry.encrypted.ciphertext.last_mut() {
             *byte ^= 0xFF;
         }
@@ -306,9 +322,13 @@ mod tests {
         let vault = Vault::create("v", b"pass").unwrap();
         let key = vault.unlock(b"pass").unwrap();
 
-        let mut entry = vault.encrypt_file(&key, "a.txt", "text/plain", b"original").unwrap();
+        let mut entry = vault
+            .encrypt_file(&key, "a.txt", "text/plain", b"original")
+            .unwrap();
         // Swap encrypted data with encryption of different content but keep old hash
-        let other_entry = vault.encrypt_file(&key, "b.txt", "text/plain", b"different").unwrap();
+        let other_entry = vault
+            .encrypt_file(&key, "b.txt", "text/plain", b"different")
+            .unwrap();
         entry.encrypted = other_entry.encrypted;
 
         assert!(vault.decrypt_file(&key, &entry).is_err());
@@ -328,7 +348,9 @@ mod tests {
         let key_after = vault.unlock(b"new-pass").unwrap();
 
         // Encrypt with old key, decrypt with new key — same master key.
-        let entry = vault.encrypt_file(&key_before, "test.txt", "text/plain", b"data").unwrap();
+        let entry = vault
+            .encrypt_file(&key_before, "test.txt", "text/plain", b"data")
+            .unwrap();
         let decrypted = vault.decrypt_file(&key_after, &entry).unwrap();
         assert_eq!(decrypted, b"data");
     }
@@ -356,7 +378,9 @@ mod tests {
 
         // Should still be unlockable after deserialization.
         let key = deserialized.unlock(b"pass").unwrap();
-        let entry = deserialized.encrypt_file(&key, "f.txt", "text/plain", b"test").unwrap();
+        let entry = deserialized
+            .encrypt_file(&key, "f.txt", "text/plain", b"test")
+            .unwrap();
         let decrypted = deserialized.decrypt_file(&key, &entry).unwrap();
         assert_eq!(decrypted, b"test");
     }
@@ -366,7 +390,9 @@ mod tests {
         let vault = Vault::create("v", b"pass").unwrap();
         let key = vault.unlock(b"pass").unwrap();
 
-        let entry = vault.encrypt_file(&key, "empty.bin", "application/octet-stream", b"").unwrap();
+        let entry = vault
+            .encrypt_file(&key, "empty.bin", "application/octet-stream", b"")
+            .unwrap();
         assert_eq!(entry.size, 0);
 
         let decrypted = vault.decrypt_file(&key, &entry).unwrap();
@@ -379,7 +405,9 @@ mod tests {
         let key = vault.unlock(b"pass").unwrap();
 
         let data = vec![0xABu8; 1_000_000]; // 1 MB
-        let entry = vault.encrypt_file(&key, "large.bin", "application/octet-stream", &data).unwrap();
+        let entry = vault
+            .encrypt_file(&key, "large.bin", "application/octet-stream", &data)
+            .unwrap();
         let decrypted = vault.decrypt_file(&key, &entry).unwrap();
         assert_eq!(decrypted, data);
     }
