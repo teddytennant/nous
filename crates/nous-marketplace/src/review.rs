@@ -65,7 +65,10 @@ impl SellerRating {
             .collect();
 
         let total = seller_reviews.len() as u32;
-        let verified = seller_reviews.iter().filter(|r| r.verified_purchase).count() as u32;
+        let verified = seller_reviews
+            .iter()
+            .filter(|r| r.verified_purchase)
+            .count() as u32;
         let avg = if total > 0 {
             seller_reviews.iter().map(|r| r.rating as f64).sum::<f64>() / total as f64
         } else {
@@ -145,9 +148,7 @@ mod tests {
 
     #[test]
     fn seller_rating_not_trusted_few_reviews() {
-        let reviews = vec![
-            Review::new("l1", "b1", "seller", 5, "great").unwrap(),
-        ];
+        let reviews = vec![Review::new("l1", "b1", "seller", 5, "great").unwrap()];
         let rating = SellerRating::compute("seller", &reviews);
         assert!(!rating.is_trusted());
     }
