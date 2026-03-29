@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+  checks: write
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -143,7 +147,7 @@ jobs:
           version: "25.x"
       - uses: Swatinem/rust-cache@v2
       - name: Run integration tests
-        run: cargo test -p nous-integration --test '*'
+        run: cargo test -p nous-integration
 
   audit:
     name: Security Audit
