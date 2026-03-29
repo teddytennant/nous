@@ -65,6 +65,15 @@ pub fn router(config: ApiConfig) -> Router {
         .route("/proposals", post(governance::submit_proposal))
         .route("/proposals", get(governance::list_proposals))
         .route("/proposals/{proposal_id}", get(governance::get_proposal))
+        // Governance — Convenience (custodial signing)
+        .route(
+            "/daos/{dao_id}/proposals",
+            post(governance::create_proposal),
+        )
+        .route(
+            "/proposals/{proposal_id}/vote",
+            post(governance::simple_vote),
+        )
         // Governance — Voting
         .route("/votes", post(governance::cast_vote))
         .route("/votes/{proposal_id}", get(governance::get_tally))
