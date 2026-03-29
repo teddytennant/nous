@@ -57,7 +57,11 @@ impl RateLimiter {
     pub fn remaining(&self) -> u32 {
         let now = Instant::now();
         let one_minute_ago = now - std::time::Duration::from_secs(60);
-        let recent = self.requests.iter().filter(|&&t| t > one_minute_ago).count();
+        let recent = self
+            .requests
+            .iter()
+            .filter(|&&t| t > one_minute_ago)
+            .count();
         self.max_rpm.saturating_sub(recent as u32)
     }
 }
