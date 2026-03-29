@@ -150,6 +150,8 @@ pub async fn serve(config: ApiConfig) -> Result<(), Box<dyn std::error::Error>> 
         let node_svc = grpc::NousNodeService::new(state.clone());
         let social_svc = grpc::NousSocialService::new(state.clone());
         let identity_svc = grpc::NousIdentityService::new(state.clone());
+        let governance_svc = grpc::NousGovernanceService::new(state.clone());
+        let marketplace_svc = grpc::NousMarketplaceService::new(state.clone());
 
         let grpc_addr_parsed = grpc_addr.parse()?;
         tracing::info!(%grpc_addr, "nous gRPC server listening");
@@ -164,6 +166,16 @@ pub async fn serve(config: ApiConfig) -> Result<(), Box<dyn std::error::Error>> 
                 ))
                 .add_service(
                     grpc::pb::identity_service_server::IdentityServiceServer::new(identity_svc),
+                )
+                .add_service(
+                    grpc::pb::governance_service_server::GovernanceServiceServer::new(
+                        governance_svc,
+                    ),
+                )
+                .add_service(
+                    grpc::pb::marketplace_service_server::MarketplaceServiceServer::new(
+                        marketplace_svc,
+                    ),
                 )
                 .serve(grpc_addr_parsed)
                 .await
