@@ -1,0 +1,114 @@
+syntax = "proto3";
+
+package nous.v1;
+
+// Health and node information
+service NodeService {
+  rpc Health(HealthRequest) returns (HealthResponse);
+  rpc NodeInfo(NodeInfoRequest) returns (NodeInfoResponse);
+}
+
+// Social feed operations
+service SocialService {
+  rpc CreatePost(CreatePostRequest) returns (CreatePostResponse);
+  rpc GetFeed(GetFeedRequest) returns (GetFeedResponse);
+  rpc GetEvent(GetEventRequest) returns (EventMessage);
+  rpc DeleteEvent(DeleteEventRequest) returns (DeleteEventResponse);
+  rpc Follow(FollowRequest) returns (FollowResponse);
+  rpc Unfollow(UnfollowRequest) returns (UnfollowResponse);
+  rpc GetTimeline(GetTimelineRequest) returns (GetFeedResponse);
+}
+
+// Identity operations
+service IdentityService {
+  rpc ResolveDocument(ResolveDocumentRequest) returns (ResolveDocumentResponse);
+}
+
+// ---- Messages ----
+
+message HealthRequest {}
+message HealthResponse {
+  string status = 1;
+}
+
+message NodeInfoRequest {}
+message NodeInfoResponse {
+  string protocol = 1;
+  string version = 2;
+  repeated string features = 3;
+}
+
+message CreatePostRequest {
+  string author_did = 1;
+  string content = 2;
+  repeated string hashtags = 3;
+}
+
+message CreatePostResponse {
+  string event_id = 1;
+}
+
+message GetFeedRequest {
+  string author = 1;
+  uint32 kind = 2;
+  string hashtag = 3;
+  uint32 limit = 4;
+}
+
+message GetFeedResponse {
+  repeated EventMessage events = 1;
+  uint32 count = 2;
+}
+
+message GetEventRequest {
+  string event_id = 1;
+}
+
+message DeleteEventRequest {
+  string event_id = 1;
+}
+
+message DeleteEventResponse {
+  bool deleted = 1;
+}
+
+message FollowRequest {
+  string follower_did = 1;
+  string target_did = 2;
+}
+
+message FollowResponse {
+  bool success = 1;
+}
+
+message UnfollowRequest {
+  string follower_did = 1;
+  string target_did = 2;
+}
+
+message UnfollowResponse {
+  bool success = 1;
+}
+
+message GetTimelineRequest {
+  string did = 1;
+  uint32 limit = 2;
+}
+
+message ResolveDocumentRequest {
+  string did = 1;
+}
+
+message ResolveDocumentResponse {
+  string document_json = 1;
+}
+
+message EventMessage {
+  string id = 1;
+  string pubkey = 2;
+  int64 created_at = 3;
+  uint32 kind = 4;
+  string content = 5;
+  repeated string hashtags = 6;
+  repeated string referenced_events = 7;
+}
