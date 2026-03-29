@@ -1,22 +1,79 @@
-import { Card, CardContent } from "@/components/ui/card";
+"use client";
 
-const stats = [
-  { label: "Identity", value: "Active", detail: "did:key:z6Mk...x3rW" },
-  { label: "Events", value: "0", detail: "posts published" },
-  { label: "Following", value: "0", detail: "accounts" },
-  { label: "Peers", value: "0", detail: "connected nodes" },
-];
+import { useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { node, type HealthResponse, type NodeInfo } from "@/lib/api";
 
 const features = [
-  { name: "X3DH", status: "live", description: "Extended Triple Diffie-Hellman key agreement" },
-  { name: "Double Ratchet", status: "live", description: "Forward-secret message encryption" },
-  { name: "ZK Proofs", status: "live", description: "Schnorr proofs and Pedersen commitments" },
-  { name: "GraphQL", status: "live", description: "Full query and mutation API" },
-  { name: "Quadratic Voting", status: "live", description: "Sybil-resistant governance" },
-  { name: "CRDT Storage", status: "live", description: "Conflict-free replicated data" },
+  { name: "X3DH", description: "Extended Triple Diffie-Hellman key agreement" },
+  { name: "Double Ratchet", description: "Forward-secret message encryption" },
+  {
+    name: "ZK Proofs",
+    description: "Schnorr proofs, Pedersen commitments, range proofs",
+  },
+  { name: "GraphQL", description: "Full query and mutation API" },
+  {
+    name: "Quadratic Voting",
+    description: "Sybil-resistant governance with ZK privacy",
+  },
+  { name: "CRDT Storage", description: "Conflict-free replicated data" },
+  { name: "REST API", description: "36 endpoints across 5 domains" },
+  { name: "gRPC", description: "Binary protocol for node communication" },
+  { name: "Nostr Relay", description: "NIP-01 WebSocket relay bridge" },
+  { name: "OpenAPI", description: "Auto-generated API documentation" },
 ];
 
 export default function DashboardPage() {
+  const [health, setHealth] = useState<HealthResponse | null>(null);
+  const [nodeInfo, setNodeInfo] = useState<NodeInfo | null>(null);
+  const [apiStatus, setApiStatus] = useState<"connecting" | "online" | "offline">("connecting");
+
+  useEffect(() => {
+    async function checkStatus() {
+      try {
+        const [h, n] = await Promise.all([node.health(), node.info()]);
+        setHealth(h);
+        setNodeInfo(n);
+        setApiStatus("online");
+      } catch {
+        setApiStatus("offline");
+      }
+    }
+    checkStatus();
+    const interval = setInterval(checkStatus, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  function formatUptime(ms: number): string {
+    const s = Math.floor(ms / 1000);
+    if (s < 60) return `${s}s`;
+    if (s < 3600) return `${Math.floor(s / 60)}m`;
+    return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`;
+  }
+
+  const stats = [
+    {
+      label: "API",
+      value: apiStatus === "online" ? "Online" : apiStatus === "offline" ? "Offline" : "...",
+      detail: apiStatus === "online" && health ? `v${health.version}` : "connecting",
+    },
+    {
+      label: "Uptime",
+      value: health ? formatUptime(health.uptime_ms) : "—",
+      detail: "since last restart",
+    },
+    {
+      label: "Protocol",
+      value: nodeInfo?.protocol || "—",
+      detail: nodeInfo ? `v${nodeInfo.version}` : "",
+    },
+    {
+      label: "Features",
+      value: nodeInfo ? String(nodeInfo.features.length) : "—",
+      detail: "active modules",
+    },
+  ];
+
   return (
     <div className="p-8 max-w-5xl">
       <header className="mb-16">
@@ -42,7 +99,9 @@ export default function DashboardPage() {
                 <p className="text-xs font-mono uppercase tracking-[0.15em] text-neutral-600 mb-3">
                   {stat.label}
                 </p>
-                <p className="text-2xl font-extralight mb-1">{stat.value}</p>
+                <p className="text-2xl font-extralight mb-1">
+                  {stat.value}
+                </p>
                 <p className="text-xs text-neutral-600 font-light font-mono truncate">
                   {stat.detail}
                 </p>
@@ -57,22 +116,34 @@ export default function DashboardPage() {
           Protocol Modules
         </h2>
         <div className="space-y-px">
-          {features.map((f) => (
-            <div
-              key={f.name}
-              className="flex items-center justify-between py-4 px-5 bg-white/[0.01] hover:bg-white/[0.02] transition-colors duration-150"
-            >
-              <div>
-                <p className="text-sm font-light">{f.name}</p>
-                <p className="text-xs text-neutral-600 font-light mt-0.5">
-                  {f.description}
-                </p>
+          {features.map((f) => {
+            const isLive =
+              nodeInfo?.features.some(
+                (feat) =>
+                  feat.toLowerCase().includes(f.name.toLowerCase().split(" ")[0])
+              ) ?? false;
+
+            return (
+              <div
+                key={f.name}
+                className="flex items-center justify-between py-4 px-5 bg-white/[0.01] hover:bg-white/[0.02] transition-colors duration-150"
+              >
+                <div>
+                  <p className="text-sm font-light">{f.name}</p>
+                  <p className="text-xs text-neutral-600 font-light mt-0.5">
+                    {f.description}
+                  </p>
+                </div>
+                <span
+                  className={`text-[10px] font-mono uppercase tracking-wider ${
+                    isLive ? "text-[#d4af37]" : "text-neutral-700"
+                  }`}
+                >
+                  {isLive ? "live" : "ready"}
+                </span>
               </div>
-              <span className="text-[10px] font-mono uppercase tracking-wider text-[#d4af37]">
-                {f.status}
-              </span>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
     </div>
