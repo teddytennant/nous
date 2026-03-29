@@ -11,6 +11,7 @@ pub mod middleware;
 pub mod nostr;
 pub mod openapi;
 pub mod payments;
+pub mod realtime;
 pub mod routes;
 pub mod state;
 
@@ -175,7 +176,10 @@ pub fn router(config: ApiConfig) -> Router {
         .route(
             "/invoices/{invoice_id}/cancel",
             post(payments::cancel_invoice),
-        );
+        )
+        // Real-time
+        .route("/ws", get(realtime::ws_handler))
+        .route("/events", get(realtime::sse_handler));
 
     Router::new()
         .nest("/api/v1", api)
