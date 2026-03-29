@@ -42,6 +42,7 @@ async-trait = "0.1"
 # Crypto
 ed25519-dalek = { version = "2", features = ["serde", "rand_core"] }
 x25519-dalek = { version = "2", features = ["serde", "static_secrets"] }
+curve25519-dalek = { version = "4", features = ["rand_core"] }
 aes-gcm = "0.10"
 sha2 = "0.10"
 rand = "0.8"
