@@ -25,6 +25,7 @@ thiserror = { workspace = true }
 tracing = { workspace = true }
 chrono = { workspace = true }
 uuid = { workspace = true }
+async-graphql = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
