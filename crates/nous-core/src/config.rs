@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Config {
     pub node: NodeConfig,
     pub network: NetworkConfig,
@@ -11,19 +11,6 @@ pub struct Config {
     pub crypto: CryptoConfig,
     pub api: ApiConfig,
     pub ui: UiConfig,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            node: NodeConfig::default(),
-            network: NetworkConfig::default(),
-            storage: StorageConfig::default(),
-            crypto: CryptoConfig::default(),
-            api: ApiConfig::default(),
-            ui: UiConfig::default(),
-        }
-    }
 }
 
 impl Config {
