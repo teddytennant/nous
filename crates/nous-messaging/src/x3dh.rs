@@ -69,7 +69,11 @@ impl PreKeyBundle {
     pub fn verify(&self) -> Result<()> {
         let vk = VerifyingKey::from_bytes(&self.signing_key)
             .map_err(|e| Error::Crypto(format!("invalid signing key: {e}")))?;
-        Verifier::verify(&vk, &self.signed_pre_key.key, &self.signed_pre_key.signature)
+        Verifier::verify(
+            &vk,
+            &self.signed_pre_key.key,
+            &self.signed_pre_key.signature,
+        )
     }
 }
 
