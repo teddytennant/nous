@@ -1,6 +1,7 @@
 use utoipa::OpenApi;
 
 use crate::files;
+use crate::governance;
 use crate::routes;
 
 #[derive(OpenApi)]
@@ -29,6 +30,18 @@ use crate::routes;
         files::get_history,
         files::delete_file,
         files::store_stats,
+        governance::create_dao,
+        governance::list_daos,
+        governance::get_dao,
+        governance::add_member,
+        governance::remove_member,
+        governance::submit_proposal,
+        governance::list_proposals,
+        governance::get_proposal,
+        governance::cast_vote,
+        governance::get_tally,
+        governance::cast_private_vote,
+        governance::get_private_tally,
     ),
     components(schemas(
         routes::HealthResponse,
@@ -43,11 +56,15 @@ use crate::routes;
         files::HistoryQuery,
         files::DeleteQuery,
         files::DeleteResponse,
+        governance::CreateDaoRequest,
+        governance::AddMemberRequest,
+        governance::ProposalQuery,
     )),
     tags(
         (name = "node", description = "Node status and health"),
         (name = "social", description = "Social feed, posts, follows, timeline"),
         (name = "files", description = "Decentralized file storage with versioning and deduplication"),
+        (name = "governance", description = "DAOs, proposals, voting, and ZK private voting"),
     )
 )]
 pub struct NousApiDoc;
@@ -63,6 +80,9 @@ mod tests {
         assert!(json.contains("Nous API"));
         assert!(json.contains("/api/v1/health"));
         assert!(json.contains("/api/v1/files"));
+        assert!(json.contains("/api/v1/daos"));
+        assert!(json.contains("/api/v1/proposals"));
+        assert!(json.contains("/api/v1/votes"));
     }
 
     #[test]
@@ -81,6 +101,7 @@ mod tests {
         assert!(tag_names.contains(&"node"));
         assert!(tag_names.contains(&"social"));
         assert!(tag_names.contains(&"files"));
+        assert!(tag_names.contains(&"governance"));
     }
 
     #[test]
@@ -91,5 +112,7 @@ mod tests {
         assert!(schemas.contains_key("HealthResponse"));
         assert!(schemas.contains_key("UploadRequest"));
         assert!(schemas.contains_key("DeleteResponse"));
+        assert!(schemas.contains_key("CreateDaoRequest"));
+        assert!(schemas.contains_key("AddMemberRequest"));
     }
 }
