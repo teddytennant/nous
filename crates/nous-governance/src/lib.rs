@@ -6,4 +6,6 @@ pub mod zkvote;
 pub use dao::Dao;
 pub use proposal::{Proposal, ProposalBuilder, ProposalStatus};
 pub use vote::{Ballot, QuadraticVoting, VoteChoice, VoteResult, VoteTally};
-pub use zkvote::{CommittedVote, PrivateTallyResult, commit_vote, tally_private_votes, verify_committed_vote};
+pub use zkvote::{
+    CommittedVote, PrivateTallyResult, commit_vote, tally_private_votes, verify_committed_vote,
+};
