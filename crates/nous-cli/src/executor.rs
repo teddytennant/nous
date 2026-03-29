@@ -22,6 +22,7 @@ use nous_cli::output::Output;
 pub struct Executor {
     output: Output,
     db: Database,
+    data_dir: std::path::PathBuf,
 }
 
 impl Executor {
@@ -35,6 +36,7 @@ impl Executor {
         Ok(Self {
             output: Output::new(json),
             db,
+            data_dir: data_dir.to_path_buf(),
         })
     }
 
@@ -49,6 +51,7 @@ impl Executor {
             Command::Message(cmd) => self.message(cmd),
             Command::Net(cmd) => self.net(cmd).await,
             Command::Marketplace(cmd) => self.marketplace(cmd),
+            Command::Ai(cmd) => self.ai(cmd),
             Command::Terminal => Self::run_terminal(),
             Command::Status => self.status(),
         }
@@ -847,6 +850,235 @@ impl Executor {
         Ok(())
     }
 
+    fn ai(&self, cmd: AiCommand) -> Result<(), String> {
+        match cmd {
+            AiCommand::Chat {
+                message,
+                model,
+                temperature,
+            } => {
+                use nous_ai::{Conversation, Message};
+
+                let mut conv = Conversation::new("cli-session");
+                conv.add_message(Message::user(&message));
+
+                self.output.table(
+                    &["Field", "Value"],
+                    &[
+                        vec!["Model".into(), model],
+                        vec!["Temperature".into(), format!("{temperature:.1}")],
+                        vec!["Message".into(), truncate_text(&message, 60)],
+                        vec![
+                            "Tokens (est)".into(),
+                            conv.total_tokens_estimate().to_string(),
+                        ],
+                    ],
+                );
+                self.output
+                    .success("Chat request prepared. Connect to inference backend for response.");
+                Ok(())
+            }
+            AiCommand::Search { query, limit } => {
+                use nous_ai::KnowledgeBase;
+
+                let kb_path = self.data_dir.join("knowledge.db");
+
+                if !kb_path.exists() {
+                    self.output.success(
+                        "No knowledge base found. Index documents first with 'nous ai index'.",
+                    );
+                    return Ok(());
+                }
+
+                let kb =
+                    KnowledgeBase::open(&kb_path).map_err(|e| format!("failed to open KB: {e}"))?;
+
+                // Without an embedding model, display indexed document count and search config
+                let doc_count = kb.document_count().map_err(|e| e.to_string())?;
+                let chunk_count = kb.indexed_chunk_count();
+
+                self.output.table(
+                    &["Field", "Value"],
+                    &[
+                        vec!["Query".into(), query],
+                        vec!["Limit".into(), limit.to_string()],
+                        vec!["Documents".into(), doc_count.to_string()],
+                        vec!["Indexed chunks".into(), chunk_count.to_string()],
+                    ],
+                );
+                if chunk_count == 0 {
+                    self.output.success(
+                        "No embeddings indexed. Generate embeddings with an embedding model to enable semantic search.",
+                    );
+                } else {
+                    self.output.success(
+                        "Semantic search requires an embedding model. Connect to inference backend.",
+                    );
+                }
+                Ok(())
+            }
+            AiCommand::Index {
+                path,
+                title,
+                source,
+            } => {
+                use nous_ai::{ChunkOptions, KnowledgeBase};
+
+                let file_path = Path::new(&path);
+                if !file_path.exists() {
+                    return Err(format!("file not found: {path}"));
+                }
+
+                let content = std::fs::read_to_string(file_path)
+                    .map_err(|e| format!("failed to read file: {e}"))?;
+
+                let doc_title = title.unwrap_or_else(|| {
+                    file_path
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("untitled")
+                        .to_string()
+                });
+
+                let kb_path = self.data_dir.join("knowledge.db");
+
+                let mut kb =
+                    KnowledgeBase::open(&kb_path).map_err(|e| format!("failed to open KB: {e}"))?;
+
+                let options = ChunkOptions::default();
+                let doc = kb
+                    .ingest(&doc_title, &content, &source, &options)
+                    .map_err(|e| format!("failed to index: {e}"))?;
+
+                self.output.table(
+                    &["Field", "Value"],
+                    &[
+                        vec!["Document ID".into(), doc.id],
+                        vec!["Title".into(), doc.title],
+                        vec!["Chunks".into(), doc.chunk_count.to_string()],
+                        vec!["Source".into(), doc.source],
+                    ],
+                );
+                self.output.success("Document indexed");
+                Ok(())
+            }
+            AiCommand::Documents { limit: _ } => {
+                use nous_ai::KnowledgeBase;
+
+                let kb_path = self.data_dir.join("knowledge.db");
+
+                if !kb_path.exists() {
+                    self.output.success("No knowledge base found");
+                    return Ok(());
+                }
+
+                let kb =
+                    KnowledgeBase::open(&kb_path).map_err(|e| format!("failed to open KB: {e}"))?;
+
+                let docs = kb.list_documents().map_err(|e| e.to_string())?;
+
+                if docs.is_empty() {
+                    self.output.success("No documents indexed");
+                } else {
+                    let rows: Vec<Vec<String>> = docs
+                        .iter()
+                        .map(|d| {
+                            vec![
+                                d.id.clone(),
+                                d.title.clone(),
+                                d.chunk_count.to_string(),
+                                d.source.clone(),
+                            ]
+                        })
+                        .collect();
+                    self.output
+                        .table(&["ID", "Title", "Chunks", "Source"], &rows);
+                }
+                Ok(())
+            }
+            AiCommand::Agents => {
+                use nous_ai::Agent;
+
+                let agents = vec![
+                    Agent::new("researcher", "Researcher")
+                        .with_system_prompt(
+                            "Research agent for finding and summarizing information.",
+                        )
+                        .with_capability("search")
+                        .with_capability("summarize"),
+                    Agent::new("analyst", "Governance Analyst")
+                        .with_system_prompt("Analyzes governance proposals and voting patterns.")
+                        .with_capability("analyze")
+                        .with_capability("report"),
+                    Agent::new("coder", "Code Assistant")
+                        .with_system_prompt(
+                            "Assists with code review, debugging, and implementation.",
+                        )
+                        .with_capability("code")
+                        .with_capability("review"),
+                ];
+
+                let rows: Vec<Vec<String>> = agents
+                    .iter()
+                    .map(|a| {
+                        vec![
+                            a.id.clone(),
+                            a.name.clone(),
+                            a.capabilities.join(", "),
+                            a.model.clone(),
+                        ]
+                    })
+                    .collect();
+                self.output
+                    .table(&["ID", "Name", "Capabilities", "Model"], &rows);
+                Ok(())
+            }
+            AiCommand::Run {
+                agent_id,
+                task,
+                max_steps,
+            } => {
+                use nous_ai::{Agent, ExecutionConfig};
+
+                let agent = match agent_id.as_str() {
+                    "researcher" => Agent::new("researcher", "Researcher")
+                        .with_system_prompt("You are a research agent.")
+                        .with_capability("search")
+                        .with_capability("summarize"),
+                    "analyst" => Agent::new("analyst", "Governance Analyst")
+                        .with_system_prompt("You analyze governance proposals.")
+                        .with_capability("analyze"),
+                    "coder" => Agent::new("coder", "Code Assistant")
+                        .with_system_prompt("You assist with code.")
+                        .with_capability("code"),
+                    other => {
+                        return Err(format!(
+                            "unknown agent: {other}. Run 'nous ai agents' to list available agents."
+                        ));
+                    }
+                };
+
+                let config = ExecutionConfig {
+                    max_steps,
+                    ..Default::default()
+                };
+
+                self.output.table(
+                    &["Field", "Value"],
+                    &[
+                        vec!["Agent".into(), agent.name],
+                        vec!["Task".into(), truncate_text(&task, 60)],
+                        vec!["Max steps".into(), config.max_steps.to_string()],
+                        vec!["Model".into(), agent.model],
+                    ],
+                );
+                self.output
+                    .success("Agent configured. Connect to inference backend to execute.");
+                Ok(())
+            }
+        }
+    }
+
     /// Launch an embedded terminal using nous-terminal and crossterm raw mode.
     fn run_terminal() -> Result<(), String> {
         let (cols, rows) =
@@ -1462,6 +1694,14 @@ impl Executor {
             .filter_map(|bytes| serde_json::from_slice::<Channel>(&bytes).ok())
             .filter(|ch| ch.is_member(did))
             .collect()
+    }
+}
+
+fn truncate_text(text: &str, max: usize) -> String {
+    if text.len() <= max {
+        text.to_string()
+    } else {
+        format!("{}...", &text[..max.saturating_sub(3)])
     }
 }
 
