@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use nous_governance::{Ballot, Dao, ProposalBuilder, QuadraticVoting, VoteChoice, VoteTally};
 use nous_identity::Identity;
 use nous_payments::Wallet;
 use nous_social::{EventKind, Feed, FollowGraph, SignedEvent, Tag};
@@ -34,6 +35,7 @@ impl Executor {
             Command::Identity(cmd) => self.identity(cmd),
             Command::Social(cmd) => self.social(cmd),
             Command::Wallet(cmd) => self.wallet(cmd),
+            Command::Governance(cmd) => self.governance(cmd).await,
             Command::Net(cmd) => self.net(cmd).await,
             Command::Status => self.status(),
         }
@@ -422,6 +424,238 @@ impl Executor {
             .map_err(|e| format!("storage: {e}"))?;
         Ok(())
     }
+
+    async fn governance(&self, cmd: GovernanceCommand) -> Result<(), String> {
+        let identity = self
+            .load_identity()
+            .ok_or("No identity found. Run 'nous init' first.")?;
+
+        match cmd {
+            GovernanceCommand::CreateDao { name, description } => {
+                let desc = description.unwrap_or_default();
+                let dao = Dao::create(identity.did(), &name, &desc);
+                let dao_json =
+                    serde_json::to_vec(&dao).map_err(|e| format!("serialization: {e}"))?;
+                self.db
+                    .put_kv(&format!("dao:{}", dao.id), &dao_json)
+                    .map_err(|e| format!("storage: {e}"))?;
+
+                self.output
+                    .success(&format!("Created DAO '{}'\n  ID: {}", name, dao.id));
+                Ok(())
+            }
+            GovernanceCommand::ListDaos => {
+                let daos = self.load_daos();
+                if daos.is_empty() {
+                    self.output.success("No DAOs found.");
+                } else {
+                    let rows: Vec<Vec<String>> = daos
+                        .iter()
+                        .map(|d| {
+                            vec![
+                                d.name.clone(),
+                                d.id.clone(),
+                                d.member_count().to_string(),
+                                truncate_did(&d.founder_did),
+                            ]
+                        })
+                        .collect();
+                    self.output
+                        .table(&["Name", "ID", "Members", "Founder"], &rows);
+                }
+                Ok(())
+            }
+            GovernanceCommand::ShowDao { id } => {
+                let dao = self.load_dao(&id).ok_or("DAO not found")?;
+                self.output.table(
+                    &["Property", "Value"],
+                    &[
+                        vec!["Name".into(), dao.name.clone()],
+                        vec!["ID".into(), dao.id.clone()],
+                        vec!["Description".into(), dao.description.clone()],
+                        vec!["Founder".into(), truncate_did(&dao.founder_did)],
+                        vec!["Members".into(), dao.member_count().to_string()],
+                    ],
+                );
+                Ok(())
+            }
+            GovernanceCommand::Propose {
+                dao_id,
+                title,
+                description,
+                voting_days,
+            } => {
+                let _dao = self.load_dao(&dao_id).ok_or("DAO not found")?;
+                let desc = description.unwrap_or_default();
+                let proposal = ProposalBuilder::new(&dao_id, &title, &desc)
+                    .voting_duration(chrono::Duration::days(voting_days as i64))
+                    .submit(&identity)
+                    .map_err(|e| format!("{e}"))?;
+
+                let proposal_json = serde_json::to_vec(&proposal)
+                    .map_err(|e| format!("serialization: {e}"))?;
+                self.db
+                    .put_kv(&format!("proposal:{}", proposal.id), &proposal_json)
+                    .map_err(|e| format!("storage: {e}"))?;
+
+                // Initialize tally
+                let tally = VoteTally::new(&proposal.id, proposal.quorum, proposal.threshold);
+                let tally_json =
+                    serde_json::to_vec(&tally).map_err(|e| format!("serialization: {e}"))?;
+                self.db
+                    .put_kv(&format!("tally:{}", proposal.id), &tally_json)
+                    .map_err(|e| format!("storage: {e}"))?;
+
+                self.output.success(&format!(
+                    "Proposal submitted: '{}'\n  ID: {}\n  Voting ends: {}",
+                    title,
+                    proposal.id,
+                    proposal.voting_ends.format("%Y-%m-%d %H:%M")
+                ));
+                Ok(())
+            }
+            GovernanceCommand::ListProposals { dao_id } => {
+                let proposals = self.load_proposals();
+                let filtered: Vec<_> = if let Some(ref dao) = dao_id {
+                    proposals.into_iter().filter(|p| p.dao_id == *dao).collect()
+                } else {
+                    proposals
+                };
+
+                if filtered.is_empty() {
+                    self.output.success("No proposals found.");
+                } else {
+                    let rows: Vec<Vec<String>> = filtered
+                        .iter()
+                        .map(|p| {
+                            vec![
+                                p.title.clone(),
+                                p.id.clone(),
+                                format!("{:?}", p.status),
+                                truncate_did(&p.proposer_did),
+                            ]
+                        })
+                        .collect();
+                    self.output
+                        .table(&["Title", "ID", "Status", "Proposer"], &rows);
+                }
+                Ok(())
+            }
+            GovernanceCommand::Vote {
+                proposal_id,
+                choice,
+                credits,
+            } => {
+                let _proposal =
+                    self.load_proposal(&proposal_id).ok_or("Proposal not found")?;
+                let vote_choice = match choice.to_lowercase().as_str() {
+                    "for" | "yes" => VoteChoice::For,
+                    "against" | "no" => VoteChoice::Against,
+                    "abstain" => VoteChoice::Abstain,
+                    _ => {
+                        return Err(format!(
+                            "Invalid vote choice: '{}'. Use: for, against, abstain",
+                            choice
+                        ))
+                    }
+                };
+
+                let ballot = Ballot::new(&proposal_id, &identity, vote_choice, credits)
+                    .map_err(|e| format!("{e}"))?;
+
+                let mut tally = self
+                    .load_tally(&proposal_id)
+                    .unwrap_or_else(|| VoteTally::new(&proposal_id, 0.0, 0.5));
+                tally.cast(ballot).map_err(|e| format!("{e}"))?;
+
+                let tally_json =
+                    serde_json::to_vec(&tally).map_err(|e| format!("serialization: {e}"))?;
+                self.db
+                    .put_kv(&format!("tally:{}", proposal_id), &tally_json)
+                    .map_err(|e| format!("storage: {e}"))?;
+
+                let votes = QuadraticVoting::credits_to_votes(credits);
+                self.output.success(&format!(
+                    "Vote cast: {} ({} credits = {} votes)\n  Proposal: {}",
+                    choice, credits, votes, proposal_id
+                ));
+                Ok(())
+            }
+            GovernanceCommand::Tally { proposal_id } => {
+                let tally = self
+                    .load_tally(&proposal_id)
+                    .ok_or("No tally found for this proposal")?;
+                let result = tally.tally(tally.voter_count());
+
+                self.output.table(
+                    &["Metric", "Value"],
+                    &[
+                        vec!["Proposal".into(), proposal_id],
+                        vec!["For".into(), result.votes_for.to_string()],
+                        vec!["Against".into(), result.votes_against.to_string()],
+                        vec!["Abstain".into(), result.votes_abstain.to_string()],
+                        vec!["Voters".into(), result.total_voters.to_string()],
+                        vec!["Passed".into(), result.passed.to_string()],
+                    ],
+                );
+                Ok(())
+            }
+        }
+    }
+
+    fn load_daos(&self) -> Vec<Dao> {
+        let conn = self.db.conn();
+        let mut stmt = match conn.prepare("SELECT value FROM kv WHERE key LIKE 'dao:%'") {
+            Ok(s) => s,
+            Err(_) => return vec![],
+        };
+        let rows = match stmt.query_map([], |row| row.get::<_, Vec<u8>>(0)) {
+            Ok(r) => r,
+            Err(_) => return vec![],
+        };
+        rows.filter_map(|r| r.ok())
+            .filter_map(|bytes| serde_json::from_slice(&bytes).ok())
+            .collect()
+    }
+
+    fn load_dao(&self, id: &str) -> Option<Dao> {
+        let key = format!("dao:{id}");
+        self.db
+            .get_kv(&key)
+            .ok()?
+            .and_then(|bytes| serde_json::from_slice(&bytes).ok())
+    }
+
+    fn load_proposals(&self) -> Vec<nous_governance::Proposal> {
+        let conn = self.db.conn();
+        let mut stmt = match conn.prepare("SELECT value FROM kv WHERE key LIKE 'proposal:%'") {
+            Ok(s) => s,
+            Err(_) => return vec![],
+        };
+        let rows = match stmt.query_map([], |row| row.get::<_, Vec<u8>>(0)) {
+            Ok(r) => r,
+            Err(_) => return vec![],
+        };
+        rows.filter_map(|r| r.ok())
+            .filter_map(|bytes| serde_json::from_slice(&bytes).ok())
+            .collect()
+    }
+
+    fn load_proposal(&self, id: &str) -> Option<nous_governance::Proposal> {
+        let key = format!("proposal:{id}");
+        self.db
+            .get_kv(&key)
+            .ok()?
+            .and_then(|bytes| serde_json::from_slice(&bytes).ok())
+    }
+
+    fn load_tally(&self, proposal_id: &str) -> Option<VoteTally> {
+        let key = format!("tally:{proposal_id}");
+        self.db
+            .get_kv(&key)
+            .ok()?
+            .and_then(|bytes| serde_json::from_slice(&bytes).ok())
+    }
 }
 
 fn truncate_did(did: &str) -> String {
@@ -628,5 +862,127 @@ mod tests {
         let truncated = truncate_did(long);
         assert!(truncated.contains("..."));
         assert!(truncated.len() < long.len());
+    }
+
+    #[tokio::test]
+    async fn governance_create_dao() {
+        let exec = test_executor();
+        exec.execute(Command::Init).await.unwrap();
+        exec.execute(Command::Governance(GovernanceCommand::CreateDao {
+            name: "TestDAO".into(),
+            description: Some("A test DAO".into()),
+        }))
+        .await
+        .unwrap();
+
+        let daos = exec.load_daos();
+        assert_eq!(daos.len(), 1);
+        assert_eq!(daos[0].name, "TestDAO");
+    }
+
+    #[tokio::test]
+    async fn governance_list_daos_empty() {
+        let exec = test_executor();
+        exec.execute(Command::Init).await.unwrap();
+        exec.execute(Command::Governance(GovernanceCommand::ListDaos))
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn governance_propose_requires_dao() {
+        let exec = test_executor();
+        exec.execute(Command::Init).await.unwrap();
+        let result = exec
+            .execute(Command::Governance(GovernanceCommand::Propose {
+                dao_id: "nonexistent".into(),
+                title: "Test".into(),
+                description: None,
+                voting_days: 7,
+            }))
+            .await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn governance_full_flow() {
+        let exec = test_executor();
+        exec.execute(Command::Init).await.unwrap();
+
+        // Create DAO
+        exec.execute(Command::Governance(GovernanceCommand::CreateDao {
+            name: "FlowDAO".into(),
+            description: None,
+        }))
+        .await
+        .unwrap();
+
+        let daos = exec.load_daos();
+        let dao_id = daos[0].id.clone();
+
+        // Submit proposal
+        exec.execute(Command::Governance(GovernanceCommand::Propose {
+            dao_id: dao_id.clone(),
+            title: "First proposal".into(),
+            description: Some("Testing the flow".into()),
+            voting_days: 7,
+        }))
+        .await
+        .unwrap();
+
+        let proposals = exec.load_proposals();
+        assert_eq!(proposals.len(), 1);
+        let prop_id = proposals[0].id.clone();
+
+        // Vote
+        exec.execute(Command::Governance(GovernanceCommand::Vote {
+            proposal_id: prop_id.clone(),
+            choice: "for".into(),
+            credits: 4,
+        }))
+        .await
+        .unwrap();
+
+        // Check tally
+        exec.execute(Command::Governance(GovernanceCommand::Tally {
+            proposal_id: prop_id,
+        }))
+        .await
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn governance_vote_invalid_choice() {
+        let exec = test_executor();
+        exec.execute(Command::Init).await.unwrap();
+
+        exec.execute(Command::Governance(GovernanceCommand::CreateDao {
+            name: "VoteDAO".into(),
+            description: None,
+        }))
+        .await
+        .unwrap();
+
+        let daos = exec.load_daos();
+        let dao_id = daos[0].id.clone();
+
+        exec.execute(Command::Governance(GovernanceCommand::Propose {
+            dao_id,
+            title: "Test".into(),
+            description: None,
+            voting_days: 7,
+        }))
+        .await
+        .unwrap();
+
+        let proposals = exec.load_proposals();
+        let result = exec
+            .execute(Command::Governance(GovernanceCommand::Vote {
+                proposal_id: proposals[0].id.clone(),
+                choice: "invalid".into(),
+                credits: 1,
+            }))
+            .await;
+        assert!(result.is_err());
     }
 }
