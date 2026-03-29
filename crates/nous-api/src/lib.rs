@@ -3,7 +3,9 @@ pub mod error;
 pub mod files;
 pub mod governance;
 pub mod graphql;
+pub mod identity;
 pub mod marketplace;
+pub mod messaging;
 pub mod grpc;
 pub mod middleware;
 pub mod nostr;
@@ -85,6 +87,46 @@ pub fn router(config: ApiConfig) -> Router {
         .route(
             "/sellers/{seller_did}/rating",
             get(marketplace::get_seller_rating),
+        )
+        // Messaging — Channels
+        .route("/channels", post(messaging::create_channel))
+        .route("/channels", get(messaging::list_channels))
+        .route("/channels/{channel_id}", get(messaging::get_channel))
+        .route(
+            "/channels/{channel_id}/members",
+            post(messaging::add_channel_member),
+        )
+        .route(
+            "/channels/{channel_id}/members/{did}",
+            delete(messaging::remove_channel_member),
+        )
+        .route(
+            "/channels/{channel_id}/messages",
+            get(messaging::get_messages),
+        )
+        // Messaging — Messages
+        .route("/messages", post(messaging::send_message))
+        .route("/messages/{message_id}", delete(messaging::delete_message))
+        // Identity
+        .route("/identities", post(identity::create_identity))
+        .route("/identities/{did}", get(identity::get_identity))
+        .route("/identities/{did}/document", get(identity::get_document))
+        .route(
+            "/identities/{did}/credentials",
+            get(identity::list_credentials),
+        )
+        .route(
+            "/identities/{did}/credentials",
+            post(identity::issue_credential),
+        )
+        .route(
+            "/credentials/{credential_id}/verify",
+            post(identity::verify_credential),
+        )
+        .route("/identities/{did}/reputation", get(identity::get_reputation))
+        .route(
+            "/identities/{did}/reputation",
+            post(identity::add_reputation_event),
         );
 
     Router::new()
