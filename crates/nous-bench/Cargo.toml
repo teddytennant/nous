@@ -12,6 +12,8 @@ nous-crypto = { path = "../nous-crypto" }
 nous-identity = { path = "../nous-identity" }
 nous-files = { path = "../nous-files" }
 nous-governance = { path = "../nous-governance" }
+nous-marketplace = { path = "../nous-marketplace" }
+nous-browser = { path = "../nous-browser" }
 rand = { workspace = true }
 serde_json = { workspace = true }
 criterion = { workspace = true }
@@ -22,4 +24,12 @@ harness = false
 
 [[bench]]
 name = "files_bench"
+harness = false
+
+[[bench]]
+name = "marketplace_bench"
+harness = false
+
+[[bench]]
+name = "browser_bench"
 harness = false
