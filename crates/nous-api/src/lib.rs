@@ -3,6 +3,7 @@ pub mod error;
 pub mod files;
 pub mod governance;
 pub mod graphql;
+pub mod marketplace;
 pub mod grpc;
 pub mod middleware;
 pub mod nostr;
@@ -68,6 +69,22 @@ pub fn router(config: ApiConfig) -> Router {
         .route(
             "/votes/private/{proposal_id}",
             get(governance::get_private_tally),
+        )
+        // Marketplace — Listings
+        .route("/listings", post(marketplace::create_listing))
+        .route("/listings", get(marketplace::search_listings))
+        .route("/listings/{listing_id}", get(marketplace::get_listing))
+        .route("/listings/{listing_id}", delete(marketplace::cancel_listing))
+        .route(
+            "/listings/{listing_id}/purchase",
+            post(marketplace::purchase_listing),
+        )
+        // Marketplace — Reviews
+        .route("/reviews", post(marketplace::create_review))
+        .route("/reviews", get(marketplace::list_reviews))
+        .route(
+            "/sellers/{seller_did}/rating",
+            get(marketplace::get_seller_rating),
         );
 
     Router::new()
