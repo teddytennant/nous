@@ -1,10 +1,10 @@
-use axum::extract::{Path, Query, State};
 use axum::Json;
+use axum::extract::{Path, Query, State};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use utoipa::{IntoParams, ToSchema};
 
-use nous_payments::{Escrow, EscrowStatus, Invoice, InvoiceStatus, LineItem, Transaction, Wallet};
+use nous_payments::{Escrow, Invoice, LineItem, Transaction, Wallet};
 
 use crate::error::ApiError;
 use crate::state::AppState;
@@ -334,7 +334,9 @@ pub async fn debit_wallet(
         .get_mut(&did)
         .ok_or_else(|| ApiError::not_found(format!("wallet not found for {did}")))?;
 
-    wallet.debit(&req.token, req.amount).map_err(ApiError::from)?;
+    wallet
+        .debit(&req.token, req.amount)
+        .map_err(ApiError::from)?;
     Ok(Json(WalletResponse::from(&*wallet)))
 }
 
@@ -583,7 +585,11 @@ pub async fn create_invoice(
         invoice = invoice.with_memo(memo);
     }
     for item in &req.items {
-        invoice.add_item(LineItem::new(&item.description, item.quantity, item.unit_price));
+        invoice.add_item(LineItem::new(
+            &item.description,
+            item.quantity,
+            item.unit_price,
+        ));
     }
 
     let resp = InvoiceResponse::from(&invoice);
@@ -1002,10 +1008,8 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
-        let txs: Vec<serde_json::Value> = serde_json::from_slice(
-            &resp.into_body().collect().await.unwrap().to_bytes(),
-        )
-        .unwrap();
+        let txs: Vec<serde_json::Value> =
+            serde_json::from_slice(&resp.into_body().collect().await.unwrap().to_bytes()).unwrap();
         assert_eq!(txs.len(), 1);
         assert_eq!(txs[0]["amount"], "200");
     }
@@ -1400,10 +1404,8 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
-        let invoices: Vec<serde_json::Value> = serde_json::from_slice(
-            &resp.into_body().collect().await.unwrap().to_bytes(),
-        )
-        .unwrap();
+        let invoices: Vec<serde_json::Value> =
+            serde_json::from_slice(&resp.into_body().collect().await.unwrap().to_bytes()).unwrap();
         assert_eq!(invoices.len(), 2);
 
         // List only as sender
@@ -1416,10 +1418,8 @@ mod tests {
             )
             .await
             .unwrap();
-        let invoices: Vec<serde_json::Value> = serde_json::from_slice(
-            &resp.into_body().collect().await.unwrap().to_bytes(),
-        )
-        .unwrap();
+        let invoices: Vec<serde_json::Value> =
+            serde_json::from_slice(&resp.into_body().collect().await.unwrap().to_bytes()).unwrap();
         assert_eq!(invoices.len(), 1);
         assert_eq!(invoices[0]["from_did"], "did:key:alice");
     }
