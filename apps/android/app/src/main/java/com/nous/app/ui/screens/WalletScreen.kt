@@ -153,9 +153,7 @@ fun WalletScreen(viewModel: NousViewModel = viewModel()) {
                         contentColor = TextPrimary,
                     ),
                     shape = RoundedCornerShape(0.dp),
-                    border = ButtonDefaults.outlinedButtonBorder(true).copy(
-                        brush = null,
-                    ),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderColor),
                 ) {
                     Text("Receive")
                 }
