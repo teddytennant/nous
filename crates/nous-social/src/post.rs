@@ -40,7 +40,12 @@ impl PostBuilder {
     }
 
     pub fn build(self) -> SignedEvent {
-        SignedEvent::new(self.author_did, EventKind::TextNote, self.content, self.tags)
+        SignedEvent::new(
+            self.author_did,
+            EventKind::TextNote,
+            self.content,
+            self.tags,
+        )
     }
 
     pub fn build_signed(self, keypair: &nous_crypto::KeyPair) -> SignedEvent {
@@ -50,11 +55,7 @@ impl PostBuilder {
     }
 }
 
-pub fn reaction(
-    author_did: &str,
-    target_event_id: &str,
-    emoji: &str,
-) -> SignedEvent {
+pub fn reaction(author_did: &str, target_event_id: &str, emoji: &str) -> SignedEvent {
     SignedEvent::new(
         author_did,
         EventKind::Reaction,
@@ -97,9 +98,7 @@ mod tests {
     #[test]
     fn build_reply() {
         let did = test_did();
-        let post = PostBuilder::new(&did, "reply")
-            .reply_to("event123")
-            .build();
+        let post = PostBuilder::new(&did, "reply").reply_to("event123").build();
         assert!(post.referenced_events().contains(&"event123"));
     }
 
