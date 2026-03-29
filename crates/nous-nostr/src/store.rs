@@ -27,14 +27,13 @@ impl EventStore {
         }
 
         // Evict oldest if at capacity
-        if events.len() >= self.max_events {
-            if let Some(oldest_id) = events
+        if events.len() >= self.max_events
+            && let Some(oldest_id) = events
                 .values()
                 .min_by_key(|e| e.created_at)
                 .map(|e| e.id.clone())
-            {
-                events.remove(&oldest_id);
-            }
+        {
+            events.remove(&oldest_id);
         }
 
         events.insert(event.id.clone(), event);
@@ -45,11 +44,7 @@ impl EventStore {
     pub fn query(&self, filter: &Filter) -> Vec<Event> {
         let events = self.events.read().unwrap();
         let all: Vec<Event> = events.values().cloned().collect();
-        filter
-            .apply(&all)
-            .into_iter()
-            .cloned()
-            .collect()
+        filter.apply(&all).into_iter().cloned().collect()
     }
 
     /// Query events matching any of the given filters.
@@ -124,9 +119,7 @@ mod tests {
     }
 
     fn note(content: &str, ts: u64) -> Event {
-        EventBuilder::text_note(content)
-            .created_at(ts)
-            .sign(&key())
+        EventBuilder::text_note(content).created_at(ts).sign(&key())
     }
 
     #[test]
