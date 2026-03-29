@@ -13,6 +13,10 @@ nous-crypto = { path = "../nous-crypto" }
 nous-identity = { path = "../nous-identity" }
 nous-messaging = { path = "../nous-messaging" }
 nous-storage = { path = "../nous-storage" }
+nous-social = { path = "../nous-social" }
+nous-payments = { path = "../nous-payments" }
+nous-net = { path = "../nous-net" }
+clap = { version = "4", features = ["derive"] }
 tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
