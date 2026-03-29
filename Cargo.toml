@@ -16,6 +16,7 @@ members = [
     "crates/nous-api",
     "crates/nous-tui",
     "crates/nous-cli",
+    "crates/nous-integration",
 ]
 
 [workspace.package]
