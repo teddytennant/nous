@@ -6,12 +6,12 @@
 #[cfg(test)]
 mod tests {
     use nous_crypto::signing::{Signer, Verifier};
-    use nous_crypto::zkp::{schnorr_keygen, PedersenCommitment, SchnorrProof};
+    use nous_crypto::zkp::{PedersenCommitment, SchnorrProof, schnorr_keygen};
     use nous_identity::Identity;
+    use nous_messaging::Channel;
     use nous_messaging::message::MessageBuilder;
     use nous_messaging::ratchet::DoubleRatchet;
     use nous_messaging::x3dh::{self, PreKeyBundle};
-    use nous_messaging::Channel;
     use nous_social::{Feed, FollowGraph, PostBuilder};
     use nous_storage::crdt::GCounter;
     use nous_storage::sqlite::Database;
@@ -57,11 +57,19 @@ mod tests {
         let mut alice_r = DoubleRatchet::init_initiator(alice_out.shared_secret, &bob_spk_pub);
         let mut bob_r = DoubleRatchet::init_responder(bob_secret, bob_spk);
 
-        let msg = alice_r.encrypt(b"Hello Bob, from the sovereign web.").unwrap();
-        assert_eq!(bob_r.decrypt(&msg).unwrap(), b"Hello Bob, from the sovereign web.");
+        let msg = alice_r
+            .encrypt(b"Hello Bob, from the sovereign web.")
+            .unwrap();
+        assert_eq!(
+            bob_r.decrypt(&msg).unwrap(),
+            b"Hello Bob, from the sovereign web."
+        );
 
         let msg = bob_r.encrypt(b"Received. The protocol works.").unwrap();
-        assert_eq!(alice_r.decrypt(&msg).unwrap(), b"Received. The protocol works.");
+        assert_eq!(
+            alice_r.decrypt(&msg).unwrap(),
+            b"Received. The protocol works."
+        );
 
         for i in 0..10 {
             let t = format!("Alice {i}");
@@ -275,8 +283,14 @@ mod tests {
         db.put_kv("did", b"did:key:z6Mk...test").unwrap();
         db.put_kv("balance", b"1000").unwrap();
 
-        assert_eq!(db.get_kv("did").unwrap().as_deref(), Some(b"did:key:z6Mk...test".as_slice()));
-        assert_eq!(db.get_kv("balance").unwrap().as_deref(), Some(b"1000".as_slice()));
+        assert_eq!(
+            db.get_kv("did").unwrap().as_deref(),
+            Some(b"did:key:z6Mk...test".as_slice())
+        );
+        assert_eq!(
+            db.get_kv("balance").unwrap().as_deref(),
+            Some(b"1000".as_slice())
+        );
         assert!(db.get_kv("nonexistent").unwrap().is_none());
     }
 
@@ -284,11 +298,10 @@ mod tests {
 
     #[test]
     fn governance_full_lifecycle() {
-        use nous_governance::{
-            Ballot, Dao, QuadraticVoting, VoteChoice, VoteTally,
-            proposal::ProposalBuilder,
-        };
         use chrono::Duration;
+        use nous_governance::{
+            Ballot, Dao, QuadraticVoting, VoteChoice, VoteTally, proposal::ProposalBuilder,
+        };
 
         // 1. Create identities
         let alice = Identity::generate().with_display_name("Alice");
@@ -299,7 +312,11 @@ mod tests {
         assert!(bob.did().starts_with("did:key:z"));
 
         // 2. Create a DAO
-        let mut dao = Dao::create(alice.did(), "Nous Governance", "Decentralized governance DAO");
+        let mut dao = Dao::create(
+            alice.did(),
+            "Nous Governance",
+            "Decentralized governance DAO",
+        );
         assert_eq!(dao.member_count(), 1);
         assert!(dao.is_member(alice.did()));
 
@@ -362,8 +379,8 @@ mod tests {
 
     #[test]
     fn credential_and_reputation_lifecycle() {
-        use nous_identity::{CredentialBuilder, Reputation};
         use nous_identity::reputation::ReputationCategory;
+        use nous_identity::{CredentialBuilder, Reputation};
 
         // 1. Create issuer and subject
         let issuer = Identity::generate().with_display_name("University");
@@ -421,7 +438,9 @@ mod tests {
 
     #[test]
     fn marketplace_full_lifecycle() {
-        use nous_marketplace::{Listing, ListingCategory, Review, SellerRating, SearchQuery, search};
+        use nous_marketplace::{
+            Listing, ListingCategory, Review, SearchQuery, SellerRating, search,
+        };
 
         let seller = Identity::generate();
         let buyer = Identity::generate();
@@ -534,13 +553,7 @@ mod tests {
         assert_eq!(alice_wallet.balance("NOUS"), 1000);
 
         // Transfer from alice to bob
-        let tx = transfer(
-            &mut alice_wallet,
-            &mut bob_wallet,
-            "NOUS",
-            250,
-        )
-        .unwrap();
+        let tx = transfer(&mut alice_wallet, &mut bob_wallet, "NOUS", 250).unwrap();
 
         assert_eq!(alice_wallet.balance("NOUS"), 750);
         assert_eq!(bob_wallet.balance("NOUS"), 250);
@@ -559,12 +572,16 @@ mod tests {
 
         // Upload a file
         let data = b"Sovereign file storage, content-addressed.";
-        let manifest = store.put("test.txt", "text/plain", data, owner.did()).unwrap();
+        let manifest = store
+            .put("test.txt", "text/plain", data, owner.did())
+            .unwrap();
         assert_eq!(manifest.name, "test.txt");
         assert_eq!(manifest.version, 1);
 
         // Upload same content again — should dedup chunks
-        let manifest2 = store.put("test.txt", "text/plain", data, owner.did()).unwrap();
+        let manifest2 = store
+            .put("test.txt", "text/plain", data, owner.did())
+            .unwrap();
         assert_eq!(manifest2.version, 2);
 
         // Verify dedup stats
@@ -587,8 +604,12 @@ mod tests {
         let alice = Identity::generate();
         let bob = Identity::generate();
 
-        store.put("secret.txt", "text/plain", b"alice data", alice.did()).unwrap();
-        store.put("public.txt", "text/plain", b"bob data", bob.did()).unwrap();
+        store
+            .put("secret.txt", "text/plain", b"alice data", alice.did())
+            .unwrap();
+        store
+            .put("public.txt", "text/plain", b"bob data", bob.did())
+            .unwrap();
 
         let alice_files = store.list_files(alice.did());
         let bob_files = store.list_files(bob.did());
@@ -603,10 +624,10 @@ mod tests {
 
     #[tokio::test]
     async fn governance_convenience_full_flow() {
-        use nous_api::{ApiConfig, router};
         use axum::body::Body;
         use axum::http::{Request, StatusCode};
         use http_body_util::BodyExt;
+        use nous_api::{ApiConfig, router};
         use tower::ServiceExt;
 
         let app = router(ApiConfig::default());
@@ -723,8 +744,8 @@ mod tests {
 
     #[test]
     fn marketplace_purchase_with_payment() {
-        use nous_payments::{Wallet, transfer};
         use nous_marketplace::{Listing, ListingCategory};
+        use nous_payments::{Wallet, transfer};
 
         let seller = Identity::generate();
         let buyer = Identity::generate();
@@ -765,8 +786,8 @@ mod tests {
     #[test]
     fn nostr_contact_list_with_social_follows() {
         use ed25519_dalek::SigningKey;
-        use rand::rngs::OsRng;
         use nous_social::FollowGraph;
+        use rand::rngs::OsRng;
 
         let alice_key = SigningKey::generate(&mut OsRng);
         let alice_pub = hex::encode(alice_key.verifying_key().as_bytes());
