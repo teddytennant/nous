@@ -24,6 +24,21 @@ data class GovernanceState(
     val loading: Boolean = true,
 )
 
+data class TransactionState(
+    val transactions: List<TransactionResponse> = emptyList(),
+    val loading: Boolean = true,
+)
+
+data class ChannelState(
+    val channels: List<ChannelResponse> = emptyList(),
+    val loading: Boolean = true,
+)
+
+data class MessageState(
+    val messages: List<MessageResponse> = emptyList(),
+    val loading: Boolean = true,
+)
+
 data class SocialState(
     val events: List<FeedEvent> = emptyList(),
     val loading: Boolean = true,
@@ -44,6 +59,15 @@ class NousViewModel : ViewModel() {
     private val _governance = MutableStateFlow(GovernanceState())
     val governance: StateFlow<GovernanceState> = _governance
 
+    private val _transactions = MutableStateFlow(TransactionState())
+    val transactions: StateFlow<TransactionState> = _transactions
+
+    private val _channels = MutableStateFlow(ChannelState())
+    val channels: StateFlow<ChannelState> = _channels
+
+    private val _messages = MutableStateFlow(MessageState())
+    val messages: StateFlow<MessageState> = _messages
+
     private val _social = MutableStateFlow(SocialState())
     val social: StateFlow<SocialState> = _social
 
@@ -56,8 +80,78 @@ class NousViewModel : ViewModel() {
             loadHealth()
             loadIdentity()
             loadWallet()
+            loadTransactions()
             loadGovernance()
             loadSocial()
+            loadChannels()
+        }
+    }
+
+    fun refreshWallet() {
+        viewModelScope.launch {
+            _wallet.value = _wallet.value.copy(loading = true)
+            loadWallet()
+            loadTransactions()
+        }
+    }
+
+    fun refreshSocial() {
+        viewModelScope.launch {
+            _social.value = _social.value.copy(loading = true)
+            loadSocial()
+        }
+    }
+
+    fun refreshChannels() {
+        viewModelScope.launch {
+            _channels.value = _channels.value.copy(loading = true)
+            loadChannels()
+        }
+    }
+
+    fun loadMessagesForChannel(channelId: String) {
+        viewModelScope.launch {
+            _messages.value = MessageState(loading = true)
+            try {
+                val result = api.getMessages(channelId)
+                _messages.value = MessageState(messages = result.messages, loading = false)
+            } catch (_: Exception) {
+                _messages.value = MessageState(loading = false)
+            }
+        }
+    }
+
+    fun sendMessage(channelId: String, content: String) {
+        viewModelScope.launch {
+            try {
+                api.sendMessage(channelId, SendMessageRequest(content))
+                loadMessagesForChannel(channelId)
+            } catch (_: Exception) {
+                // Failed to send
+            }
+        }
+    }
+
+    fun sendTransaction(toDid: String, token: String, amount: String, memo: String?) {
+        viewModelScope.launch {
+            val fromDid = _identity.value?.did ?: return@launch
+            try {
+                api.sendTransaction(fromDid, SendTransactionRequest(toDid, token, amount, memo))
+                refreshWallet()
+            } catch (_: Exception) {
+                // Failed to send
+            }
+        }
+    }
+
+    fun createPost(content: String, tags: List<String> = emptyList()) {
+        viewModelScope.launch {
+            try {
+                api.createPost(CreatePostRequest(content, tags))
+                refreshSocial()
+            } catch (_: Exception) {
+                // Failed to post
+            }
         }
     }
 
@@ -106,6 +200,25 @@ class NousViewModel : ViewModel() {
             )
         } catch (_: Exception) {
             _governance.value = GovernanceState(loading = false)
+        }
+    }
+
+    private suspend fun loadTransactions() {
+        val did = _identity.value?.did ?: return
+        try {
+            val result = api.getTransactions(did)
+            _transactions.value = TransactionState(transactions = result.transactions, loading = false)
+        } catch (_: Exception) {
+            _transactions.value = TransactionState(loading = false)
+        }
+    }
+
+    private suspend fun loadChannels() {
+        try {
+            val result = api.listChannels()
+            _channels.value = ChannelState(channels = result.channels, loading = false)
+        } catch (_: Exception) {
+            _channels.value = ChannelState(loading = false)
         }
     }
 
