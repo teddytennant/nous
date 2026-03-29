@@ -1,3 +1,4 @@
+pub mod ai;
 pub mod config;
 pub mod error;
 pub mod files;
@@ -176,6 +177,23 @@ pub fn router(config: ApiConfig) -> Router {
         .route(
             "/invoices/{invoice_id}/cancel",
             post(payments::cancel_invoice),
+        )
+        // AI — Agents
+        .route("/agents", post(ai::create_agent))
+        .route("/agents", get(ai::list_agents))
+        .route("/agents/{agent_id}", get(ai::get_agent))
+        .route("/agents/{agent_id}", delete(ai::delete_agent))
+        // AI — Chat
+        .route("/chat", post(ai::chat))
+        // AI — Conversations
+        .route("/conversations", get(ai::list_conversations))
+        .route(
+            "/conversations/{conversation_id}",
+            get(ai::get_conversation),
+        )
+        .route(
+            "/conversations/{conversation_id}",
+            delete(ai::delete_conversation),
         )
         // Real-time
         .route("/ws", get(realtime::ws_handler))
