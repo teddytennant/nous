@@ -36,6 +36,7 @@ uuid = { workspace = true }
 async-graphql = { workspace = true }
 tonic = { workspace = true }
 prost = { workspace = true }
+utoipa = { workspace = true }
 
 [build-dependencies]
 tonic-build = { workspace = true }
