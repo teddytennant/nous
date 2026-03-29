@@ -336,3 +336,151 @@ export const identity = {
   getReputation: (did: string) =>
     request<ReputationResponse>(`/identities/${did}/reputation`),
 };
+
+// ── Payments ─────────────────────────────────────────────────────────────
+
+export interface BalanceEntry {
+  token: string;
+  amount: string;
+}
+
+export interface WalletResponse {
+  did: string;
+  balances: BalanceEntry[];
+  nonce: number;
+  created_at: string;
+}
+
+export interface TransactionResponse {
+  id: string;
+  from_did: string;
+  to_did: string;
+  token: string;
+  amount: string;
+  fee: string;
+  memo: string | null;
+  status: string;
+  timestamp: string;
+}
+
+export interface EscrowResponse {
+  id: string;
+  buyer_did: string;
+  seller_did: string;
+  arbiter_did: string | null;
+  token: string;
+  amount: string;
+  status: string;
+  description: string;
+  conditions: string[];
+  created_at: string;
+  expires_at: string;
+}
+
+export interface InvoiceResponse {
+  id: string;
+  from_did: string;
+  to_did: string;
+  token: string;
+  total: string;
+  status: string;
+  memo: string | null;
+  items: { description: string; quantity: number; unit_price: string; total: string }[];
+  created_at: string;
+  due_at: string;
+  paid_at: string | null;
+}
+
+export const payments = {
+  createWallet: (did: string) =>
+    request<WalletResponse>("/wallets", {
+      method: "POST",
+      body: JSON.stringify({ did }),
+    }),
+
+  getWallet: (did: string) =>
+    request<WalletResponse>(`/wallets/${encodeURIComponent(did)}`),
+
+  credit: (did: string, token: string, amount: number) =>
+    request<WalletResponse>(`/wallets/${encodeURIComponent(did)}/credit`, {
+      method: "POST",
+      body: JSON.stringify({ token, amount }),
+    }),
+
+  debit: (did: string, token: string, amount: number) =>
+    request<WalletResponse>(`/wallets/${encodeURIComponent(did)}/debit`, {
+      method: "POST",
+      body: JSON.stringify({ token, amount }),
+    }),
+
+  transfer: (data: {
+    from_did: string;
+    to_did: string;
+    token: string;
+    amount: number;
+    memo?: string;
+  }) =>
+    request<TransactionResponse>("/transfers", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  getTransactions: (did: string, limit?: number) => {
+    const qs = limit ? `?limit=${limit}` : "";
+    return request<TransactionResponse[]>(
+      `/wallets/${encodeURIComponent(did)}/transactions${qs}`
+    );
+  },
+
+  createEscrow: (data: {
+    buyer_did: string;
+    seller_did: string;
+    arbiter_did?: string;
+    token: string;
+    amount: number;
+    description: string;
+    duration_hours: number;
+    conditions?: string[];
+  }) =>
+    request<EscrowResponse>("/escrows", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  getEscrow: (escrowId: string) =>
+    request<EscrowResponse>(`/escrows/${escrowId}`),
+
+  releaseEscrow: (escrowId: string, callerDid: string) =>
+    request<EscrowResponse>(`/escrows/${escrowId}/release`, {
+      method: "POST",
+      body: JSON.stringify({ caller_did: callerDid }),
+    }),
+
+  createInvoice: (data: {
+    from_did: string;
+    to_did: string;
+    token: string;
+    days_until_due: number;
+    memo?: string;
+    items: { description: string; quantity: number; unit_price: number }[];
+  }) =>
+    request<InvoiceResponse>("/invoices", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  getInvoice: (invoiceId: string) =>
+    request<InvoiceResponse>(`/invoices/${invoiceId}`),
+
+  listInvoices: (did: string, role?: string) => {
+    const query = new URLSearchParams({ did });
+    if (role) query.set("role", role);
+    return request<InvoiceResponse[]>(`/invoices?${query}`);
+  },
+
+  payInvoice: (invoiceId: string) =>
+    request<InvoiceResponse>(`/invoices/${invoiceId}/pay`, { method: "POST" }),
+
+  cancelInvoice: (invoiceId: string) =>
+    request<InvoiceResponse>(`/invoices/${invoiceId}/cancel`, { method: "POST" }),
+};
