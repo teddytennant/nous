@@ -194,6 +194,40 @@ impl EventBuilder {
     pub fn metadata(content: impl Into<String>) -> Self {
         Self::new(Kind::METADATA, content)
     }
+
+    /// NIP-02: Create a contact list event.
+    ///
+    /// `contacts` is a list of `(pubkey, relay_url, petname)` tuples.
+    /// Relay URL and petname can be empty strings if not applicable.
+    pub fn contact_list(contacts: &[(&str, &str, &str)]) -> Self {
+        let tags: Vec<Tag> = contacts
+            .iter()
+            .map(|(pubkey, relay_url, petname)| {
+                Tag::new(vec![
+                    "p".to_string(),
+                    pubkey.to_string(),
+                    relay_url.to_string(),
+                    petname.to_string(),
+                ])
+            })
+            .collect();
+        Self::new(Kind::CONTACTS, "").tags(tags)
+    }
+
+    /// NIP-04: Create an encrypted direct message.
+    ///
+    /// Uses x25519 key exchange (ed25519 key converted to x25519) and
+    /// AES-256-GCM for encryption. The ciphertext is base64-encoded in the
+    /// content field, and the recipient's pubkey is tagged.
+    pub fn encrypted_dm(
+        plaintext: &str,
+        recipient_pubkey_hex: &str,
+        sender_signing_key: &SigningKey,
+    ) -> Result<Self, String> {
+        let ciphertext = crate::nip04::encrypt(plaintext, recipient_pubkey_hex, sender_signing_key)?;
+        Ok(Self::new(Kind::ENCRYPTED_DM, ciphertext)
+            .tag(Tag::pubkey(recipient_pubkey_hex)))
+    }
 }
 
 #[cfg(test)]
@@ -327,5 +361,84 @@ mod tests {
     fn kind_display() {
         assert_eq!(Kind::TEXT_NOTE.to_string(), "1");
         assert_eq!(Kind(42).to_string(), "42");
+    }
+
+    // ── NIP-02: Contact Lists ─────────────────────────────────
+
+    #[test]
+    fn nip02_contact_list_event() {
+        let key = test_key();
+        let contacts = vec![
+            ("abc123", "wss://relay.example.com", "alice"),
+            ("def456", "", "bob"),
+        ];
+        let event = EventBuilder::contact_list(&contacts).sign(&key);
+
+        assert_eq!(event.kind, Kind::CONTACTS);
+        assert_eq!(event.content, "");
+        assert_eq!(event.tags.len(), 2);
+        assert!(event.has_tag("p", "abc123"));
+        assert!(event.has_tag("p", "def456"));
+        assert!(event.verify());
+    }
+
+    #[test]
+    fn nip02_empty_contact_list() {
+        let key = test_key();
+        let event = EventBuilder::contact_list(&[]).sign(&key);
+
+        assert_eq!(event.kind, Kind::CONTACTS);
+        assert!(event.tags.is_empty());
+        assert!(event.verify());
+    }
+
+    #[test]
+    fn nip02_contact_list_tag_structure() {
+        let key = test_key();
+        let contacts = vec![("pubkey1", "wss://relay.test", "petname1")];
+        let event = EventBuilder::contact_list(&contacts).sign(&key);
+
+        let tag = &event.tags[0];
+        assert_eq!(tag.0.len(), 4);
+        assert_eq!(tag.0[0], "p");
+        assert_eq!(tag.0[1], "pubkey1");
+        assert_eq!(tag.0[2], "wss://relay.test");
+        assert_eq!(tag.0[3], "petname1");
+    }
+
+    // ── NIP-04: Encrypted DMs ─────────────────────────────────
+
+    #[test]
+    fn nip04_encrypted_dm_event() {
+        let alice = test_key();
+        let bob = test_key();
+        let bob_pubkey = hex::encode(bob.verifying_key().as_bytes());
+
+        let event = EventBuilder::encrypted_dm("secret message", &bob_pubkey, &alice)
+            .unwrap()
+            .sign(&alice);
+
+        assert_eq!(event.kind, Kind::ENCRYPTED_DM);
+        assert!(event.has_tag("p", &bob_pubkey));
+        // Content is encrypted, not the original plaintext
+        assert_ne!(event.content, "secret message");
+        assert!(event.content.contains("?iv="));
+        assert!(event.verify());
+    }
+
+    #[test]
+    fn nip04_encrypted_dm_decryptable() {
+        let alice = test_key();
+        let bob = test_key();
+        let alice_pubkey = hex::encode(alice.verifying_key().as_bytes());
+        let bob_pubkey = hex::encode(bob.verifying_key().as_bytes());
+
+        let event = EventBuilder::encrypted_dm("hello bob", &bob_pubkey, &alice)
+            .unwrap()
+            .sign(&alice);
+
+        // Bob decrypts
+        let decrypted = crate::nip04::decrypt(&event.content, &alice_pubkey, &bob).unwrap();
+        assert_eq!(decrypted, "hello bob");
     }
 }
