@@ -156,7 +156,7 @@ pub fn commit_vote(
 /// Verify a committed vote's range proof.
 pub fn verify_committed_vote(vote: &CommittedVote) -> Result<()> {
     let proof = &vote.range_proof;
-    let h = pedersen_h();
+    let _h = pedersen_h();
 
     if proof.bit_commitments.len() != RANGE_BITS {
         return Err(Error::Governance("wrong number of bit commitments".into()));
@@ -174,9 +174,7 @@ pub fn verify_committed_vote(vote: &CommittedVote) -> Result<()> {
         let s1 = Scalar::from_bytes_mod_order(proof.s1_values[i]);
 
         if !ring_verify_bit(c_i, e0, e1, s0, s1, i as u32) {
-            return Err(Error::Governance(format!(
-                "range proof failed at bit {i}"
-            )));
+            return Err(Error::Governance(format!("range proof failed at bit {i}")));
         }
     }
 
@@ -397,13 +395,15 @@ mod tests {
 
     #[test]
     fn commit_and_verify_vote() {
-        let (vote, _opening) = commit_vote("prop-1", "did:key:zVoter", VoteChoice::For, 42).unwrap();
+        let (vote, _opening) =
+            commit_vote("prop-1", "did:key:zVoter", VoteChoice::For, 42).unwrap();
         assert!(verify_committed_vote(&vote).is_ok());
     }
 
     #[test]
     fn verify_opening() {
-        let (vote, opening) = commit_vote("prop-1", "did:key:zVoter", VoteChoice::For, 100).unwrap();
+        let (vote, opening) =
+            commit_vote("prop-1", "did:key:zVoter", VoteChoice::For, 100).unwrap();
         assert!(super::verify_opening(
             &vote.commitment,
             opening.weight,
@@ -432,7 +432,8 @@ mod tests {
 
     #[test]
     fn zero_weight_proves_correctly() {
-        let (vote, opening) = commit_vote("prop-1", "did:key:zVoter", VoteChoice::Abstain, 0).unwrap();
+        let (vote, opening) =
+            commit_vote("prop-1", "did:key:zVoter", VoteChoice::Abstain, 0).unwrap();
         assert!(verify_committed_vote(&vote).is_ok());
         assert!(super::verify_opening(
             &vote.commitment,
@@ -444,7 +445,8 @@ mod tests {
     #[test]
     fn max_weight_proves_correctly() {
         let max = (1u64 << RANGE_BITS) - 1;
-        let (vote, opening) = commit_vote("prop-1", "did:key:zVoter", VoteChoice::For, max).unwrap();
+        let (vote, opening) =
+            commit_vote("prop-1", "did:key:zVoter", VoteChoice::For, max).unwrap();
         assert!(verify_committed_vote(&vote).is_ok());
         assert!(super::verify_opening(
             &vote.commitment,
@@ -480,13 +482,8 @@ mod tests {
     fn tally_private_votes_basic() {
         let mut votes = Vec::new();
         for i in 0..5 {
-            let (vote, _) = commit_vote(
-                "prop-1",
-                &format!("did:key:zVoter{i}"),
-                VoteChoice::For,
-                10,
-            )
-            .unwrap();
+            let (vote, _) =
+                commit_vote("prop-1", &format!("did:key:zVoter{i}"), VoteChoice::For, 10).unwrap();
             votes.push(vote);
         }
         for i in 5..8 {
@@ -516,13 +513,8 @@ mod tests {
         let weights = [10u64, 20, 30];
 
         for (i, &w) in weights.iter().enumerate() {
-            let (vote, opening) = commit_vote(
-                "prop-1",
-                &format!("did:key:zVoter{i}"),
-                VoteChoice::For,
-                w,
-            )
-            .unwrap();
+            let (vote, opening) =
+                commit_vote("prop-1", &format!("did:key:zVoter{i}"), VoteChoice::For, w).unwrap();
             votes.push(vote);
             openings.push(opening);
         }
@@ -544,8 +536,7 @@ mod tests {
 
     #[test]
     fn tally_with_abstains() {
-        let (for_vote, _) =
-            commit_vote("prop-1", "did:key:zA", VoteChoice::For, 10).unwrap();
+        let (for_vote, _) = commit_vote("prop-1", "did:key:zA", VoteChoice::For, 10).unwrap();
         let (abstain_vote, _) =
             commit_vote("prop-1", "did:key:zB", VoteChoice::Abstain, 5).unwrap();
 
