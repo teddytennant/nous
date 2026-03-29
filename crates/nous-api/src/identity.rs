@@ -1,5 +1,5 @@
-use axum::extract::{Path, State};
 use axum::Json;
+use axum::extract::{Path, State};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use utoipa::ToSchema;
@@ -320,7 +320,7 @@ pub async fn get_reputation(
 
     let scores: std::collections::HashMap<String, i64> = categories
         .iter()
-        .map(|cat| (category_name(cat).to_string(), reputation.score(cat.clone())))
+        .map(|cat| (category_name(cat).to_string(), reputation.score(*cat)))
         .collect();
 
     Ok(Json(ReputationResponse {
@@ -425,12 +425,7 @@ mod tests {
         // Fetch it back
         let uri = format!("/api/v1/identities/{did}");
         let resp = app
-            .oneshot(
-                Request::builder()
-                    .uri(&uri)
-                    .body(Body::empty())
-                    .unwrap(),
-            )
+            .oneshot(Request::builder().uri(&uri).body(Body::empty()).unwrap())
             .await
             .unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
@@ -469,18 +464,18 @@ mod tests {
 
         let uri = format!("/api/v1/identities/{did}/document");
         let resp = app
-            .oneshot(
-                Request::builder()
-                    .uri(&uri)
-                    .body(Body::empty())
-                    .unwrap(),
-            )
+            .oneshot(Request::builder().uri(&uri).body(Body::empty()).unwrap())
             .await
             .unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
 
         let json = parse_json(resp).await;
-        assert!(json["document"]["id"].as_str().unwrap().starts_with("did:key:z"));
+        assert!(
+            json["document"]["id"]
+                .as_str()
+                .unwrap()
+                .starts_with("did:key:z")
+        );
     }
 
     #[tokio::test]
@@ -528,20 +523,13 @@ mod tests {
 
         // List credentials
         let resp = app
-            .oneshot(
-                Request::builder()
-                    .uri(&uri)
-                    .body(Body::empty())
-                    .unwrap(),
-            )
+            .oneshot(Request::builder().uri(&uri).body(Body::empty()).unwrap())
             .await
             .unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
 
-        let creds: Vec<serde_json::Value> = serde_json::from_slice(
-            &resp.into_body().collect().await.unwrap().to_bytes(),
-        )
-        .unwrap();
+        let creds: Vec<serde_json::Value> =
+            serde_json::from_slice(&resp.into_body().collect().await.unwrap().to_bytes()).unwrap();
         assert_eq!(creds.len(), 1);
     }
 
@@ -594,11 +582,7 @@ mod tests {
         // Verify
         let verify_uri = format!("/api/v1/credentials/{cred_id}/verify");
         let resp = app
-            .oneshot(json_request(
-                "POST",
-                &verify_uri,
-                &serde_json::json!({}),
-            ))
+            .oneshot(json_request("POST", &verify_uri, &serde_json::json!({})))
             .await
             .unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
@@ -643,12 +627,7 @@ mod tests {
         let uri = format!("/api/v1/identities/{subject_did}/reputation");
         let resp = app
             .clone()
-            .oneshot(
-                Request::builder()
-                    .uri(&uri)
-                    .body(Body::empty())
-                    .unwrap(),
-            )
+            .oneshot(Request::builder().uri(&uri).body(Body::empty()).unwrap())
             .await
             .unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
@@ -675,12 +654,7 @@ mod tests {
 
         // Verify reputation updated
         let resp = app
-            .oneshot(
-                Request::builder()
-                    .uri(&uri)
-                    .body(Body::empty())
-                    .unwrap(),
-            )
+            .oneshot(Request::builder().uri(&uri).body(Body::empty()).unwrap())
             .await
             .unwrap();
         let json = parse_json(resp).await;
@@ -737,20 +711,13 @@ mod tests {
 
         let uri = format!("/api/v1/identities/{did}/credentials");
         let resp = app
-            .oneshot(
-                Request::builder()
-                    .uri(&uri)
-                    .body(Body::empty())
-                    .unwrap(),
-            )
+            .oneshot(Request::builder().uri(&uri).body(Body::empty()).unwrap())
             .await
             .unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
 
-        let creds: Vec<serde_json::Value> = serde_json::from_slice(
-            &resp.into_body().collect().await.unwrap().to_bytes(),
-        )
-        .unwrap();
+        let creds: Vec<serde_json::Value> =
+            serde_json::from_slice(&resp.into_body().collect().await.unwrap().to_bytes()).unwrap();
         assert!(creds.is_empty());
     }
 }
