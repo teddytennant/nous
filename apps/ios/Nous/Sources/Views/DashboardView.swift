@@ -7,42 +7,57 @@ struct ModuleInfo: Identifiable {
 }
 
 struct DashboardView: View {
-    let modules: [ModuleInfo] = [
-        .init(name: "Identity", status: "active"),
-        .init(name: "Messaging", status: "active"),
-        .init(name: "Governance", status: "active"),
-        .init(name: "Social", status: "active"),
-        .init(name: "Payments", status: "standby"),
-        .init(name: "Storage", status: "active"),
-        .init(name: "AI", status: "standby"),
-        .init(name: "Browser", status: "standby"),
-    ]
+    @Environment(NousStore.self) private var store
+
+    var modules: [ModuleInfo] {
+        let status = store.connected ? "active" : "offline"
+        return [
+            .init(name: "Identity", status: status),
+            .init(name: "Messaging", status: status),
+            .init(name: "Governance", status: status),
+            .init(name: "Social", status: status),
+            .init(name: "Payments", status: status),
+            .init(name: "Storage", status: status),
+            .init(name: "AI", status: "standby"),
+            .init(name: "Browser", status: "standby"),
+        ]
+    }
+
+    var uptimeDisplay: String {
+        let ms = store.uptimeMs
+        if ms < 60_000 { return "\(ms / 1000)s" }
+        if ms < 3_600_000 { return "\(ms / 60_000)m" }
+        return "\(ms / 3_600_000)h"
+    }
+
+    var didDisplay: String {
+        let did = store.did
+        if did.count > 24 { return String(did.prefix(20)) + "..." }
+        return did
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: NousTheme.spacingXL) {
-                // Header
                 VStack(alignment: .leading, spacing: NousTheme.spacingXS) {
                     Text("Dashboard")
                         .font(NousTheme.headlineLarge)
                         .foregroundColor(NousTheme.text)
-                    Text("Sovereign protocol overview")
+                    Text(store.connected ? "Connected to API" : "Offline")
                         .font(NousTheme.bodySmall)
-                        .foregroundColor(NousTheme.textMuted)
+                        .foregroundColor(store.connected ? NousTheme.success : NousTheme.error)
                 }
 
-                // Stats Grid
                 LazyVGrid(columns: [
                     GridItem(.flexible()),
                     GridItem(.flexible()),
                 ], spacing: 12) {
-                    StatCardView(label: "Identity", value: "did:key:z6Mk...2doK")
+                    StatCardView(label: "Identity", value: didDisplay)
                     StatCardView(label: "Peers", value: "0")
-                    StatCardView(label: "Uptime", value: "0s")
-                    StatCardView(label: "Version", value: "0.1.0")
+                    StatCardView(label: "Uptime", value: uptimeDisplay)
+                    StatCardView(label: "Version", value: store.version)
                 }
 
-                // Modules
                 VStack(alignment: .leading, spacing: 12) {
                     Text("PROTOCOL MODULES")
                         .font(NousTheme.label)
@@ -62,6 +77,9 @@ struct DashboardView: View {
             .padding(NousTheme.spacingLG)
         }
         .background(NousTheme.background)
+        .task {
+            await store.refresh()
+        }
     }
 }
 
