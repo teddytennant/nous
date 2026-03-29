@@ -3,7 +3,7 @@ use libp2p::identify;
 use libp2p::kad;
 use libp2p::mdns;
 use libp2p::relay;
-use libp2p::{dcutr, PeerId};
+use libp2p::{PeerId, dcutr};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::time::Duration;
@@ -52,16 +52,11 @@ impl NousBehaviour {
                     .expect("valid protocol"),
             );
             config.set_query_timeout(Duration::from_secs(60));
-            config.set_replication_factor(
-                std::num::NonZeroUsize::new(3).expect("nonzero"),
-            );
+            config.set_replication_factor(std::num::NonZeroUsize::new(3).expect("nonzero"));
             kad::Behaviour::with_config(local_peer_id, store, config)
         };
 
-        let mdns = mdns::tokio::Behaviour::new(
-            mdns::Config::default(),
-            local_peer_id,
-        )?;
+        let mdns = mdns::tokio::Behaviour::new(mdns::Config::default(), local_peer_id)?;
 
         let identify = identify::Behaviour::new(identify::Config::new(
             "/nous/id/1.0.0".to_string(),
