@@ -22,6 +22,7 @@ nous-social = { path = "../nous-social" }
 nous-payments = { path = "../nous-payments" }
 nous-net = { path = "../nous-net" }
 nous-governance = { path = "../nous-governance" }
+nous-marketplace = { path = "../nous-marketplace" }
 nous-terminal = { path = "../nous-terminal" }
 clap = { workspace = true }
 tokio = { workspace = true }
