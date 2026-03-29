@@ -7,6 +7,7 @@ use nous_governance::{CommittedVote, Dao, Proposal, VoteTally};
 use nous_identity::{Credential, Identity, Reputation};
 use nous_marketplace::{Listing, Review};
 use nous_messaging::{Channel, Message};
+use nous_payments::{Escrow, Invoice, Transaction, Wallet};
 use nous_social::{Feed, FollowGraph};
 
 use crate::config::ApiConfig;
@@ -29,6 +30,11 @@ pub struct AppState {
     pub identities: RwLock<HashMap<String, Identity>>,
     pub credentials: RwLock<HashMap<String, Vec<Credential>>>,
     pub reputations: RwLock<HashMap<String, Reputation>>,
+    // Payments
+    pub wallets: RwLock<HashMap<String, Wallet>>,
+    pub transactions: RwLock<Vec<Transaction>>,
+    pub escrows: RwLock<HashMap<String, Escrow>>,
+    pub invoices: RwLock<HashMap<String, Invoice>>,
 }
 
 impl AppState {
@@ -49,6 +55,10 @@ impl AppState {
             identities: RwLock::new(HashMap::new()),
             credentials: RwLock::new(HashMap::new()),
             reputations: RwLock::new(HashMap::new()),
+            wallets: RwLock::new(HashMap::new()),
+            transactions: RwLock::new(Vec::new()),
+            escrows: RwLock::new(HashMap::new()),
+            invoices: RwLock::new(HashMap::new()),
         })
     }
 }
