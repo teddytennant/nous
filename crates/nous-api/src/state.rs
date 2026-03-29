@@ -4,7 +4,9 @@ use tokio::sync::RwLock;
 
 use nous_files::FileStore;
 use nous_governance::{CommittedVote, Dao, Proposal, VoteTally};
+use nous_identity::{Credential, Identity, Reputation};
 use nous_marketplace::{Listing, Review};
+use nous_messaging::{Channel, Message};
 use nous_social::{Feed, FollowGraph};
 
 use crate::config::ApiConfig;
@@ -20,6 +22,13 @@ pub struct AppState {
     pub private_votes: RwLock<HashMap<String, Vec<CommittedVote>>>,
     pub listings: RwLock<HashMap<String, Listing>>,
     pub reviews: RwLock<HashMap<String, Review>>,
+    // Messaging
+    pub channels: RwLock<HashMap<String, Channel>>,
+    pub messages: RwLock<HashMap<String, Vec<Message>>>,
+    // Identity
+    pub identities: RwLock<HashMap<String, Identity>>,
+    pub credentials: RwLock<HashMap<String, Vec<Credential>>>,
+    pub reputations: RwLock<HashMap<String, Reputation>>,
 }
 
 impl AppState {
@@ -35,6 +44,11 @@ impl AppState {
             private_votes: RwLock::new(HashMap::new()),
             listings: RwLock::new(HashMap::new()),
             reviews: RwLock::new(HashMap::new()),
+            channels: RwLock::new(HashMap::new()),
+            messages: RwLock::new(HashMap::new()),
+            identities: RwLock::new(HashMap::new()),
+            credentials: RwLock::new(HashMap::new()),
+            reputations: RwLock::new(HashMap::new()),
         })
     }
 }
