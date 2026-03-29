@@ -82,6 +82,7 @@ pub struct VoteResult {
     pub passed: bool,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VoteTally {
     proposal_id: String,
     ballots: HashMap<String, Ballot>,
