@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, startTransition } from "react";
 import { cn } from "@/lib/utils";
 import { messaging, type ChannelResponse, type MessageResponse } from "@/lib/api";
 
@@ -62,14 +62,18 @@ export default function MessagesPage() {
   }, []);
 
   useEffect(() => {
-    fetchChannels();
+    startTransition(() => {
+      fetchChannels();
+    });
     const interval = setInterval(fetchChannels, 5000);
     return () => clearInterval(interval);
   }, [fetchChannels]);
 
   useEffect(() => {
     if (selected) {
-      fetchMessages(selected);
+      startTransition(() => {
+        fetchMessages(selected);
+      });
       const interval = setInterval(() => fetchMessages(selected), 3000);
       return () => clearInterval(interval);
     }
