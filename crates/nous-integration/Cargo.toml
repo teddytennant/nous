@@ -14,7 +14,14 @@ nous-messaging = { path = "../nous-messaging" }
 nous-social = { path = "../nous-social" }
 nous-storage = { path = "../nous-storage" }
 nous-governance = { path = "../nous-governance" }
+nous-marketplace = { path = "../nous-marketplace" }
+nous-nostr = { path = "../nous-nostr" }
 nous-net = { path = "../nous-net" }
+nous-payments = { path = "../nous-payments" }
+ed25519-dalek = { workspace = true }
+hex = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
 curve25519-dalek = { workspace = true }
 tokio = { workspace = true }
 rand = { workspace = true }
