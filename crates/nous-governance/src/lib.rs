@@ -1,9 +1,15 @@
 pub mod dao;
+pub mod delegation;
+pub mod execution;
 pub mod proposal;
 pub mod vote;
 pub mod zkvote;
 
 pub use dao::Dao;
+pub use delegation::{Delegation, DelegationRegistry, DelegationScope};
+pub use execution::{
+    ActionResult, ExecutionEngine, ExecutionStatus, ProposalAction, QueuedExecution,
+};
 pub use proposal::{Proposal, ProposalBuilder, ProposalStatus};
 pub use vote::{Ballot, QuadraticVoting, VoteChoice, VoteResult, VoteTally};
 pub use zkvote::{
