@@ -235,10 +235,7 @@ mod tests {
         let mut app = test_app();
         app.input.insert('h');
         app.input.insert('i');
-        handle_key(
-            &mut app,
-            KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE),
-        );
+        handle_key(&mut app, KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         assert!(app.input.is_empty());
     }
 
