@@ -12,6 +12,15 @@ pub struct App {
     pub messages: Vec<DisplayMessage>,
     pub feed_items: Vec<FeedItem>,
     pub scroll_offset: usize,
+    pub api_client: Option<crate::client::ApiClient>,
+    pub node_status: Option<String>,
+    pub node_version: Option<String>,
+    pub node_uptime: Option<u64>,
+    pub balances: Vec<crate::client::BalanceEntry>,
+    pub daos: Vec<crate::client::DaoItem>,
+    pub proposals: Vec<crate::client::ProposalItem>,
+    pub channels: Vec<crate::client::ChannelListItem>,
+    pub connected: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -42,11 +51,24 @@ impl App {
             messages: Vec::new(),
             feed_items: Vec::new(),
             scroll_offset: 0,
+            api_client: None,
+            node_status: None,
+            node_version: None,
+            node_uptime: None,
+            balances: Vec::new(),
+            daos: Vec::new(),
+            proposals: Vec::new(),
+            channels: Vec::new(),
+            connected: false,
         }
     }
 
     pub fn quit(&mut self) {
         self.running = false;
+    }
+
+    pub fn set_api_client(&mut self, client: crate::client::ApiClient) {
+        self.api_client = Some(client);
     }
 
     pub fn handle_key(&mut self, c: char) {
@@ -200,5 +222,21 @@ mod tests {
             replies: 0,
         });
         assert_eq!(app.feed_items[0].content, "second");
+    }
+
+    #[test]
+    fn app_defaults_disconnected() {
+        let app = App::new(TuiConfig::default());
+        assert!(!app.connected);
+        assert!(app.api_client.is_none());
+        assert!(app.balances.is_empty());
+        assert!(app.daos.is_empty());
+    }
+
+    #[test]
+    fn set_api_client() {
+        let mut app = App::new(TuiConfig::default());
+        app.set_api_client(crate::client::ApiClient::new("http://localhost:8080/api/v1"));
+        assert!(app.api_client.is_some());
     }
 }
