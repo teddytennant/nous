@@ -1,0 +1,14 @@
+/target
+*.swp
+*.swo
+.DS_Store
+.env
+*.log
+node_modules/
+.next/
+dist/
+build/
+*.db
+*.db-journal
+*.key
+*.pem
