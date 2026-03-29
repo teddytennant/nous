@@ -3201,6 +3201,7 @@ dependencies = [
  "crossterm",
  "nous-core",
  "nous-crypto",
+ "nous-files",
  "nous-governance",
  "nous-identity",
  "nous-messaging",
