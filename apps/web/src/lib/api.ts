@@ -131,6 +131,17 @@ export interface VoteResultResponse {
   passed: boolean;
 }
 
+export interface DaoDetailResponse extends DaoResponse {
+  members: { did: string; credits: number; role: string; joined_at: string }[];
+  default_quorum: number;
+  default_threshold: number;
+}
+
+export interface MutationResponse {
+  success: boolean;
+  message: string;
+}
+
 export const governance = {
   listDaos: () => request<DaoListResponse>("/daos"),
 
@@ -140,7 +151,13 @@ export const governance = {
       body: JSON.stringify({ founder_did: founderDid, name, description }),
     }),
 
-  getDao: (daoId: string) => request<DaoResponse>(`/daos/${daoId}`),
+  getDao: (daoId: string) => request<DaoDetailResponse>(`/daos/${daoId}`),
+
+  addMember: (daoId: string, did: string) =>
+    request<MutationResponse>(`/daos/${daoId}/members`, {
+      method: "POST",
+      body: JSON.stringify({ did }),
+    }),
 
   listProposals: (daoId?: string) => {
     const query = daoId ? `?dao_id=${daoId}` : "";
@@ -152,6 +169,31 @@ export const governance = {
 
   getTally: (proposalId: string) =>
     request<VoteResultResponse>(`/votes/${proposalId}`),
+
+  createProposal: (
+    daoId: string,
+    data: {
+      proposer_did: string;
+      title: string;
+      description: string;
+      quorum?: number;
+      threshold?: number;
+      voting_days?: number;
+    }
+  ) =>
+    request<ProposalResponse>(`/daos/${daoId}/proposals`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  vote: (
+    proposalId: string,
+    data: { voter_did: string; choice: string; credits: number }
+  ) =>
+    request<MutationResponse>(`/proposals/${proposalId}/vote`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 };
 
 // ── Marketplace ────────────────────────────────────────────────────────────
