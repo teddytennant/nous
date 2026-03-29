@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, startTransition } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   node,
@@ -30,10 +30,12 @@ export default function SettingsPage() {
     const storedName = localStorage.getItem("nous_display_name") || "";
     const storedTheme = (localStorage.getItem("nous_theme") as Theme) || "dark";
     const storedApi = localStorage.getItem("nous_api_url") || "http://localhost:8080/api/v1";
-    setDid(storedDid);
-    setDisplayName(storedName);
-    setTheme(storedTheme);
-    setApiUrl(storedApi);
+    startTransition(() => {
+      setDid(storedDid);
+      setDisplayName(storedName);
+      setTheme(storedTheme);
+      setApiUrl(storedApi);
+    });
 
     node
       .health()
