@@ -24,7 +24,9 @@ nous-files = { path = "../nous-files" }
 nous-marketplace = { path = "../nous-marketplace" }
 nous-payments = { path = "../nous-payments" }
 base64 = { workspace = true }
-axum = { version = "0.8", features = ["json", "query"] }
+axum = { version = "0.8", features = ["json", "query", "ws"] }
+futures = { workspace = true }
+tokio-stream = { version = "0.1", features = ["sync"] }
 tower = { version = "0.5", features = ["timeout", "limit"] }
 tower-http = { version = "0.6", features = ["cors", "trace", "compression-gzip"] }
 tokio = { workspace = true }
