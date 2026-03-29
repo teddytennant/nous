@@ -57,10 +57,10 @@ impl BookmarkStore {
     }
 
     pub fn add(&mut self, bookmark: Bookmark) {
-        if let Some(ref folder) = bookmark.folder {
-            if !self.folders.contains(folder) {
-                self.folders.push(folder.clone());
-            }
+        if let Some(ref folder) = bookmark.folder
+            && !self.folders.contains(folder)
+        {
+            self.folders.push(folder.clone());
         }
         self.bookmarks.push(bookmark);
     }
