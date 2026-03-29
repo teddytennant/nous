@@ -1,4 +1,4 @@
-use crate::event::Event;
+use crate::event::{Event, Kind};
 use crate::message::{ClientMessage, RelayMessage};
 use crate::store::EventStore;
 use crate::subscription::{Subscription, SubscriptionManager};
@@ -118,6 +118,25 @@ impl Relay {
                 accepted: true,
                 message: "duplicate: already have this event".into(),
             }];
+        }
+
+        // NIP-09: Process deletion events
+        if event.kind == Kind::DELETE {
+            let mut deleted = 0usize;
+            for tag in &event.tags {
+                if tag.tag_name() == Some("e") {
+                    if let Some(target_id) = tag.value() {
+                        // Only delete if the target event's pubkey matches the requester
+                        if let Some(target_event) = self.store.get(target_id) {
+                            if target_event.pubkey == event.pubkey {
+                                self.store.delete(target_id);
+                                deleted += 1;
+                            }
+                        }
+                    }
+                }
+            }
+            debug!(event_id = %event.id, deleted, "NIP-09 deletion processed");
         }
 
         // Broadcast to subscribers
@@ -389,6 +408,113 @@ mod tests {
 
         r.handle_message(&ClientMessage::Event(event), &sub_mgr());
         assert!(r.store().get(&id).is_some());
+    }
+
+    // ── NIP-09: Event Deletion ─────────────────────────────────
+
+    #[test]
+    fn nip09_delete_own_event() {
+        let r = relay();
+        let k = key();
+        let mgr = sub_mgr();
+
+        // Publish a text note
+        let note = EventBuilder::text_note("delete me").created_at(1000).sign(&k);
+        let note_id = note.id.clone();
+        r.handle_message(&ClientMessage::Event(note), &mgr);
+        assert!(r.store().get(&note_id).is_some());
+
+        // Send deletion event
+        let deletion = EventBuilder::deletion(&[&note_id], "spam").sign(&k);
+        let responses = r.handle_message(&ClientMessage::Event(deletion), &mgr);
+        assert!(matches!(
+            &responses[0],
+            RelayMessage::Ok { accepted: true, .. }
+        ));
+
+        // Original event should be gone
+        assert!(r.store().get(&note_id).is_none());
+    }
+
+    #[test]
+    fn nip09_cannot_delete_other_users_event() {
+        let r = relay();
+        let alice = key();
+        let bob = key();
+        let mgr = sub_mgr();
+
+        // Alice publishes
+        let note = EventBuilder::text_note("alice's post").created_at(1000).sign(&alice);
+        let note_id = note.id.clone();
+        r.handle_message(&ClientMessage::Event(note), &mgr);
+
+        // Bob tries to delete Alice's event
+        let deletion = EventBuilder::deletion(&[&note_id], "").sign(&bob);
+        r.handle_message(&ClientMessage::Event(deletion), &mgr);
+
+        // Alice's event should still exist
+        assert!(r.store().get(&note_id).is_some());
+    }
+
+    #[test]
+    fn nip09_delete_multiple_events() {
+        let r = relay();
+        let k = key();
+        let mgr = sub_mgr();
+
+        let e1 = EventBuilder::text_note("one").created_at(1000).sign(&k);
+        let e2 = EventBuilder::text_note("two").created_at(2000).sign(&k);
+        let e3 = EventBuilder::text_note("three").created_at(3000).sign(&k);
+        let id1 = e1.id.clone();
+        let id2 = e2.id.clone();
+        let id3 = e3.id.clone();
+
+        r.handle_message(&ClientMessage::Event(e1), &mgr);
+        r.handle_message(&ClientMessage::Event(e2), &mgr);
+        r.handle_message(&ClientMessage::Event(e3), &mgr);
+        assert_eq!(r.store().len(), 3);
+
+        // Delete first two
+        let deletion = EventBuilder::deletion(&[&id1, &id2], "cleanup").sign(&k);
+        r.handle_message(&ClientMessage::Event(deletion), &mgr);
+
+        assert!(r.store().get(&id1).is_none());
+        assert!(r.store().get(&id2).is_none());
+        assert!(r.store().get(&id3).is_some());
+        // deletion event itself + e3 remain
+        assert_eq!(r.store().len(), 2);
+    }
+
+    #[test]
+    fn nip09_deletion_event_is_stored() {
+        let r = relay();
+        let k = key();
+        let mgr = sub_mgr();
+
+        let note = EventBuilder::text_note("ephemeral").created_at(1000).sign(&k);
+        let note_id = note.id.clone();
+        r.handle_message(&ClientMessage::Event(note), &mgr);
+
+        let deletion = EventBuilder::deletion(&[&note_id], "reason").sign(&k);
+        let del_id = deletion.id.clone();
+        r.handle_message(&ClientMessage::Event(deletion), &mgr);
+
+        // Deletion event itself should be stored
+        assert!(r.store().get(&del_id).is_some());
+    }
+
+    #[test]
+    fn nip09_delete_nonexistent_event_ok() {
+        let r = relay();
+        let k = key();
+        let mgr = sub_mgr();
+
+        let deletion = EventBuilder::deletion(&["nonexistent_id"], "").sign(&k);
+        let responses = r.handle_message(&ClientMessage::Event(deletion), &mgr);
+        assert!(matches!(
+            &responses[0],
+            RelayMessage::Ok { accepted: true, .. }
+        ));
     }
 
     #[test]
