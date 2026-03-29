@@ -237,9 +237,20 @@ fn render_marketplace_listings(f: &mut Frame, area: Rect, app: &App) {
     let items: Vec<ListItem> = app
         .listings
         .iter()
-        .map(|listing| {
+        .enumerate()
+        .map(|(i, listing)| {
+            let is_selected = i == app.marketplace_selected;
+            let title_style = if is_selected {
+                Theme::selected()
+            } else {
+                Theme::bold()
+            };
             let header = Line::from(vec![
-                Span::styled(&listing.title, Theme::bold()),
+                Span::styled(
+                    if is_selected { "\u{25b6} " } else { "  " },
+                    Theme::accent(),
+                ),
+                Span::styled(&listing.title, title_style),
                 Span::styled("  ", Theme::base()),
                 Span::styled(
                     format!("{} {}", listing.price_amount, listing.price_token),
@@ -247,6 +258,7 @@ fn render_marketplace_listings(f: &mut Frame, area: Rect, app: &App) {
                 ),
             ]);
             let meta = Line::from(vec![
+                Span::styled("  ", Theme::base()),
                 Span::styled(&listing.category, Theme::dim()),
                 Span::styled("  ", Theme::base()),
                 Span::styled(
@@ -280,7 +292,9 @@ fn render_marketplace_orders(f: &mut Frame, area: Rect, app: &App) {
     let items: Vec<ListItem> = app
         .orders
         .iter()
-        .map(|order| {
+        .enumerate()
+        .map(|(i, order)| {
+            let is_selected = i == app.marketplace_selected;
             let status_style = match order.status.as_str() {
                 "Completed" => Theme::success(),
                 "Cancelled" | "Refunded" => Theme::error(),
@@ -288,11 +302,23 @@ fn render_marketplace_orders(f: &mut Frame, area: Rect, app: &App) {
                 _ => Theme::accent(),
             };
             let header = Line::from(vec![
-                Span::styled(&order.id, Theme::bold()),
+                Span::styled(
+                    if is_selected { "\u{25b6} " } else { "  " },
+                    Theme::accent(),
+                ),
+                Span::styled(
+                    &order.id,
+                    if is_selected {
+                        Theme::selected()
+                    } else {
+                        Theme::bold()
+                    },
+                ),
                 Span::styled("  ", Theme::base()),
                 Span::styled(&order.status, status_style),
             ]);
             let detail = Line::from(vec![
+                Span::styled("  ", Theme::base()),
                 Span::styled(format!("{} {}", order.amount, order.token), Theme::accent()),
                 Span::styled("  ", Theme::base()),
                 Span::styled(&order.created_at, Theme::dim()),
@@ -349,13 +375,27 @@ fn render_browser(f: &mut Frame, area: Rect, app: &App) {
         let items: Vec<ListItem> = app
             .browser_urls
             .iter()
-            .map(|tab| {
+            .enumerate()
+            .map(|(i, tab)| {
+                let is_selected = i == app.browser_selected;
                 let pin_marker = if tab.pinned { "[pin] " } else { "" };
                 let header = Line::from(vec![
+                    Span::styled(
+                        if is_selected { "\u{25b6} " } else { "  " },
+                        Theme::accent(),
+                    ),
                     Span::styled(pin_marker, Theme::dim()),
-                    Span::styled(&tab.title, Theme::bold()),
+                    Span::styled(
+                        &tab.title,
+                        if is_selected {
+                            Theme::selected()
+                        } else {
+                            Theme::bold()
+                        },
+                    ),
                 ]);
                 let url_line = Line::from(vec![
+                    Span::styled("  ", Theme::base()),
                     Span::styled(&tab.url, Theme::dim()),
                     Span::styled("  ", Theme::base()),
                     Span::styled(
