@@ -42,10 +42,8 @@ impl FollowGraph {
             .map(|set| set.remove(target))
             .unwrap_or(false);
 
-        if removed {
-            if let Some(set) = self.followers.get_mut(target) {
-                set.remove(follower);
-            }
+        if removed && let Some(set) = self.followers.get_mut(target) {
+            set.remove(follower);
         }
         removed
     }
@@ -99,7 +97,11 @@ impl FollowGraph {
 
         let mut sorted: Vec<_> = candidates.into_iter().collect();
         sorted.sort_by(|a, b| b.1.cmp(&a.1));
-        sorted.into_iter().take(limit).map(|(k, _)| k.to_string()).collect()
+        sorted
+            .into_iter()
+            .take(limit)
+            .map(|(k, _)| k.to_string())
+            .collect()
     }
 }
 
