@@ -7,6 +7,10 @@ license.workspace = true
 repository.workspace = true
 authors.workspace = true
 
+[[bin]]
+name = "nous"
+path = "src/main.rs"
+
 [dependencies]
 nous-core = { path = "../nous-core" }
 nous-crypto = { path = "../nous-crypto" }
@@ -16,6 +20,7 @@ nous-storage = { path = "../nous-storage" }
 nous-social = { path = "../nous-social" }
 nous-payments = { path = "../nous-payments" }
 nous-net = { path = "../nous-net" }
+nous-governance = { path = "../nous-governance" }
 clap = { workspace = true }
 tokio = { workspace = true }
 serde = { workspace = true }
@@ -23,6 +28,8 @@ serde_json = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+chrono = { workspace = true }
+base64 = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
