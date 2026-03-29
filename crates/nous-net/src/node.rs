@@ -65,9 +65,7 @@ impl NousNode {
                 NousBehaviour::new(local_peer_id, &local_key, relay_behaviour)
                     .expect("behaviour creation should not fail")
             })?
-            .with_swarm_config(|cfg| {
-                cfg.with_idle_connection_timeout(Duration::from_secs(300))
-            })
+            .with_swarm_config(|cfg| cfg.with_idle_connection_timeout(Duration::from_secs(300)))
             .build();
 
         let (event_tx, event_rx) = mpsc::channel(1024);
@@ -252,10 +250,7 @@ impl NousNode {
                         .behaviour_mut()
                         .kademlia
                         .add_address(&peer_id, addr);
-                    let _ = self
-                        .event_tx
-                        .send(NodeEvent::PeerDiscovered(peer_id))
-                        .await;
+                    let _ = self.event_tx.send(NodeEvent::PeerDiscovered(peer_id)).await;
                 }
             }
             NousBehaviourEvent::Mdns(mdns::Event::Expired(peers)) => {
@@ -265,31 +260,25 @@ impl NousNode {
             }
             NousBehaviourEvent::Kademlia(kad::Event::OutboundQueryProgressed {
                 result, ..
-            }) => {
-                match result {
-                    kad::QueryResult::GetRecord(Ok(
-                        kad::GetRecordOk::FoundRecord(record),
-                    )) => {
-                        debug!(
-                            key = ?String::from_utf8_lossy(record.record.key.as_ref()),
-                            "DHT record found"
-                        );
-                    }
-                    kad::QueryResult::PutRecord(Ok(kad::PutRecordOk { key })) => {
-                        debug!(key = ?String::from_utf8_lossy(key.as_ref()), "DHT record stored");
-                    }
-                    kad::QueryResult::GetRecord(Err(e)) => {
-                        debug!(?e, "DHT get record failed");
-                    }
-                    kad::QueryResult::PutRecord(Err(e)) => {
-                        debug!(?e, "DHT put record failed");
-                    }
-                    _ => {}
+            }) => match result {
+                kad::QueryResult::GetRecord(Ok(kad::GetRecordOk::FoundRecord(record))) => {
+                    debug!(
+                        key = ?String::from_utf8_lossy(record.record.key.as_ref()),
+                        "DHT record found"
+                    );
                 }
-            }
-            NousBehaviourEvent::Identify(identify::Event::Received {
-                peer_id, info, ..
-            }) => {
+                kad::QueryResult::PutRecord(Ok(kad::PutRecordOk { key })) => {
+                    debug!(key = ?String::from_utf8_lossy(key.as_ref()), "DHT record stored");
+                }
+                kad::QueryResult::GetRecord(Err(e)) => {
+                    debug!(?e, "DHT get record failed");
+                }
+                kad::QueryResult::PutRecord(Err(e)) => {
+                    debug!(?e, "DHT put record failed");
+                }
+                _ => {}
+            },
+            NousBehaviourEvent::Identify(identify::Event::Received { peer_id, info, .. }) => {
                 debug!(%peer_id, protocol = ?info.protocol_version, "identify received");
                 for addr in info.listen_addrs {
                     self.swarm
@@ -415,7 +404,10 @@ mod tests {
         handle1.abort();
         handle2.abort();
 
-        assert!(discovered.is_ok(), "peers should discover each other via mDNS");
+        assert!(
+            discovered.is_ok(),
+            "peers should discover each other via mDNS"
+        );
         assert!(discovered.unwrap());
     }
 }
