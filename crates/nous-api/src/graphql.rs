@@ -9,6 +9,8 @@ use async_graphql::{Context, EmptySubscription, InputObject, Object, Schema, Sim
 use axum::extract::State;
 use axum::Json;
 
+use nous_governance::{Dao, Proposal, VoteTally};
+use nous_marketplace::{Listing, ListingCategory, ListingStatus, Review, SellerRating};
 use nous_social::{EventKind, PostBuilder, SignedEvent};
 
 use crate::state::AppState;
@@ -84,7 +86,153 @@ pub struct FollowInput {
     pub target_did: String,
 }
 
-// ── Query Root ──────��──────────────────────────────────────────
+// ── Governance GraphQL Types ──────────────────────────────────
+
+#[derive(SimpleObject)]
+pub struct DaoNode {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub founder: String,
+    pub member_count: usize,
+    pub created_at: String,
+}
+
+impl DaoNode {
+    fn from_dao(dao: &Dao) -> Self {
+        Self {
+            id: dao.id.clone(),
+            name: dao.name.clone(),
+            description: dao.description.clone(),
+            founder: dao.founder_did.clone(),
+            member_count: dao.member_count(),
+            created_at: dao.created_at.to_rfc3339(),
+        }
+    }
+}
+
+#[derive(SimpleObject)]
+pub struct ProposalNode {
+    pub id: String,
+    pub dao_id: String,
+    pub title: String,
+    pub description: String,
+    pub proposer: String,
+    pub status: String,
+    pub voting_starts: String,
+    pub voting_ends: String,
+    pub created_at: String,
+}
+
+impl ProposalNode {
+    fn from_proposal(p: &Proposal) -> Self {
+        let status = format!("{:?}", p.status);
+        Self {
+            id: p.id.clone(),
+            dao_id: p.dao_id.clone(),
+            title: p.title.clone(),
+            description: p.description.clone(),
+            proposer: p.proposer_did.clone(),
+            status,
+            voting_starts: p.voting_starts.to_rfc3339(),
+            voting_ends: p.voting_ends.to_rfc3339(),
+            created_at: p.created_at.to_rfc3339(),
+        }
+    }
+}
+
+#[derive(SimpleObject)]
+pub struct VoteResultNode {
+    pub proposal_id: String,
+    pub votes_for: String,
+    pub votes_against: String,
+    pub votes_abstain: String,
+    pub total_voters: usize,
+    pub passed: bool,
+}
+
+#[derive(InputObject)]
+pub struct CreateDaoInput {
+    pub founder_did: String,
+    pub name: String,
+    pub description: String,
+}
+
+// ── Marketplace GraphQL Types ──────────────────────────────────
+
+#[derive(SimpleObject)]
+pub struct ListingNode {
+    pub id: String,
+    pub seller: String,
+    pub title: String,
+    pub description: String,
+    pub category: String,
+    pub price_token: String,
+    pub price_amount: String,
+    pub status: String,
+    pub tags: Vec<String>,
+    pub created_at: String,
+}
+
+impl ListingNode {
+    fn from_listing(l: &Listing) -> Self {
+        Self {
+            id: l.id.clone(),
+            seller: l.seller_did.clone(),
+            title: l.title.clone(),
+            description: l.description.clone(),
+            category: format!("{:?}", l.category),
+            price_token: l.price_token.clone(),
+            price_amount: l.price_amount.to_string(),
+            status: format!("{:?}", l.status),
+            tags: l.tags.clone(),
+            created_at: l.created_at.to_rfc3339(),
+        }
+    }
+}
+
+#[derive(SimpleObject)]
+pub struct SellerRatingNode {
+    pub seller_did: String,
+    pub total_reviews: u32,
+    pub average_rating: f64,
+    pub verified_reviews: u32,
+    pub trusted: bool,
+}
+
+impl SellerRatingNode {
+    fn from_rating(r: &SellerRating) -> Self {
+        Self {
+            seller_did: r.seller_did.clone(),
+            total_reviews: r.total_reviews,
+            average_rating: r.average_rating,
+            verified_reviews: r.verified_reviews,
+            trusted: r.is_trusted(),
+        }
+    }
+}
+
+#[derive(InputObject)]
+pub struct CreateListingInput {
+    pub seller_did: String,
+    pub title: String,
+    pub description: String,
+    pub category: String,
+    pub price_token: String,
+    pub price_amount: String,
+    pub tags: Option<Vec<String>>,
+}
+
+#[derive(InputObject)]
+pub struct CreateReviewInput {
+    pub listing_id: String,
+    pub reviewer_did: String,
+    pub seller_did: String,
+    pub rating: u8,
+    pub comment: String,
+}
+
+// ── Query Root ──────────────────────────────────────────────────
 
 pub struct QueryRoot;
 
@@ -210,6 +358,130 @@ impl QueryRoot {
                 .collect(),
         })
     }
+
+    // ── Governance Queries ─────────────────────────────────────
+
+    async fn daos(&self, ctx: &Context<'_>) -> async_graphql::Result<Vec<DaoNode>> {
+        let state = ctx.data::<Arc<AppState>>()?;
+        let daos = state.daos.read().await;
+        Ok(daos.values().map(DaoNode::from_dao).collect())
+    }
+
+    async fn dao(
+        &self,
+        ctx: &Context<'_>,
+        id: String,
+    ) -> async_graphql::Result<Option<DaoNode>> {
+        let state = ctx.data::<Arc<AppState>>()?;
+        let daos = state.daos.read().await;
+        Ok(daos.get(&id).map(DaoNode::from_dao))
+    }
+
+    async fn proposals(
+        &self,
+        ctx: &Context<'_>,
+        dao_id: Option<String>,
+        limit: Option<usize>,
+    ) -> async_graphql::Result<Vec<ProposalNode>> {
+        let state = ctx.data::<Arc<AppState>>()?;
+        let proposals = state.proposals.read().await;
+        let limit = limit.unwrap_or(50).min(200);
+
+        let result: Vec<ProposalNode> = proposals
+            .values()
+            .filter(|p| dao_id.as_ref().is_none_or(|d| &p.dao_id == d))
+            .take(limit)
+            .map(ProposalNode::from_proposal)
+            .collect();
+        Ok(result)
+    }
+
+    async fn proposal(
+        &self,
+        ctx: &Context<'_>,
+        id: String,
+    ) -> async_graphql::Result<Option<ProposalNode>> {
+        let state = ctx.data::<Arc<AppState>>()?;
+        let proposals = state.proposals.read().await;
+        Ok(proposals.get(&id).map(ProposalNode::from_proposal))
+    }
+
+    async fn vote_tally(
+        &self,
+        ctx: &Context<'_>,
+        proposal_id: String,
+    ) -> async_graphql::Result<Option<VoteResultNode>> {
+        let state = ctx.data::<Arc<AppState>>()?;
+        let tallies = state.tallies.read().await;
+        let result = tallies.get(&proposal_id).map(|t| {
+            let r = t.tally(100);
+            VoteResultNode {
+                proposal_id: r.proposal_id,
+                votes_for: r.votes_for.to_string(),
+                votes_against: r.votes_against.to_string(),
+                votes_abstain: r.votes_abstain.to_string(),
+                total_voters: r.total_voters,
+                passed: r.passed,
+            }
+        });
+        Ok(result)
+    }
+
+    // ── Marketplace Queries ────────────────────────────────────
+
+    async fn listings(
+        &self,
+        ctx: &Context<'_>,
+        search: Option<String>,
+        category: Option<String>,
+        limit: Option<usize>,
+    ) -> async_graphql::Result<Vec<ListingNode>> {
+        let state = ctx.data::<Arc<AppState>>()?;
+        let listings = state.listings.read().await;
+        let limit = limit.unwrap_or(50).min(200);
+
+        let result: Vec<ListingNode> = listings
+            .values()
+            .filter(|l| {
+                let text_match = search
+                    .as_ref()
+                    .is_none_or(|q| l.matches_search(q));
+                let cat_match = category.as_ref().is_none_or(|c| {
+                    format!("{:?}", l.category).to_lowercase() == c.to_lowercase()
+                });
+                text_match && cat_match
+            })
+            .take(limit)
+            .map(ListingNode::from_listing)
+            .collect();
+        Ok(result)
+    }
+
+    async fn listing(
+        &self,
+        ctx: &Context<'_>,
+        id: String,
+    ) -> async_graphql::Result<Option<ListingNode>> {
+        let state = ctx.data::<Arc<AppState>>()?;
+        let listings = state.listings.read().await;
+        Ok(listings.get(&id).map(ListingNode::from_listing))
+    }
+
+    async fn seller_rating(
+        &self,
+        ctx: &Context<'_>,
+        seller_did: String,
+    ) -> async_graphql::Result<SellerRatingNode> {
+        let state = ctx.data::<Arc<AppState>>()?;
+        let reviews = state.reviews.read().await;
+        let seller_reviews: Vec<Review> = reviews
+            .values()
+            .filter(|r| r.seller_did == seller_did)
+            .cloned()
+            .collect();
+        let rating = SellerRating::compute(&seller_did, &seller_reviews);
+        Ok(SellerRatingNode::from_rating(&rating))
+    }
 }
 
 // ── Mutation Root ──────────────────────────────────────────────
@@ -306,6 +578,138 @@ impl MutationRoot {
                 format!("event {id} not found")
             },
         })
+    }
+
+    // ── Governance Mutations ───────────────────────────────────
+
+    async fn create_dao(
+        &self,
+        ctx: &Context<'_>,
+        input: CreateDaoInput,
+    ) -> async_graphql::Result<DaoNode> {
+        let dao = Dao::create(&input.founder_did, &input.name, &input.description);
+        let node = DaoNode::from_dao(&dao);
+
+        let state = ctx.data::<Arc<AppState>>()?;
+        let mut daos = state.daos.write().await;
+        daos.insert(dao.id.clone(), dao);
+        Ok(node)
+    }
+
+    async fn add_dao_member(
+        &self,
+        ctx: &Context<'_>,
+        dao_id: String,
+        did: String,
+    ) -> async_graphql::Result<MutationResult> {
+        let state = ctx.data::<Arc<AppState>>()?;
+        let mut daos = state.daos.write().await;
+        let dao = daos
+            .get_mut(&dao_id)
+            .ok_or_else(|| async_graphql::Error::new(format!("DAO {dao_id} not found")))?;
+
+        match dao.add_member(&did) {
+            Ok(()) => Ok(MutationResult {
+                success: true,
+                message: format!("{did} added to {dao_id}"),
+            }),
+            Err(e) => Ok(MutationResult {
+                success: false,
+                message: e.to_string(),
+            }),
+        }
+    }
+
+    // ── Marketplace Mutations ──────────────────────────────────
+
+    async fn create_listing(
+        &self,
+        ctx: &Context<'_>,
+        input: CreateListingInput,
+    ) -> async_graphql::Result<ListingNode> {
+        let category = match input.category.to_lowercase().as_str() {
+            "physical" => ListingCategory::Physical,
+            "digital" => ListingCategory::Digital,
+            "service" => ListingCategory::Service,
+            "nft" => ListingCategory::NFT,
+            "data" => ListingCategory::Data,
+            _ => ListingCategory::Other,
+        };
+
+        let price: u128 = input
+            .price_amount
+            .parse()
+            .map_err(|_| async_graphql::Error::new("invalid price_amount"))?;
+
+        let mut listing = Listing::new(
+            &input.seller_did,
+            &input.title,
+            &input.description,
+            category,
+            &input.price_token,
+            price,
+        )
+        .map_err(|e| async_graphql::Error::new(e.to_string()))?;
+
+        if let Some(tags) = input.tags {
+            for tag in tags {
+                listing = listing.with_tag(tag);
+            }
+        }
+
+        let node = ListingNode::from_listing(&listing);
+        let state = ctx.data::<Arc<AppState>>()?;
+        let mut listings = state.listings.write().await;
+        listings.insert(listing.id.clone(), listing);
+        Ok(node)
+    }
+
+    async fn create_review(
+        &self,
+        ctx: &Context<'_>,
+        input: CreateReviewInput,
+    ) -> async_graphql::Result<MutationResult> {
+        let review = Review::new(
+            &input.listing_id,
+            &input.reviewer_did,
+            &input.seller_did,
+            input.rating,
+            &input.comment,
+        )
+        .map_err(|e| async_graphql::Error::new(e.to_string()))?;
+
+        let state = ctx.data::<Arc<AppState>>()?;
+        let mut reviews = state.reviews.write().await;
+        reviews.insert(review.id.clone(), review);
+
+        Ok(MutationResult {
+            success: true,
+            message: "review created".into(),
+        })
+    }
+
+    async fn cancel_listing(
+        &self,
+        ctx: &Context<'_>,
+        listing_id: String,
+        seller_did: String,
+    ) -> async_graphql::Result<MutationResult> {
+        let state = ctx.data::<Arc<AppState>>()?;
+        let mut listings = state.listings.write().await;
+        let listing = listings
+            .get_mut(&listing_id)
+            .ok_or_else(|| async_graphql::Error::new(format!("listing {listing_id} not found")))?;
+
+        match listing.cancel(&seller_did) {
+            Ok(()) => Ok(MutationResult {
+                success: true,
+                message: format!("listing {listing_id} cancelled"),
+            }),
+            Err(e) => Ok(MutationResult {
+                success: false,
+                message: e.to_string(),
+            }),
+        }
     }
 }
 
@@ -536,5 +940,247 @@ mod tests {
         assert!(res.errors.is_empty());
         let data = res.data.into_json().unwrap();
         assert_eq!(data["__schema"]["queryType"]["name"], "QueryRoot");
+    }
+
+    // ── Governance GraphQL tests ──────────────────────────────
+
+    #[tokio::test]
+    async fn create_dao_mutation() {
+        let schema = test_schema();
+        let res = schema
+            .execute(
+                r#"mutation {
+                    createDao(input: {
+                        founderDid: "did:key:zfounder",
+                        name: "TestDAO",
+                        description: "A test DAO"
+                    }) { id name founder memberCount }
+                }"#,
+            )
+            .await;
+        assert!(res.errors.is_empty(), "errors: {:?}", res.errors);
+        let data = res.data.into_json().unwrap();
+        assert_eq!(data["createDao"]["name"], "TestDAO");
+        assert_eq!(data["createDao"]["memberCount"], 1);
+    }
+
+    #[tokio::test]
+    async fn query_daos() {
+        let state = AppState::new(ApiConfig::default());
+        let schema = build_schema(state);
+
+        let _ = schema
+            .execute(
+                r#"mutation {
+                    createDao(input: {
+                        founderDid: "did:key:za",
+                        name: "Alpha",
+                        description: "first"
+                    }) { id }
+                }"#,
+            )
+            .await;
+
+        let res = schema
+            .execute("{ daos { id name founder } }")
+            .await;
+        assert!(res.errors.is_empty());
+        let data = res.data.into_json().unwrap();
+        assert_eq!(data["daos"].as_array().unwrap().len(), 1);
+        assert_eq!(data["daos"][0]["name"], "Alpha");
+    }
+
+    #[tokio::test]
+    async fn add_dao_member_mutation() {
+        let state = AppState::new(ApiConfig::default());
+        let schema = build_schema(state);
+
+        let res = schema
+            .execute(
+                r#"mutation {
+                    createDao(input: {
+                        founderDid: "did:key:zf",
+                        name: "GovDAO",
+                        description: "test"
+                    }) { id }
+                }"#,
+            )
+            .await;
+        let data = res.data.into_json().unwrap();
+        let dao_id = data["createDao"]["id"].as_str().unwrap();
+
+        let res = schema
+            .execute(format!(
+                r#"mutation {{ addDaoMember(daoId: "{dao_id}", did: "did:key:znew") {{ success message }} }}"#,
+            ))
+            .await;
+        assert!(res.errors.is_empty(), "errors: {:?}", res.errors);
+        let data = res.data.into_json().unwrap();
+        assert!(data["addDaoMember"]["success"].as_bool().unwrap());
+    }
+
+    #[tokio::test]
+    async fn empty_proposals_query() {
+        let schema = test_schema();
+        let res = schema
+            .execute("{ proposals { id title status } }")
+            .await;
+        assert!(res.errors.is_empty());
+        let data = res.data.into_json().unwrap();
+        assert!(data["proposals"].as_array().unwrap().is_empty());
+    }
+
+    // ── Marketplace GraphQL tests ─────────────────────────────
+
+    #[tokio::test]
+    async fn create_listing_mutation() {
+        let schema = test_schema();
+        let res = schema
+            .execute(
+                r#"mutation {
+                    createListing(input: {
+                        sellerDid: "did:key:zseller",
+                        title: "Rust Book",
+                        description: "Learn Rust",
+                        category: "digital",
+                        priceToken: "USDC",
+                        priceAmount: "1000",
+                        tags: ["rust", "book"]
+                    }) { id title seller category status tags }
+                }"#,
+            )
+            .await;
+        assert!(res.errors.is_empty(), "errors: {:?}", res.errors);
+        let data = res.data.into_json().unwrap();
+        assert_eq!(data["createListing"]["title"], "Rust Book");
+        assert_eq!(data["createListing"]["category"], "Digital");
+    }
+
+    #[tokio::test]
+    async fn query_listings() {
+        let state = AppState::new(ApiConfig::default());
+        let schema = build_schema(state);
+
+        let _ = schema
+            .execute(
+                r#"mutation {
+                    createListing(input: {
+                        sellerDid: "did:key:zs",
+                        title: "Widget",
+                        description: "A widget",
+                        category: "physical",
+                        priceToken: "ETH",
+                        priceAmount: "500"
+                    }) { id }
+                }"#,
+            )
+            .await;
+
+        let res = schema
+            .execute("{ listings { id title seller category } }")
+            .await;
+        assert!(res.errors.is_empty());
+        let data = res.data.into_json().unwrap();
+        assert_eq!(data["listings"].as_array().unwrap().len(), 1);
+        assert_eq!(data["listings"][0]["title"], "Widget");
+    }
+
+    #[tokio::test]
+    async fn create_review_mutation() {
+        let state = AppState::new(ApiConfig::default());
+        let schema = build_schema(state);
+
+        let res = schema
+            .execute(
+                r#"mutation {
+                    createReview(input: {
+                        listingId: "listing-1",
+                        reviewerDid: "did:key:zbuyer",
+                        sellerDid: "did:key:zseller",
+                        rating: 5,
+                        comment: "Excellent"
+                    }) { success message }
+                }"#,
+            )
+            .await;
+        assert!(res.errors.is_empty(), "errors: {:?}", res.errors);
+        let data = res.data.into_json().unwrap();
+        assert!(data["createReview"]["success"].as_bool().unwrap());
+    }
+
+    #[tokio::test]
+    async fn seller_rating_query() {
+        let state = AppState::new(ApiConfig::default());
+        let schema = build_schema(state);
+
+        // Create some reviews
+        let _ = schema
+            .execute(
+                r#"mutation {
+                    createReview(input: {
+                        listingId: "l1",
+                        reviewerDid: "did:key:zr1",
+                        sellerDid: "did:key:zseller",
+                        rating: 4,
+                        comment: "Good"
+                    }) { success }
+                }"#,
+            )
+            .await;
+
+        let _ = schema
+            .execute(
+                r#"mutation {
+                    createReview(input: {
+                        listingId: "l2",
+                        reviewerDid: "did:key:zr2",
+                        sellerDid: "did:key:zseller",
+                        rating: 5,
+                        comment: "Great"
+                    }) { success }
+                }"#,
+            )
+            .await;
+
+        let res = schema
+            .execute(
+                r#"{ sellerRating(sellerDid: "did:key:zseller") { totalReviews averageRating trusted } }"#,
+            )
+            .await;
+        assert!(res.errors.is_empty(), "errors: {:?}", res.errors);
+        let data = res.data.into_json().unwrap();
+        assert_eq!(data["sellerRating"]["totalReviews"], 2);
+    }
+
+    #[tokio::test]
+    async fn cancel_listing_mutation() {
+        let state = AppState::new(ApiConfig::default());
+        let schema = build_schema(state);
+
+        let res = schema
+            .execute(
+                r#"mutation {
+                    createListing(input: {
+                        sellerDid: "did:key:zseller",
+                        title: "Cancel Me",
+                        description: "test",
+                        category: "digital",
+                        priceToken: "ETH",
+                        priceAmount: "100"
+                    }) { id }
+                }"#,
+            )
+            .await;
+        let data = res.data.into_json().unwrap();
+        let listing_id = data["createListing"]["id"].as_str().unwrap();
+
+        let res = schema
+            .execute(format!(
+                r#"mutation {{ cancelListing(listingId: "{listing_id}", sellerDid: "did:key:zseller") {{ success }} }}"#,
+            ))
+            .await;
+        assert!(res.errors.is_empty(), "errors: {:?}", res.errors);
+        let data = res.data.into_json().unwrap();
+        assert!(data["cancelListing"]["success"].as_bool().unwrap());
     }
 }
