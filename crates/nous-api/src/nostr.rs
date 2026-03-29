@@ -59,23 +59,16 @@ impl NostrBridge {
                 let tags: Vec<nous_social::Tag> = nostr_event
                     .tags
                     .iter()
-                    .filter_map(|t| {
-                        match (t.tag_name(), t.value()) {
-                            (Some("t"), Some(v)) => Some(nous_social::Tag::hashtag(v)),
-                            (Some("e"), Some(v)) => Some(nous_social::Tag::event(v)),
-                            (Some("p"), Some(v)) => Some(nous_social::Tag::pubkey(v)),
-                            _ => None,
-                        }
+                    .filter_map(|t| match (t.tag_name(), t.value()) {
+                        (Some("t"), Some(v)) => Some(nous_social::Tag::hashtag(v)),
+                        (Some("e"), Some(v)) => Some(nous_social::Tag::event(v)),
+                        (Some("p"), Some(v)) => Some(nous_social::Tag::pubkey(v)),
+                        _ => None,
                     })
                     .collect();
 
                 let kind = EventKind::from(nostr_event.kind.0 as u32);
-                let event = SignedEvent::new(
-                    &nostr_event.pubkey,
-                    kind,
-                    &nostr_event.content,
-                    tags,
-                );
+                let event = SignedEvent::new(&nostr_event.pubkey, kind, &nostr_event.content, tags);
 
                 let mut feed = feed.write().await;
                 feed.insert(event);
@@ -205,8 +198,12 @@ mod tests {
         let event = EventBuilder::text_note("duplicate me").sign(&key);
         let event2 = event.clone();
 
-        bridge.relay().handle_message(&ClientMessage::Event(event), &sub_mgr);
-        let responses = bridge.relay().handle_message(&ClientMessage::Event(event2), &sub_mgr);
+        bridge
+            .relay()
+            .handle_message(&ClientMessage::Event(event), &sub_mgr);
+        let responses = bridge
+            .relay()
+            .handle_message(&ClientMessage::Event(event2), &sub_mgr);
 
         // Second submission should be accepted but noted as duplicate
         assert!(!responses.is_empty());
