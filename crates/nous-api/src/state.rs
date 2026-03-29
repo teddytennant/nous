@@ -4,7 +4,9 @@ use tokio::sync::{RwLock, broadcast};
 
 use nous_ai::{Agent, Conversation};
 use nous_files::FileStore;
-use nous_governance::{CommittedVote, Dao, Proposal, VoteTally};
+use nous_governance::{
+    CommittedVote, Dao, DelegationRegistry, ExecutionEngine, Proposal, VoteTally,
+};
 use nous_identity::{Credential, Identity, Reputation};
 use nous_marketplace::{Listing, Review};
 use nous_messaging::{Channel, Message};
@@ -59,6 +61,8 @@ pub struct AppState {
     pub proposals: RwLock<HashMap<String, Proposal>>,
     pub tallies: RwLock<HashMap<String, VoteTally>>,
     pub private_votes: RwLock<HashMap<String, Vec<CommittedVote>>>,
+    pub delegations: RwLock<DelegationRegistry>,
+    pub execution_engine: RwLock<ExecutionEngine>,
     pub listings: RwLock<HashMap<String, Listing>>,
     pub reviews: RwLock<HashMap<String, Review>>,
     // Messaging
@@ -92,6 +96,8 @@ impl AppState {
             proposals: RwLock::new(HashMap::new()),
             tallies: RwLock::new(HashMap::new()),
             private_votes: RwLock::new(HashMap::new()),
+            delegations: RwLock::new(DelegationRegistry::new()),
+            execution_engine: RwLock::new(ExecutionEngine::new(86400, 259200)), // 1 day timelock, 3 day grace
             listings: RwLock::new(HashMap::new()),
             reviews: RwLock::new(HashMap::new()),
             channels: RwLock::new(HashMap::new()),
