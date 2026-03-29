@@ -10,8 +10,8 @@ use curve25519_dalek::ristretto::CompressedRistretto;
 use curve25519_dalek::scalar::Scalar;
 use ed25519_dalek::{Signer as DalekSigner, Verifier as DalekVerifier};
 use hkdf::Hkdf;
-use rand::rngs::OsRng;
 use rand::RngCore;
+use rand::rngs::OsRng;
 use sha2::{Digest, Sha256, Sha512};
 use wasm_bindgen::prelude::*;
 use zeroize::Zeroize;
@@ -35,6 +35,7 @@ pub struct WasmIdentity {
 impl WasmIdentity {
     /// Generate a new random identity.
     #[wasm_bindgen(constructor)]
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         let signing_key = ed25519_dalek::SigningKey::generate(&mut OsRng);
         let verifying_key = signing_key.verifying_key();
@@ -134,16 +135,13 @@ impl WasmIdentity {
     /// Get the DID Document as a JSON string.
     #[wasm_bindgen(js_name = didDocument)]
     pub fn did_document(&self) -> String {
-        let signing_multibase = format!(
-            "z{}",
-            bs58::encode(&self.signing_public).into_string()
-        );
-        let exchange_multibase = format!(
-            "z{}",
-            bs58::encode(&self.exchange_public).into_string()
-        );
+        let signing_multibase = format!("z{}", bs58::encode(&self.signing_public).into_string());
+        let exchange_multibase = format!("z{}", bs58::encode(&self.exchange_public).into_string());
         #[cfg(target_arch = "wasm32")]
-        let now = js_sys::Date::new_0().to_iso_string().as_string().unwrap_or_default();
+        let now = js_sys::Date::new_0()
+            .to_iso_string()
+            .as_string()
+            .unwrap_or_default();
         #[cfg(not(target_arch = "wasm32"))]
         let now = {
             use std::time::SystemTime;
@@ -372,7 +370,11 @@ fn challenge_scalar(data: &[u8]) -> Scalar {
 #[wasm_bindgen]
 impl WasmSchnorrProof {
     /// Generate a Schnorr proof-of-knowledge for the given secret/public pair.
-    pub fn prove(secret: &[u8], public: &[u8], message: &[u8]) -> Result<WasmSchnorrProof, JsError> {
+    pub fn prove(
+        secret: &[u8],
+        public: &[u8],
+        message: &[u8],
+    ) -> Result<WasmSchnorrProof, JsError> {
         if secret.len() != 32 || public.len() != 32 {
             return Err(JsError::new("secret and public must be 32 bytes each"));
         }
