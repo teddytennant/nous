@@ -117,6 +117,66 @@ pub fn router(config: ApiConfig) -> Router {
             "/listings/{listing_id}/purchase",
             post(marketplace::purchase_listing),
         )
+        // Marketplace — Orders
+        .route("/orders", post(marketplace::create_order))
+        .route("/orders", get(marketplace::list_orders))
+        .route("/orders/{order_id}", get(marketplace::get_order))
+        .route(
+            "/orders/{order_id}/fund",
+            post(marketplace::fund_order_escrow),
+        )
+        .route("/orders/{order_id}/ship", post(marketplace::ship_order))
+        .route(
+            "/orders/{order_id}/deliver",
+            post(marketplace::confirm_delivery),
+        )
+        .route(
+            "/orders/{order_id}/complete",
+            post(marketplace::complete_order),
+        )
+        .route("/orders/{order_id}/cancel", post(marketplace::cancel_order))
+        .route(
+            "/orders/{order_id}/dispute",
+            post(marketplace::dispute_order),
+        )
+        // Marketplace — Disputes
+        .route("/disputes", post(marketplace::create_dispute))
+        .route("/disputes", get(marketplace::list_disputes))
+        .route("/disputes/{dispute_id}", get(marketplace::get_dispute))
+        .route(
+            "/disputes/{dispute_id}/evidence",
+            post(marketplace::add_dispute_evidence),
+        )
+        .route(
+            "/disputes/{dispute_id}/arbiter",
+            post(marketplace::assign_dispute_arbiter),
+        )
+        .route(
+            "/disputes/{dispute_id}/resolve-buyer",
+            post(marketplace::resolve_dispute_buyer),
+        )
+        .route(
+            "/disputes/{dispute_id}/resolve-seller",
+            post(marketplace::resolve_dispute_seller),
+        )
+        .route(
+            "/disputes/{dispute_id}/escalate",
+            post(marketplace::escalate_dispute),
+        )
+        // Marketplace — Offers
+        .route("/offers", post(marketplace::create_offer))
+        .route("/offers", get(marketplace::list_offers))
+        .route("/offers/{offer_id}", get(marketplace::get_offer))
+        .route("/offers/{offer_id}/accept", post(marketplace::accept_offer))
+        .route("/offers/{offer_id}/reject", post(marketplace::reject_offer))
+        .route(
+            "/offers/{offer_id}/counter",
+            post(marketplace::counter_offer),
+        )
+        .route(
+            "/offers/{offer_id}/withdraw",
+            post(marketplace::withdraw_offer),
+        )
         // Marketplace — Reviews
         .route("/reviews", post(marketplace::create_review))
         .route("/reviews", get(marketplace::list_reviews))
