@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::RwLock;
+use tokio::sync::{RwLock, broadcast};
 
 use nous_files::FileStore;
 use nous_governance::{CommittedVote, Dao, Proposal, VoteTally};
@@ -11,6 +11,52 @@ use nous_payments::{Escrow, Invoice, Transaction, Wallet};
 use nous_social::{Feed, FollowGraph};
 
 use crate::config::ApiConfig;
+
+/// Real-time event broadcast across all connected clients.
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(tag = "type", content = "data")]
+pub enum RealtimeEvent {
+    /// New post in the social feed.
+    NewPost {
+        id: String,
+        author: String,
+        content: String,
+    },
+    /// New message in a channel.
+    NewMessage {
+        channel_id: String,
+        sender: String,
+        content: String,
+    },
+    /// Vote cast on a proposal.
+    VoteCast {
+        proposal_id: String,
+        voter: String,
+    },
+    /// New DAO created.
+    DaoCreated {
+        id: String,
+        name: String,
+    },
+    /// Proposal submitted.
+    ProposalCreated {
+        id: String,
+        title: String,
+        dao_id: String,
+    },
+    /// Payment or transfer completed.
+    Transfer {
+        from: String,
+        to: String,
+        amount: String,
+        token: String,
+    },
+    /// Listing created or updated in marketplace.
+    ListingUpdate {
+        id: String,
+        title: String,
+    },
+}
 
 pub struct AppState {
     pub config: ApiConfig,
@@ -35,10 +81,13 @@ pub struct AppState {
     pub transactions: RwLock<Vec<Transaction>>,
     pub escrows: RwLock<HashMap<String, Escrow>>,
     pub invoices: RwLock<HashMap<String, Invoice>>,
+    // Real-time event bus
+    pub events: broadcast::Sender<RealtimeEvent>,
 }
 
 impl AppState {
     pub fn new(config: ApiConfig) -> Arc<Self> {
+        let (events_tx, _) = broadcast::channel(256);
         Arc::new(Self {
             config,
             feed: RwLock::new(Feed::new()),
@@ -59,7 +108,13 @@ impl AppState {
             transactions: RwLock::new(Vec::new()),
             escrows: RwLock::new(HashMap::new()),
             invoices: RwLock::new(HashMap::new()),
+            events: events_tx,
         })
+    }
+
+    /// Broadcast a real-time event to all connected clients.
+    pub fn emit(&self, event: RealtimeEvent) {
+        let _ = self.events.send(event);
     }
 }
 
