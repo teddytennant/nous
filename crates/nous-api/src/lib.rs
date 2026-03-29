@@ -10,6 +10,7 @@ pub mod grpc;
 pub mod middleware;
 pub mod nostr;
 pub mod openapi;
+pub mod payments;
 pub mod routes;
 pub mod state;
 
@@ -127,6 +128,41 @@ pub fn router(config: ApiConfig) -> Router {
         .route(
             "/identities/{did}/reputation",
             post(identity::add_reputation_event),
+        )
+        // Payments — Wallets
+        .route("/wallets", post(payments::create_wallet))
+        .route("/wallets/{did}", get(payments::get_wallet))
+        .route("/wallets/{did}/credit", post(payments::credit_wallet))
+        .route("/wallets/{did}/debit", post(payments::debit_wallet))
+        .route(
+            "/wallets/{did}/transactions",
+            get(payments::get_transactions),
+        )
+        // Payments — Transfers
+        .route("/transfers", post(payments::create_transfer))
+        // Payments — Escrows
+        .route("/escrows", post(payments::create_escrow))
+        .route("/escrows/{escrow_id}", get(payments::get_escrow))
+        .route(
+            "/escrows/{escrow_id}/release",
+            post(payments::release_escrow),
+        )
+        .route(
+            "/escrows/{escrow_id}/refund",
+            post(payments::refund_escrow),
+        )
+        .route(
+            "/escrows/{escrow_id}/dispute",
+            post(payments::dispute_escrow),
+        )
+        // Payments — Invoices
+        .route("/invoices", post(payments::create_invoice))
+        .route("/invoices", get(payments::list_invoices))
+        .route("/invoices/{invoice_id}", get(payments::get_invoice))
+        .route("/invoices/{invoice_id}/pay", post(payments::pay_invoice))
+        .route(
+            "/invoices/{invoice_id}/cancel",
+            post(payments::cancel_invoice),
         );
 
     Router::new()
