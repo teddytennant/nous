@@ -249,6 +249,7 @@ impl Database {
         Ok(())
     }
 
+    #[allow(clippy::type_complexity)]
     pub fn get_messages(
         &self,
         session_id: &str,
@@ -439,10 +440,22 @@ mod tests {
         db.store_ratchet_session("sess1", "did:key:zme", "did:key:zpeer", b"state")
             .unwrap();
 
-        db.store_message("msg1", "sess1", "did:key:zme", b"hello", "2026-01-01T00:00:00Z")
-            .unwrap();
-        db.store_message("msg2", "sess1", "did:key:zpeer", b"hi", "2026-01-01T00:01:00Z")
-            .unwrap();
+        db.store_message(
+            "msg1",
+            "sess1",
+            "did:key:zme",
+            b"hello",
+            "2026-01-01T00:00:00Z",
+        )
+        .unwrap();
+        db.store_message(
+            "msg2",
+            "sess1",
+            "did:key:zpeer",
+            b"hi",
+            "2026-01-01T00:01:00Z",
+        )
+        .unwrap();
 
         let messages = db.get_messages("sess1", 10).unwrap();
         assert_eq!(messages.len(), 2);
