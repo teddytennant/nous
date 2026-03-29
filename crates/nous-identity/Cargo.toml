@@ -1,0 +1,23 @@
+[package]
+name = "nous-identity"
+description = "Self-sovereign identity — DID:key, verifiable credentials, reputation"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+nous-core = { path = "../nous-core" }
+nous-crypto = { path = "../nous-crypto" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+base64 = { workspace = true }
+bs58 = { workspace = true }
+ed25519-dalek = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
