@@ -2,19 +2,25 @@ use axum::extract::{Path, Query, State};
 use axum::Json;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use utoipa::{IntoParams, ToSchema};
 
 use nous_social::{EventKind, PostBuilder, SignedEvent};
 
 use crate::error::ApiError;
 use crate::state::AppState;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct HealthResponse {
     pub status: String,
     pub version: String,
     pub uptime_ms: u64,
 }
 
+#[utoipa::path(
+    get, path = "/api/v1/health",
+    tag = "node",
+    responses((status = 200, description = "Server health status", body = HealthResponse))
+)]
 pub async fn health() -> Json<HealthResponse> {
     Json(HealthResponse {
         status: "ok".to_string(),
@@ -23,13 +29,18 @@ pub async fn health() -> Json<HealthResponse> {
     })
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct NodeInfo {
     pub protocol: String,
     pub version: String,
     pub features: Vec<String>,
 }
 
+#[utoipa::path(
+    get, path = "/api/v1/node",
+    tag = "node",
+    responses((status = 200, description = "Node information", body = NodeInfo))
+)]
 pub async fn node_info() -> Json<NodeInfo> {
     Json(NodeInfo {
         protocol: "nous".to_string(),
@@ -45,7 +56,7 @@ pub async fn node_info() -> Json<NodeInfo> {
     })
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema, IntoParams)]
 pub struct FeedQuery {
     pub limit: Option<usize>,
     pub author: Option<String>,
@@ -53,12 +64,18 @@ pub struct FeedQuery {
     pub tag: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct FeedResponse {
     pub events: Vec<SignedEvent>,
     pub count: usize,
 }
 
+#[utoipa::path(
+    get, path = "/api/v1/feed",
+    tag = "social",
+    params(FeedQuery),
+    responses((status = 200, description = "Event feed"))
+)]
 pub async fn get_feed(
     State(state): State<Arc<AppState>>,
     Query(query): Query<FeedQuery>,
@@ -84,7 +101,7 @@ pub async fn get_feed(
     Ok(Json(FeedResponse { events, count }))
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct CreatePostRequest {
     pub author_did: String,
     pub content: String,
@@ -92,6 +109,15 @@ pub struct CreatePostRequest {
     pub hashtags: Option<Vec<String>>,
 }
 
+#[utoipa::path(
+    post, path = "/api/v1/events",
+    tag = "social",
+    request_body = CreatePostRequest,
+    responses(
+        (status = 200, description = "Created event"),
+        (status = 400, description = "Invalid request")
+    )
+)]
 pub async fn create_post(
     State(state): State<Arc<AppState>>,
     Json(req): Json<CreatePostRequest>,
@@ -124,6 +150,15 @@ pub async fn create_post(
     Ok(Json(event))
 }
 
+#[utoipa::path(
+    get, path = "/api/v1/events/{event_id}",
+    tag = "social",
+    params(("event_id" = String, Path, description = "Event ID")),
+    responses(
+        (status = 200, description = "Event found"),
+        (status = 404, description = "Event not found")
+    )
+)]
 pub async fn get_event(
     State(state): State<Arc<AppState>>,
     Path(event_id): Path<String>,
@@ -139,6 +174,15 @@ pub async fn get_event(
         .ok_or_else(|| ApiError::not_found(format!("event {event_id} not found")))
 }
 
+#[utoipa::path(
+    delete, path = "/api/v1/events/{event_id}",
+    tag = "social",
+    params(("event_id" = String, Path, description = "Event ID")),
+    responses(
+        (status = 200, description = "Event deleted"),
+        (status = 404, description = "Event not found")
+    )
+)]
 pub async fn delete_event(
     State(state): State<Arc<AppState>>,
     Path(event_id): Path<String>,
@@ -151,12 +195,18 @@ pub async fn delete_event(
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct FollowRequest {
     pub follower_did: String,
     pub target_did: String,
 }
 
+#[utoipa::path(
+    post, path = "/api/v1/follow",
+    tag = "social",
+    request_body = FollowRequest,
+    responses((status = 200, description = "Follow recorded"))
+)]
 pub async fn follow_user(
     State(state): State<Arc<AppState>>,
     Json(req): Json<FollowRequest>,
@@ -170,6 +220,12 @@ pub async fn follow_user(
     })))
 }
 
+#[utoipa::path(
+    post, path = "/api/v1/unfollow",
+    tag = "social",
+    request_body = FollowRequest,
+    responses((status = 200, description = "Unfollow recorded"))
+)]
 pub async fn unfollow_user(
     State(state): State<Arc<AppState>>,
     Json(req): Json<FollowRequest>,
@@ -183,12 +239,18 @@ pub async fn unfollow_user(
     })))
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema, IntoParams)]
 pub struct TimelineQuery {
     pub did: String,
     pub limit: Option<usize>,
 }
 
+#[utoipa::path(
+    get, path = "/api/v1/timeline",
+    tag = "social",
+    params(TimelineQuery),
+    responses((status = 200, description = "Timeline events"))
+)]
 pub async fn get_timeline(
     State(state): State<Arc<AppState>>,
     Query(query): Query<TimelineQuery>,
