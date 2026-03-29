@@ -1,6 +1,8 @@
 //! Node orchestrator — ties identity, storage, networking, and messaging into
 //! a single coherent Nous node that can be started, used, and shut down.
 
+pub mod routing;
+
 use std::path::PathBuf;
 
 use nous_identity::Identity;
@@ -12,6 +14,8 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
 use tracing::{debug, info, warn};
+
+use routing::{MessageRouter, RoutedMessage};
 
 /// Top-level configuration for a Nous node.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -46,6 +50,7 @@ pub struct NousNode {
     event_rx: Option<mpsc::Receiver<NodeEvent>>,
     network_handle: Option<JoinHandle<()>>,
     event_handle: Option<JoinHandle<()>>,
+    routed_rx: Option<mpsc::Receiver<RoutedMessage>>,
     config: NodeConfig,
 }
 
@@ -76,6 +81,7 @@ impl NousNode {
             event_rx: Some(event_rx),
             network_handle: None,
             event_handle: None,
+            routed_rx: None,
             config,
         })
     }
@@ -93,6 +99,7 @@ impl NousNode {
             event_rx: Some(event_rx),
             network_handle: None,
             event_handle: None,
+            routed_rx: None,
             config,
         })
     }
@@ -117,6 +124,13 @@ impl NousNode {
         self.network_handle.is_some()
     }
 
+    /// Take the receiver for routed P2P messages. This is available after
+    /// [`start`] is called. The caller (e.g. the API layer) should spawn a
+    /// task to consume these messages and apply them to local state.
+    pub fn take_routed_receiver(&mut self) -> Option<mpsc::Receiver<RoutedMessage>> {
+        self.routed_rx.take()
+    }
+
     /// Start the P2P networking layer. This listens on configured addresses,
     /// subscribes to all default gossipsub topics, and spawns background tasks
     /// for the network event loop and event handler.
@@ -125,10 +139,7 @@ impl NousNode {
             .network
             .take()
             .ok_or("network already started or not initialized")?;
-        let event_rx = self
-            .event_rx
-            .take()
-            .ok_or("event receiver already taken")?;
+        let event_rx = self.event_rx.take().ok_or("event receiver already taken")?;
 
         // Listen on configured addresses.
         for addr in &self.config.network.listen_addresses {
@@ -146,9 +157,13 @@ impl NousNode {
         });
         self.network_handle = Some(network_handle);
 
-        // Spawn the event handler.
+        // Create the message router.
+        let (router, routed_rx) = MessageRouter::new(1024);
+        self.routed_rx = Some(routed_rx);
+
+        // Spawn the event handler with the router.
         let did = self.identity.did().to_string();
-        let event_handle = tokio::spawn(handle_events(event_rx, did));
+        let event_handle = tokio::spawn(handle_events(event_rx, did, router));
         self.event_handle = Some(event_handle);
 
         info!("nous node started");
@@ -169,8 +184,13 @@ impl NousNode {
     }
 }
 
-/// Background task that processes incoming network events.
-async fn handle_events(mut rx: mpsc::Receiver<NodeEvent>, local_did: String) {
+/// Background task that processes incoming network events and routes gossipsub
+/// messages to the appropriate subsystem via the [`MessageRouter`].
+async fn handle_events(
+    mut rx: mpsc::Receiver<NodeEvent>,
+    local_did: String,
+    router: MessageRouter,
+) {
     while let Some(event) = rx.recv().await {
         match event {
             NodeEvent::PeerConnected(peer_id) => {
@@ -194,8 +214,12 @@ async fn handle_events(mut rx: mpsc::Receiver<NodeEvent>, local_did: String) {
                     our_did = %local_did,
                     "gossipsub message received"
                 );
-                // TODO: route messages to appropriate subsystem handlers
-                // (messaging, social, governance, etc.)
+
+                // Route the message to the appropriate subsystem.
+                if let Err(e) = router.route(&topic, &data, &local_did).await {
+                    warn!(error = %e, "router channel closed, stopping event handler");
+                    break;
+                }
             }
             NodeEvent::ListeningOn(addr) => {
                 info!(%addr, "node listening on address");
