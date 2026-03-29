@@ -2,6 +2,7 @@ use axum::extract::{Path, Query, State};
 use axum::Json;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use utoipa::{IntoParams, ToSchema};
 
 use nous_files::{FileManifest, StoreStats};
 
@@ -14,11 +15,17 @@ pub struct FileListResponse {
     pub count: usize,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema, IntoParams)]
 pub struct FileListQuery {
     pub owner: String,
 }
 
+#[utoipa::path(
+    get, path = "/api/v1/files",
+    tag = "files",
+    params(FileListQuery),
+    responses((status = 200, description = "List of files for owner"))
+)]
 pub async fn list_files(
     State(state): State<Arc<AppState>>,
     Query(query): Query<FileListQuery>,
@@ -29,7 +36,7 @@ pub async fn list_files(
     Ok(Json(FileListResponse { files, count }))
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct UploadRequest {
     pub name: String,
     pub mime_type: String,
@@ -37,6 +44,15 @@ pub struct UploadRequest {
     pub data_base64: String,
 }
 
+#[utoipa::path(
+    post, path = "/api/v1/files",
+    tag = "files",
+    request_body = UploadRequest,
+    responses(
+        (status = 200, description = "File uploaded successfully"),
+        (status = 400, description = "Invalid request")
+    )
+)]
 pub async fn upload_file(
     State(state): State<Arc<AppState>>,
     Json(req): Json<UploadRequest>,
@@ -68,6 +84,15 @@ pub struct FileContentResponse {
     pub size: u64,
 }
 
+#[utoipa::path(
+    get, path = "/api/v1/files/{manifest_id}",
+    tag = "files",
+    params(("manifest_id" = String, Path, description = "File manifest content ID")),
+    responses(
+        (status = 200, description = "File content and manifest"),
+        (status = 404, description = "File not found")
+    )
+)]
 pub async fn get_file(
     State(state): State<Arc<AppState>>,
     Path(manifest_id): Path<String>,
@@ -90,12 +115,21 @@ pub async fn get_file(
     }))
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema, IntoParams)]
 pub struct LatestQuery {
     pub name: String,
     pub owner: String,
 }
 
+#[utoipa::path(
+    get, path = "/api/v1/files/latest",
+    tag = "files",
+    params(LatestQuery),
+    responses(
+        (status = 200, description = "Latest file version"),
+        (status = 404, description = "File not found")
+    )
+)]
 pub async fn get_latest(
     State(state): State<Arc<AppState>>,
     Query(query): Query<LatestQuery>,
@@ -127,12 +161,21 @@ pub struct VersionHistoryResponse {
     pub versions: Vec<FileManifest>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema, IntoParams)]
 pub struct HistoryQuery {
     pub name: String,
     pub owner: String,
 }
 
+#[utoipa::path(
+    get, path = "/api/v1/files/history",
+    tag = "files",
+    params(HistoryQuery),
+    responses(
+        (status = 200, description = "Version history"),
+        (status = 404, description = "File not found")
+    )
+)]
 pub async fn get_history(
     State(state): State<Arc<AppState>>,
     Query(query): Query<HistoryQuery>,
@@ -154,19 +197,28 @@ pub async fn get_history(
     }))
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema, IntoParams)]
 pub struct DeleteQuery {
     pub name: String,
     pub owner: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct DeleteResponse {
     pub deleted: bool,
     pub name: String,
     pub freed_bytes: u64,
 }
 
+#[utoipa::path(
+    delete, path = "/api/v1/files",
+    tag = "files",
+    params(DeleteQuery),
+    responses(
+        (status = 200, description = "File deleted", body = DeleteResponse),
+        (status = 404, description = "File not found")
+    )
+)]
 pub async fn delete_file(
     State(state): State<Arc<AppState>>,
     Query(query): Query<DeleteQuery>,
@@ -183,6 +235,11 @@ pub async fn delete_file(
     }))
 }
 
+#[utoipa::path(
+    get, path = "/api/v1/files/stats",
+    tag = "files",
+    responses((status = 200, description = "File store statistics"))
+)]
 pub async fn store_stats(
     State(state): State<Arc<AppState>>,
 ) -> Json<StoreStats> {
