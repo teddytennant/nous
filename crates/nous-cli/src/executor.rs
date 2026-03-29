@@ -20,8 +20,7 @@ impl Executor {
             .map_err(|e| format!("failed to create data directory: {e}"))?;
 
         let db_path = data_dir.join("nous.db");
-        let db =
-            Database::open(&db_path).map_err(|e| format!("failed to open database: {e}"))?;
+        let db = Database::open(&db_path).map_err(|e| format!("failed to open database: {e}"))?;
 
         Ok(Self {
             output: Output::new(json),
@@ -73,10 +72,7 @@ impl Executor {
                         vec!["Exchange Key".into(), "x25519".into()],
                         vec![
                             "Display Name".into(),
-                            identity
-                                .display_name()
-                                .unwrap_or("(none)")
-                                .to_string(),
+                            identity.display_name().unwrap_or("(none)").to_string(),
                         ],
                     ],
                 );
@@ -186,15 +182,12 @@ impl Executor {
                     self.save_follow_graph(&graph)?;
                     self.output.success(&format!("Unfollowed {did}"));
                 } else {
-                    self.output
-                        .success(&format!("Not following {did}"));
+                    self.output.success(&format!("Not following {did}"));
                 }
                 Ok(())
             }
             SocialCommand::Following => {
-                let identity = self
-                    .load_identity()
-                    .ok_or("No identity found.")?;
+                let identity = self.load_identity().ok_or("No identity found.")?;
                 let graph = self.load_follow_graph();
                 let following = graph.following_of(identity.did());
 
@@ -228,12 +221,7 @@ impl Executor {
                 } else {
                     let rows: Vec<Vec<String>> = tokens
                         .iter()
-                        .map(|t| {
-                            vec![
-                                t.to_string(),
-                                wallet.balance(t).to_string(),
-                            ]
-                        })
+                        .map(|t| vec![t.to_string(), wallet.balance(t).to_string()])
                         .collect();
                     self.output.table(&["Token", "Balance"], &rows);
                 }
@@ -246,13 +234,10 @@ impl Executor {
                 memo,
             } => {
                 let mut wallet = self.load_wallet(identity.did());
-                wallet
-                    .debit(&token, amount)
-                    .map_err(|e| format!("{e}"))?;
+                wallet.debit(&token, amount).map_err(|e| format!("{e}"))?;
                 self.save_wallet(&wallet)?;
 
-                let mut tx =
-                    nous_payments::Transaction::new(identity.did(), &to, &token, amount);
+                let mut tx = nous_payments::Transaction::new(identity.did(), &to, &token, amount);
                 if let Some(m) = memo {
                     tx = tx.with_memo(m);
                 }
@@ -300,8 +285,9 @@ impl Executor {
                 Ok(())
             }
             NetCommand::Connect { addr } => {
-                self.output
-                    .success(&format!("Connect to {addr}: not yet implemented in offline mode"));
+                self.output.success(&format!(
+                    "Connect to {addr}: not yet implemented in offline mode"
+                ));
                 Ok(())
             }
         }
@@ -395,7 +381,7 @@ impl Executor {
             .ok()
             .flatten()
             .and_then(|bytes| serde_json::from_slice(&bytes).ok())
-            .unwrap_or_else(FollowGraph::new)
+            .unwrap_or_default()
     }
 
     fn save_follow_graph(&self, graph: &FollowGraph) -> Result<(), String> {
@@ -492,8 +478,8 @@ impl Executor {
                     .submit(&identity)
                     .map_err(|e| format!("{e}"))?;
 
-                let proposal_json = serde_json::to_vec(&proposal)
-                    .map_err(|e| format!("serialization: {e}"))?;
+                let proposal_json =
+                    serde_json::to_vec(&proposal).map_err(|e| format!("serialization: {e}"))?;
                 self.db
                     .put_kv(&format!("proposal:{}", proposal.id), &proposal_json)
                     .map_err(|e| format!("storage: {e}"))?;
@@ -546,8 +532,9 @@ impl Executor {
                 choice,
                 credits,
             } => {
-                let _proposal =
-                    self.load_proposal(&proposal_id).ok_or("Proposal not found")?;
+                let _proposal = self
+                    .load_proposal(&proposal_id)
+                    .ok_or("Proposal not found")?;
                 let vote_choice = match choice.to_lowercase().as_str() {
                     "for" | "yes" => VoteChoice::For,
                     "against" | "no" => VoteChoice::Against,
@@ -556,7 +543,7 @@ impl Executor {
                         return Err(format!(
                             "Invalid vote choice: '{}'. Use: for, against, abstain",
                             choice
-                        ))
+                        ));
                     }
                 };
 
@@ -698,9 +685,7 @@ mod tests {
     #[tokio::test]
     async fn identity_show_without_init_fails() {
         let exec = test_executor();
-        let result = exec
-            .execute(Command::Identity(IdentityCommand::Show))
-            .await;
+        let result = exec.execute(Command::Identity(IdentityCommand::Show)).await;
         assert!(result.is_err());
     }
 
@@ -839,9 +824,7 @@ mod tests {
     #[tokio::test]
     async fn net_peers() {
         let exec = test_executor();
-        exec.execute(Command::Net(NetCommand::Peers))
-            .await
-            .unwrap();
+        exec.execute(Command::Net(NetCommand::Peers)).await.unwrap();
     }
 
     #[tokio::test]
