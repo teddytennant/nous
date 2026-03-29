@@ -257,7 +257,14 @@ pub async fn create_wallet(
 
     let wallet = Wallet::new(&req.did);
     let resp = WalletResponse::from(&wallet);
-    wallets.insert(req.did.clone(), wallet);
+    let did = req.did.clone();
+    wallets.insert(did.clone(), wallet);
+
+    // Persist wallet to SQLite
+    if let Some(w) = wallets.get(&did) {
+        state.persist_wallet(&did, w).await;
+    }
+
     Ok(Json(resp))
 }
 
@@ -306,6 +313,10 @@ pub async fn credit_wallet(
         .ok_or_else(|| ApiError::not_found(format!("wallet not found for {did}")))?;
 
     wallet.credit(&req.token, req.amount);
+
+    // Persist wallet to SQLite
+    state.persist_wallet(&did, wallet).await;
+
     Ok(Json(WalletResponse::from(&*wallet)))
 }
 
@@ -337,6 +348,10 @@ pub async fn debit_wallet(
     wallet
         .debit(&req.token, req.amount)
         .map_err(ApiError::from)?;
+
+    // Persist wallet to SQLite
+    state.persist_wallet(&did, wallet).await;
+
     Ok(Json(WalletResponse::from(&*wallet)))
 }
 
@@ -416,7 +431,20 @@ pub async fn create_transfer(
     }
 
     let resp = TransactionResponse::from(&tx);
-    state.transactions.write().await.push(tx);
+
+    // Persist both wallets to SQLite
+    if let Some(s) = wallets.get(&req.from_did) {
+        state.persist_wallet(&req.from_did, s).await;
+    }
+    if let Some(r) = wallets.get(&req.to_did) {
+        state.persist_wallet(&req.to_did, r).await;
+    }
+    drop(wallets);
+
+    let mut txs = state.transactions.write().await;
+    txs.push(tx);
+    // Persist transactions to SQLite
+    state.persist_transactions(&txs).await;
 
     state.emit(crate::state::RealtimeEvent::Transfer {
         from: req.from_did.clone(),
@@ -463,11 +491,15 @@ pub async fn create_escrow(
     }
 
     let resp = EscrowResponse::from(&escrow);
-    state
-        .escrows
-        .write()
-        .await
-        .insert(escrow.id.clone(), escrow);
+    let eid = escrow.id.clone();
+    let mut escrows = state.escrows.write().await;
+    escrows.insert(eid.clone(), escrow);
+
+    // Persist escrow to SQLite
+    if let Some(e) = escrows.get(&eid) {
+        state.persist_escrow(&eid, e).await;
+    }
+
     Ok(Json(resp))
 }
 
@@ -513,6 +545,10 @@ pub async fn release_escrow(
         .ok_or_else(|| ApiError::not_found(format!("escrow {escrow_id} not found")))?;
 
     escrow.release(&req.caller_did).map_err(ApiError::from)?;
+
+    // Persist escrow to SQLite
+    state.persist_escrow(&escrow_id, escrow).await;
+
     Ok(Json(EscrowResponse::from(&*escrow)))
 }
 
@@ -538,6 +574,10 @@ pub async fn refund_escrow(
         .ok_or_else(|| ApiError::not_found(format!("escrow {escrow_id} not found")))?;
 
     escrow.refund(&req.caller_did).map_err(ApiError::from)?;
+
+    // Persist escrow to SQLite
+    state.persist_escrow(&escrow_id, escrow).await;
+
     Ok(Json(EscrowResponse::from(&*escrow)))
 }
 
@@ -563,6 +603,10 @@ pub async fn dispute_escrow(
         .ok_or_else(|| ApiError::not_found(format!("escrow {escrow_id} not found")))?;
 
     escrow.dispute(&req.caller_did).map_err(ApiError::from)?;
+
+    // Persist escrow to SQLite
+    state.persist_escrow(&escrow_id, escrow).await;
+
     Ok(Json(EscrowResponse::from(&*escrow)))
 }
 
@@ -601,11 +645,15 @@ pub async fn create_invoice(
     }
 
     let resp = InvoiceResponse::from(&invoice);
-    state
-        .invoices
-        .write()
-        .await
-        .insert(invoice.id.clone(), invoice);
+    let iid = invoice.id.clone();
+    let mut invoices = state.invoices.write().await;
+    invoices.insert(iid.clone(), invoice);
+
+    // Persist invoice to SQLite
+    if let Some(inv) = invoices.get(&iid) {
+        state.persist_invoice(&iid, inv).await;
+    }
+
     Ok(Json(resp))
 }
 
@@ -675,6 +723,10 @@ pub async fn pay_invoice(
         .ok_or_else(|| ApiError::not_found(format!("invoice {invoice_id} not found")))?;
 
     invoice.mark_paid().map_err(ApiError::from)?;
+
+    // Persist invoice to SQLite
+    state.persist_invoice(&invoice_id, invoice).await;
+
     Ok(Json(InvoiceResponse::from(&*invoice)))
 }
 
@@ -698,6 +750,10 @@ pub async fn cancel_invoice(
         .ok_or_else(|| ApiError::not_found(format!("invoice {invoice_id} not found")))?;
 
     invoice.cancel().map_err(ApiError::from)?;
+
+    // Persist invoice to SQLite
+    state.persist_invoice(&invoice_id, invoice).await;
+
     Ok(Json(InvoiceResponse::from(&*invoice)))
 }
 

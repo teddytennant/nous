@@ -78,6 +78,9 @@ pub async fn upload_file(
         .put(&req.name, &req.mime_type, &data, &req.owner)
         .map_err(ApiError::from)?;
 
+    // Persist file store to SQLite
+    state.persist_file_store(&store).await;
+
     Ok(Json(manifest))
 }
 
@@ -231,6 +234,9 @@ pub async fn delete_file(
     let freed = store
         .delete(&query.name, &query.owner)
         .map_err(ApiError::from)?;
+
+    // Persist file store to SQLite
+    state.persist_file_store(&store).await;
 
     Ok(Json(DeleteResponse {
         deleted: true,

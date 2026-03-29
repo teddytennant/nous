@@ -216,8 +216,14 @@ pub async fn create_dao(
     let dao = Dao::create(&req.founder_did, &req.name, &req.description);
     let response = DaoResponse::from(&dao);
 
+    let id = dao.id.clone();
     let mut daos = state.daos.write().await;
-    daos.insert(dao.id.clone(), dao);
+    daos.insert(id.clone(), dao);
+
+    // Persist DAO to SQLite
+    if let Some(d) = daos.get(&id) {
+        state.persist_dao(&id, d).await;
+    }
 
     state.emit(crate::state::RealtimeEvent::DaoCreated {
         id: response.id.clone(),
@@ -290,6 +296,9 @@ pub async fn add_member(
 
     dao.add_member(&req.did).map_err(ApiError::from)?;
 
+    // Persist DAO to SQLite
+    state.persist_dao(&dao_id, dao).await;
+
     Ok(Json(MutationResponse {
         success: true,
         message: format!("member {} added to {}", req.did, dao_id),
@@ -319,6 +328,9 @@ pub async fn remove_member(
         .ok_or_else(|| ApiError::not_found(format!("DAO {dao_id} not found")))?;
 
     dao.remove_member(&did).map_err(ApiError::from)?;
+
+    // Persist DAO to SQLite
+    state.persist_dao(&dao_id, dao).await;
 
     Ok(Json(MutationResponse {
         success: true,
@@ -364,12 +376,24 @@ pub async fn submit_proposal(
     // Create a VoteTally for this proposal
     let tally = VoteTally::new(&proposal.id, proposal.quorum, proposal.threshold);
 
+    let proposal_id = proposal.id.clone();
     let mut proposals = state.proposals.write().await;
-    proposals.insert(proposal.id.clone(), proposal);
+    proposals.insert(proposal_id.clone(), proposal);
+
+    // Persist proposal to SQLite
+    if let Some(p) = proposals.get(&proposal_id) {
+        state.persist_proposal(&proposal_id, p).await;
+    }
     drop(proposals);
 
+    let tally_id = response.id.clone();
     let mut tallies = state.tallies.write().await;
-    tallies.insert(response.id.clone(), tally);
+    tallies.insert(tally_id.clone(), tally);
+
+    // Persist tally to SQLite
+    if let Some(t) = tallies.get(&tally_id) {
+        state.persist_tally(&tally_id, t).await;
+    }
 
     state.emit(crate::state::RealtimeEvent::ProposalCreated {
         id: response.id.clone(),
@@ -477,6 +501,9 @@ pub async fn cast_vote(
     let voter = ballot.voter_did.clone();
     tally.cast(ballot).map_err(ApiError::from)?;
 
+    // Persist tally to SQLite
+    state.persist_tally(&proposal_id, tally).await;
+
     state.emit(crate::state::RealtimeEvent::VoteCast { proposal_id, voter });
 
     Ok(Json(MutationResponse {
@@ -547,9 +574,13 @@ pub async fn cast_private_vote(
     }
     drop(proposals);
 
+    let proposal_id = vote.proposal_id.clone();
     let mut private_votes = state.private_votes.write().await;
-    let votes = private_votes.entry(vote.proposal_id.clone()).or_default();
+    let votes = private_votes.entry(proposal_id.clone()).or_default();
     votes.push(vote);
+
+    // Persist private votes to SQLite
+    state.persist_private_votes(&proposal_id, votes).await;
 
     Ok(Json(MutationResponse {
         success: true,
@@ -667,12 +698,24 @@ pub async fn create_proposal(
 
     let tally = VoteTally::new(&proposal.id, proposal.quorum, proposal.threshold);
 
+    let pid = proposal.id.clone();
     let mut proposals = state.proposals.write().await;
-    proposals.insert(proposal.id.clone(), proposal);
+    proposals.insert(pid.clone(), proposal);
+
+    // Persist proposal to SQLite
+    if let Some(p) = proposals.get(&pid) {
+        state.persist_proposal(&pid, p).await;
+    }
     drop(proposals);
 
+    let tid = response.id.clone();
     let mut tallies = state.tallies.write().await;
-    tallies.insert(response.id.clone(), tally);
+    tallies.insert(tid.clone(), tally);
+
+    // Persist tally to SQLite
+    if let Some(t) = tallies.get(&tid) {
+        state.persist_tally(&tid, t).await;
+    }
 
     Ok(Json(response))
 }
@@ -741,6 +784,9 @@ pub async fn simple_vote(
         .ok_or_else(|| ApiError::internal("tally not initialized for proposal"))?;
 
     tally.cast(ballot).map_err(ApiError::from)?;
+
+    // Persist tally to SQLite
+    state.persist_tally(&proposal_id, tally).await;
 
     Ok(Json(MutationResponse {
         success: true,
@@ -855,7 +901,12 @@ pub async fn create_delegation(
         .map_err(ApiError::from)?;
 
     let delegation = registry.get(&id).unwrap();
-    Ok(Json(delegation_to_response(delegation)))
+    let resp = delegation_to_response(delegation);
+
+    // Persist delegations to SQLite
+    state.persist_delegations(&registry).await;
+
+    Ok(Json(resp))
 }
 
 #[derive(Debug, Deserialize, IntoParams)]
@@ -934,6 +985,9 @@ pub async fn revoke_delegation(
     registry
         .revoke(&delegation_id, &req.requester_did)
         .map_err(ApiError::from)?;
+
+    // Persist delegations to SQLite
+    state.persist_delegations(&registry).await;
 
     Ok(Json(MutationResponse {
         success: true,
@@ -1165,7 +1219,12 @@ pub async fn queue_execution(
         .map_err(ApiError::from)?;
 
     let execution = engine.get(&id).unwrap();
-    Ok(Json(execution_to_response(execution)))
+    let resp = execution_to_response(execution);
+
+    // Persist execution engine to SQLite
+    state.persist_execution_engine(&engine).await;
+
+    Ok(Json(resp))
 }
 
 #[derive(Debug, Deserialize, IntoParams)]
@@ -1255,6 +1314,9 @@ pub async fn execute(
     let execution = engine.get(&execution_id).unwrap();
     let status = format!("{:?}", execution.status);
 
+    // Persist execution engine to SQLite
+    state.persist_execution_engine(&engine).await;
+
     let action_results: Vec<ActionResultResponse> = results
         .into_iter()
         .map(|r| ActionResultResponse {
@@ -1286,6 +1348,9 @@ pub async fn cancel_execution(
 ) -> Result<Json<MutationResponse>, ApiError> {
     let mut engine = state.execution_engine.write().await;
     engine.cancel(&execution_id).map_err(ApiError::from)?;
+
+    // Persist execution engine to SQLite
+    state.persist_execution_engine(&engine).await;
 
     Ok(Json(MutationResponse {
         success: true,

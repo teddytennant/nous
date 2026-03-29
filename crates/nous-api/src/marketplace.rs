@@ -205,9 +205,15 @@ pub async fn create_listing(
     }
 
     let response = ListingResponse::from(&listing);
+    let id = listing.id.clone();
 
     let mut listings = state.listings.write().await;
-    listings.insert(listing.id.clone(), listing);
+    listings.insert(id.clone(), listing);
+
+    // Persist listing to SQLite
+    if let Some(l) = listings.get(&id) {
+        state.persist_listing(&id, l).await;
+    }
 
     Ok(Json(response))
 }
@@ -323,6 +329,9 @@ pub async fn purchase_listing(
 
     listing.purchase().map_err(ApiError::from)?;
 
+    // Persist listing to SQLite
+    state.persist_listing(&listing_id, listing).await;
+
     Ok(Json(MutationResponse {
         success: true,
         message: format!("purchased listing {listing_id}"),
@@ -350,6 +359,9 @@ pub async fn cancel_listing(
         .ok_or_else(|| ApiError::not_found(format!("listing {listing_id} not found")))?;
 
     listing.cancel(&query.seller_did).map_err(ApiError::from)?;
+
+    // Persist listing to SQLite
+    state.persist_listing(&listing_id, listing).await;
 
     Ok(Json(MutationResponse {
         success: true,
@@ -387,9 +399,15 @@ pub async fn create_review(
     .map_err(ApiError::from)?;
 
     let response = ReviewResponse::from(&review);
+    let id = review.id.clone();
 
     let mut reviews = state.reviews.write().await;
-    reviews.insert(review.id.clone(), review);
+    reviews.insert(id.clone(), review);
+
+    // Persist review to SQLite
+    if let Some(r) = reviews.get(&id) {
+        state.persist_review(&id, r).await;
+    }
 
     Ok(Json(response))
 }
@@ -573,8 +591,14 @@ pub async fn create_order(
         status: "Created".into(),
     });
 
+    let oid = order.id.clone();
     let mut orders = state.orders.write().await;
-    orders.insert(order.id.clone(), order);
+    orders.insert(oid.clone(), order);
+
+    // Persist order to SQLite
+    if let Some(o) = orders.get(&oid) {
+        state.persist_order(&oid, o).await;
+    }
 
     Ok(Json(response))
 }
@@ -637,6 +661,9 @@ pub async fn fund_order_escrow(
 
     order.fund_escrow(&req.escrow_id).map_err(ApiError::from)?;
 
+    // Persist order to SQLite
+    state.persist_order(&order_id, order).await;
+
     state.emit(crate::state::RealtimeEvent::OrderUpdate {
         id: order_id.clone(),
         status: "EscrowFunded".into(),
@@ -661,6 +688,9 @@ pub async fn ship_order(
     order
         .ship(&req.seller_did, &req.carrier, &req.tracking_id)
         .map_err(ApiError::from)?;
+
+    // Persist order to SQLite
+    state.persist_order(&order_id, order).await;
 
     state.emit(crate::state::RealtimeEvent::OrderUpdate {
         id: order_id.clone(),
@@ -687,6 +717,9 @@ pub async fn confirm_delivery(
         .confirm_delivery(&req.caller_did)
         .map_err(ApiError::from)?;
 
+    // Persist order to SQLite
+    state.persist_order(&order_id, order).await;
+
     state.emit(crate::state::RealtimeEvent::OrderUpdate {
         id: order_id.clone(),
         status: "Delivered".into(),
@@ -709,6 +742,9 @@ pub async fn complete_order(
         .ok_or_else(|| ApiError::not_found(format!("order {order_id} not found")))?;
 
     order.complete(&req.caller_did).map_err(ApiError::from)?;
+
+    // Persist order to SQLite
+    state.persist_order(&order_id, order).await;
 
     state.emit(crate::state::RealtimeEvent::OrderUpdate {
         id: order_id.clone(),
@@ -733,6 +769,9 @@ pub async fn cancel_order(
 
     order.cancel(&req.caller_did).map_err(ApiError::from)?;
 
+    // Persist order to SQLite
+    state.persist_order(&order_id, order).await;
+
     state.emit(crate::state::RealtimeEvent::OrderUpdate {
         id: order_id.clone(),
         status: "Cancelled".into(),
@@ -755,6 +794,9 @@ pub async fn dispute_order(
         .ok_or_else(|| ApiError::not_found(format!("order {order_id} not found")))?;
 
     order.dispute(&req.caller_did).map_err(ApiError::from)?;
+
+    // Persist order to SQLite
+    state.persist_order(&order_id, order).await;
 
     state.emit(crate::state::RealtimeEvent::OrderUpdate {
         id: order_id.clone(),
@@ -880,8 +922,14 @@ pub async fn create_dispute(
         order_id: dispute.order_id.clone(),
     });
 
+    let did = dispute.id.clone();
     let mut disputes = state.disputes.write().await;
-    disputes.insert(dispute.id.clone(), dispute);
+    disputes.insert(did.clone(), dispute);
+
+    // Persist dispute to SQLite
+    if let Some(d) = disputes.get(&did) {
+        state.persist_dispute(&did, d).await;
+    }
 
     Ok(Json(response))
 }
@@ -949,6 +997,9 @@ pub async fn add_dispute_evidence(
         .add_evidence(evidence, &req.submitted_by)
         .map_err(ApiError::from)?;
 
+    // Persist dispute to SQLite
+    state.persist_dispute(&dispute_id, dispute).await;
+
     Ok(Json(MutationResponse {
         success: true,
         message: format!("evidence added to dispute {dispute_id}"),
@@ -968,6 +1019,9 @@ pub async fn assign_dispute_arbiter(
     dispute
         .assign_arbiter(&req.arbiter_did)
         .map_err(ApiError::from)?;
+
+    // Persist dispute to SQLite
+    state.persist_dispute(&dispute_id, dispute).await;
 
     Ok(Json(MutationResponse {
         success: true,
@@ -989,6 +1043,9 @@ pub async fn resolve_dispute_buyer(
         .resolve_buyer_wins(&req.caller_did, &req.note)
         .map_err(ApiError::from)?;
 
+    // Persist dispute to SQLite
+    state.persist_dispute(&dispute_id, dispute).await;
+
     Ok(Json(MutationResponse {
         success: true,
         message: format!("dispute {dispute_id} resolved in buyer's favor"),
@@ -1009,6 +1066,9 @@ pub async fn resolve_dispute_seller(
         .resolve_seller_wins(&req.caller_did, &req.note)
         .map_err(ApiError::from)?;
 
+    // Persist dispute to SQLite
+    state.persist_dispute(&dispute_id, dispute).await;
+
     Ok(Json(MutationResponse {
         success: true,
         message: format!("dispute {dispute_id} resolved in seller's favor"),
@@ -1026,6 +1086,9 @@ pub async fn escalate_dispute(
         .ok_or_else(|| ApiError::not_found(format!("dispute {dispute_id} not found")))?;
 
     dispute.escalate(&req.caller_did).map_err(ApiError::from)?;
+
+    // Persist dispute to SQLite
+    state.persist_dispute(&dispute_id, dispute).await;
 
     Ok(Json(MutationResponse {
         success: true,
@@ -1133,8 +1196,14 @@ pub async fn create_offer(
         listing_id: offer.listing_id.clone(),
     });
 
+    let oid = offer.id.clone();
     let mut offers = state.offers.write().await;
-    offers.insert(offer.id.clone(), offer);
+    offers.insert(oid.clone(), offer);
+
+    // Persist offer to SQLite
+    if let Some(o) = offers.get(&oid) {
+        state.persist_offer(&oid, o).await;
+    }
 
     Ok(Json(response))
 }
@@ -1202,6 +1271,9 @@ pub async fn accept_offer(
 
     offer.accept(&req.caller_did).map_err(ApiError::from)?;
 
+    // Persist offer to SQLite
+    state.persist_offer(&offer_id, offer).await;
+
     Ok(Json(MutationResponse {
         success: true,
         message: format!("offer {offer_id} accepted"),
@@ -1219,6 +1291,9 @@ pub async fn reject_offer(
         .ok_or_else(|| ApiError::not_found(format!("offer {offer_id} not found")))?;
 
     offer.reject(&req.caller_did).map_err(ApiError::from)?;
+
+    // Persist offer to SQLite
+    state.persist_offer(&offer_id, offer).await;
 
     Ok(Json(MutationResponse {
         success: true,
@@ -1240,6 +1315,9 @@ pub async fn counter_offer(
         .counter(&req.seller_did, req.counter_amount)
         .map_err(ApiError::from)?;
 
+    // Persist offer to SQLite
+    state.persist_offer(&offer_id, offer).await;
+
     Ok(Json(MutationResponse {
         success: true,
         message: format!("offer {offer_id} countered"),
@@ -1257,6 +1335,9 @@ pub async fn withdraw_offer(
         .ok_or_else(|| ApiError::not_found(format!("offer {offer_id} not found")))?;
 
     offer.withdraw(&req.caller_did).map_err(ApiError::from)?;
+
+    // Persist offer to SQLite
+    state.persist_offer(&offer_id, offer).await;
 
     Ok(Json(MutationResponse {
         success: true,

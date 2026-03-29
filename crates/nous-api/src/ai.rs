@@ -135,7 +135,15 @@ pub async fn create_agent(
     }
 
     let response = AgentResponse::from(&agent);
-    state.agents.write().await.insert(id, agent);
+    let aid = id.clone();
+    let mut agents = state.agents.write().await;
+    agents.insert(id, agent);
+
+    // Persist agent to SQLite
+    if let Some(a) = agents.get(&aid) {
+        state.persist_agent(&aid, a).await;
+    }
+
     Ok(Json(response))
 }
 
@@ -173,6 +181,10 @@ pub async fn delete_agent(
     if removed.is_none() {
         return Err(ApiError::not_found(format!("agent {agent_id} not found")));
     }
+
+    // Delete agent from SQLite
+    state.delete_agent_entry(&agent_id).await;
+
     Ok(Json(serde_json::json!({"deleted": true})))
 }
 
@@ -218,6 +230,9 @@ pub async fn chat(
         agent.name
     );
     conv.add_message(Message::assistant(&response_text));
+
+    // Persist conversation to SQLite
+    state.persist_conversation(&conv_id, conv).await;
 
     Ok(Json(ChatResponse {
         conversation_id: conv_id,
@@ -287,6 +302,10 @@ pub async fn delete_conversation(
             "conversation {conversation_id} not found"
         )));
     }
+
+    // Delete conversation from SQLite
+    state.delete_conversation_entry(&conversation_id).await;
+
     Ok(Json(serde_json::json!({"deleted": true})))
 }
 

@@ -227,6 +227,10 @@ pub async fn follow_user(
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let mut graph = state.follow_graph.write().await;
     let added = graph.follow(&req.follower_did, &req.target_did);
+
+    // Persist follow graph to SQLite
+    state.persist_follow_graph(&graph).await;
+
     Ok(Json(serde_json::json!({
         "followed": added,
         "follower": req.follower_did,
@@ -246,6 +250,10 @@ pub async fn unfollow_user(
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let mut graph = state.follow_graph.write().await;
     let removed = graph.unfollow(&req.follower_did, &req.target_did);
+
+    // Persist follow graph to SQLite
+    state.persist_follow_graph(&graph).await;
+
     Ok(Json(serde_json::json!({
         "unfollowed": removed,
         "follower": req.follower_did,
