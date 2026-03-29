@@ -113,7 +113,9 @@ impl Listing {
             return Err(Error::PermissionDenied("only seller can cancel".into()));
         }
         if self.status != ListingStatus::Active {
-            return Err(Error::InvalidInput("can only cancel active listings".into()));
+            return Err(Error::InvalidInput(
+                "can only cancel active listings".into(),
+            ));
         }
         self.status = ListingStatus::Cancelled;
         Ok(())
@@ -123,11 +125,14 @@ impl Listing {
         let query_lower = query.to_lowercase();
         self.title.to_lowercase().contains(&query_lower)
             || self.description.to_lowercase().contains(&query_lower)
-            || self.tags.iter().any(|t| t.to_lowercase().contains(&query_lower))
+            || self
+                .tags
+                .iter()
+                .any(|t| t.to_lowercase().contains(&query_lower))
     }
 
     pub fn buyer_meets_reputation(&self, reputation: f64) -> bool {
-        self.min_reputation.map_or(true, |min| reputation >= min)
+        self.min_reputation.is_none_or(|min| reputation >= min)
     }
 }
 
@@ -157,12 +162,32 @@ mod tests {
 
     #[test]
     fn reject_empty_title() {
-        assert!(Listing::new("did:key:z", "", "desc", ListingCategory::Physical, "ETH", 100).is_err());
+        assert!(
+            Listing::new(
+                "did:key:z",
+                "",
+                "desc",
+                ListingCategory::Physical,
+                "ETH",
+                100
+            )
+            .is_err()
+        );
     }
 
     #[test]
     fn reject_zero_price() {
-        assert!(Listing::new("did:key:z", "Title", "desc", ListingCategory::Physical, "ETH", 0).is_err());
+        assert!(
+            Listing::new(
+                "did:key:z",
+                "Title",
+                "desc",
+                ListingCategory::Physical,
+                "ETH",
+                0
+            )
+            .is_err()
+        );
     }
 
     #[test]
