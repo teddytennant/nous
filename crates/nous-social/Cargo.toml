@@ -1,0 +1,21 @@
+[package]
+name = "nous-social"
+description = "Decentralized social — feeds, posts, follows, reactions"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+nous-core = { path = "../nous-core" }
+nous-crypto = { path = "../nous-crypto" }
+nous-identity = { path = "../nous-identity" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
