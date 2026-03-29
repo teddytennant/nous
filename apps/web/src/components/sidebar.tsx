@@ -12,6 +12,7 @@ const nav = [
   { name: "Marketplace", href: "/marketplace" },
   { name: "Wallet", href: "/wallet" },
   { name: "Identity", href: "/identity" },
+  { name: "Settings", href: "/settings" },
 ];
 
 export function Sidebar() {
