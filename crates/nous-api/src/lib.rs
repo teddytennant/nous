@@ -84,6 +84,27 @@ pub fn router(config: ApiConfig) -> Router {
             "/votes/private/{proposal_id}",
             get(governance::get_private_tally),
         )
+        // Governance — Delegation
+        .route("/delegations", post(governance::create_delegation))
+        .route("/delegations", get(governance::list_delegations))
+        .route("/delegations/power", get(governance::get_effective_power))
+        .route("/delegations/chain", get(governance::get_delegation_chain))
+        .route(
+            "/delegations/{delegation_id}/revoke",
+            post(governance::revoke_delegation),
+        )
+        // Governance — Execution
+        .route("/executions", post(governance::queue_execution))
+        .route("/executions", get(governance::list_executions))
+        .route("/executions/{execution_id}", get(governance::get_execution))
+        .route(
+            "/executions/{execution_id}/execute",
+            post(governance::execute),
+        )
+        .route(
+            "/executions/{execution_id}/cancel",
+            post(governance::cancel_execution),
+        )
         // Marketplace — Listings
         .route("/listings", post(marketplace::create_listing))
         .route("/listings", get(marketplace::search_listings))
