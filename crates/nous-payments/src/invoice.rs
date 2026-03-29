@@ -94,7 +94,9 @@ impl Invoice {
 
     pub fn cancel(&mut self) -> Result<(), Error> {
         if self.status != InvoiceStatus::Pending {
-            return Err(Error::InvalidInput("can only cancel pending invoices".into()));
+            return Err(Error::InvalidInput(
+                "can only cancel pending invoices".into(),
+            ));
         }
         self.status = InvoiceStatus::Cancelled;
         Ok(())
@@ -163,8 +165,7 @@ mod tests {
 
     #[test]
     fn with_memo() {
-        let inv = Invoice::new("alice", "bob", "ETH", 30)
-            .with_memo("payment for services");
+        let inv = Invoice::new("alice", "bob", "ETH", 30).with_memo("payment for services");
         assert_eq!(inv.memo.as_deref(), Some("payment for services"));
     }
 
