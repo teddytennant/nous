@@ -5,6 +5,7 @@ pub mod graphql;
 pub mod grpc;
 pub mod middleware;
 pub mod nostr;
+pub mod openapi;
 pub mod routes;
 pub mod state;
 
@@ -17,6 +18,11 @@ use axum::Router;
 use state::AppState;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
+use utoipa::OpenApi;
+
+async fn openapi_spec() -> axum::Json<utoipa::openapi::OpenApi> {
+    axum::Json(openapi::NousApiDoc::openapi())
+}
 
 pub fn router(config: ApiConfig) -> Router {
     let state = AppState::new(config);
@@ -42,6 +48,7 @@ pub fn router(config: ApiConfig) -> Router {
     Router::new()
         .nest("/api/v1", api)
         .route("/graphql", post(graphql::graphql_handler))
+        .route("/api-docs/openapi.json", get(openapi_spec))
         .layer(axum_mw::from_fn(middleware::request_logger))
         .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive())
