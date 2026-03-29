@@ -216,6 +216,11 @@ pub async fn issue_credential(
         .or_default()
         .push(credential);
 
+    // Persist credentials to SQLite
+    if let Some(creds) = credentials.get(&req.subject_did) {
+        state.persist_credentials(&req.subject_did, creds).await;
+    }
+
     Ok(Json(resp))
 }
 

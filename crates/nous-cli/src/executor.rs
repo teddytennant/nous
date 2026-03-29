@@ -638,25 +638,91 @@ impl Executor {
     async fn net(&self, cmd: NetCommand) -> Result<(), String> {
         match cmd {
             NetCommand::Peers => {
-                self.output.success("No peers connected.");
+                // Boot a transient node to discover peers via mDNS.
+                let config = nous_node::NodeConfig {
+                    data_dir: self.data_dir.clone(),
+                    display_name: None,
+                    network: nous_net::NodeConfig::default(),
+                };
+                let mut node =
+                    nous_node::NousNode::new(config).map_err(|e| format!("node init: {e}"))?;
+
+                self.output.success(&format!(
+                    "Local peer ID: {}\nDID: {}\nStarting peer discovery...",
+                    node.peer_id().map(|p| p.to_string()).unwrap_or_default(),
+                    node.did()
+                ));
+
+                node.start()
+                    .await
+                    .map_err(|e| format!("node start: {e}"))?;
+
+                // Let mDNS discover peers for a few seconds.
+                tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+
+                node.shutdown().await;
+                self.output.success("Peer discovery complete.");
                 Ok(())
             }
             NetCommand::Status => {
+                let config = nous_node::NodeConfig {
+                    data_dir: self.data_dir.clone(),
+                    display_name: None,
+                    network: nous_net::NodeConfig::default(),
+                };
+                let node = nous_node::NousNode::new(config)
+                    .map_err(|e| format!("node init: {e}"))?;
+
                 self.output.table(
                     &["Property", "Value"],
                     &[
                         vec!["Protocol".into(), "libp2p".into()],
                         vec!["Transport".into(), "TCP + Noise + Yamux".into()],
                         vec!["Discovery".into(), "mDNS + Kademlia".into()],
-                        vec!["Status".into(), "offline".into()],
+                        vec!["DID".into(), node.did().to_string()],
+                        vec![
+                            "Peer ID".into(),
+                            node.peer_id()
+                                .map(|p| p.to_string())
+                                .unwrap_or_else(|| "unknown".into()),
+                        ],
+                        vec![
+                            "Status".into(),
+                            if node.is_running() {
+                                "online"
+                            } else {
+                                "ready (not started)"
+                            }
+                            .into(),
+                        ],
                     ],
                 );
                 Ok(())
             }
             NetCommand::Connect { addr } => {
-                self.output.success(&format!(
-                    "Connect to {addr}: not yet implemented in offline mode"
-                ));
+                let config = nous_node::NodeConfig {
+                    data_dir: self.data_dir.clone(),
+                    display_name: None,
+                    network: nous_net::NodeConfig {
+                        bootstrap_peers: vec![addr.clone()],
+                        ..Default::default()
+                    },
+                };
+                let mut node =
+                    nous_node::NousNode::new(config).map_err(|e| format!("node init: {e}"))?;
+
+                node.start()
+                    .await
+                    .map_err(|e| format!("node start: {e}"))?;
+
+                self.output
+                    .success(&format!("Connecting to {addr}..."));
+
+                // Give time for the connection to establish.
+                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+
+                node.shutdown().await;
+                self.output.success("Connection attempt complete.");
                 Ok(())
             }
         }

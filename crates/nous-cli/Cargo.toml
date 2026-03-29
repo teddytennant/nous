@@ -25,6 +25,7 @@ nous-governance = { path = "../nous-governance" }
 nous-marketplace = { path = "../nous-marketplace" }
 nous-ai = { path = "../nous-ai" }
 nous-terminal = { path = "../nous-terminal" }
+nous-node = { path = "../nous-node" }
 clap = { workspace = true }
 tokio = { workspace = true }
 serde = { workspace = true }

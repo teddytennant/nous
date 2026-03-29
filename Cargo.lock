@@ -3146,12 +3146,14 @@ dependencies = [
  "nous-identity",
  "nous-marketplace",
  "nous-messaging",
+ "nous-node",
  "nous-nostr",
  "nous-payments",
  "nous-social",
  "nous-storage",
  "prost",
  "rand 0.8.5",
+ "rusqlite",
  "serde",
  "serde_json",
  "tempfile",
@@ -3218,6 +3220,7 @@ dependencies = [
  "nous-marketplace",
  "nous-messaging",
  "nous-net",
+ "nous-node",
  "nous-payments",
  "nous-social",
  "nous-storage",
@@ -3409,6 +3412,24 @@ dependencies = [
  "serde_json",
  "tempfile",
  "thiserror 2.0.18",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "nous-node"
+version = "0.1.0"
+dependencies = [
+ "libp2p",
+ "nous-core",
+ "nous-identity",
+ "nous-messaging",
+ "nous-net",
+ "nous-storage",
+ "serde",
+ "serde_json",
+ "tempfile",
  "tokio",
  "tracing",
  "tracing-subscriber",

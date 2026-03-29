@@ -24,6 +24,8 @@ nous-files = { path = "../nous-files" }
 nous-marketplace = { path = "../nous-marketplace" }
 nous-payments = { path = "../nous-payments" }
 nous-ai = { path = "../nous-ai" }
+nous-node = { path = "../nous-node" }
+rusqlite = { workspace = true }
 base64 = { workspace = true }
 axum = { version = "0.8", features = ["json", "query", "ws"] }
 futures = { workspace = true }

@@ -31,9 +31,14 @@ async fn openapi_spec() -> axum::Json<utoipa::openapi::OpenApi> {
     axum::Json(openapi::NousApiDoc::openapi())
 }
 
+/// Build a router with an in-memory database (tests / backwards compatibility).
 pub fn router(config: ApiConfig) -> Router {
     let state = AppState::new(config);
+    router_with_state(state)
+}
 
+/// Build a router backed by a pre-constructed AppState (allows real DB).
+pub fn router_with_state(state: std::sync::Arc<AppState>) -> Router {
     let api = Router::new()
         // Node
         .route("/health", get(routes::health))
@@ -290,11 +295,27 @@ pub fn router(config: ApiConfig) -> Router {
         .with_state(state)
 }
 
+/// Start the API server with an in-memory database (backwards compatible).
 pub async fn serve(config: ApiConfig) -> Result<(), Box<dyn std::error::Error>> {
+    let state = AppState::new(config.clone());
+    serve_internal(config, state).await
+}
+
+/// Start the API server backed by a real SQLite database.
+pub async fn serve_with_db(
+    config: ApiConfig,
+    db: nous_storage::Database,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let state = AppState::with_db(config.clone(), db);
+    serve_internal(config, state).await
+}
+
+async fn serve_internal(
+    config: ApiConfig,
+    state: std::sync::Arc<AppState>,
+) -> Result<(), Box<dyn std::error::Error>> {
     let addr = format!("{}:{}", config.host, config.port);
     let grpc_addr = format!("{}:{}", config.host, config.port + 1);
-
-    let state = AppState::new(config.clone());
 
     // gRPC server
     let grpc_handle = {
@@ -334,7 +355,7 @@ pub async fn serve(config: ApiConfig) -> Result<(), Box<dyn std::error::Error>> 
     };
 
     // REST + GraphQL server
-    let app = router(config);
+    let app = router_with_state(state);
     let listener = tokio::net::TcpListener::bind(&addr).await?;
     tracing::info!(%addr, "nous API server listening");
 
@@ -344,6 +365,30 @@ pub async fn serve(config: ApiConfig) -> Result<(), Box<dyn std::error::Error>> 
     }
 
     Ok(())
+}
+
+/// Start the API server with an existing NousNode providing identity and
+/// networking. Opens a second SQLite connection to the node's database so the
+/// API layer has its own handle for concurrent writes (SQLite WAL supports this).
+pub async fn serve_with_node(
+    config: ApiConfig,
+    node: &nous_node::NousNode,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // Open a separate DB connection to the same file the node uses.
+    let db_path = node.config().data_dir.join("nous.db");
+    let db = nous_storage::Database::open(&db_path)?;
+    let state = AppState::with_db(config.clone(), db);
+
+    // Seed the API state with the node's identity.
+    {
+        let mut identities = state.identities.write().await;
+        let did = node.did().to_string();
+        tracing::info!(%did, "seeding API state with node identity");
+        let id_copy = nous_identity::Identity::restore(&node.identity.export_signing_key())?;
+        identities.insert(did, id_copy);
+    }
+
+    serve_internal(config, state).await
 }
 
 #[cfg(test)]

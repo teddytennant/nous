@@ -141,8 +141,15 @@ pub async fn create_channel(
     };
 
     let resp = ChannelResponse::from(&channel);
+    let id = channel.id.clone();
     let mut channels = state.channels.write().await;
-    channels.insert(channel.id.clone(), channel);
+    channels.insert(id.clone(), channel);
+
+    // Persist channel to SQLite
+    if let Some(ch) = channels.get(&id) {
+        state.persist_channel(&id, ch).await;
+    }
+
     Ok(Json(resp))
 }
 
@@ -210,6 +217,10 @@ pub async fn add_channel_member(
         .get_mut(&channel_id)
         .ok_or_else(|| ApiError::not_found(format!("channel {channel_id} not found")))?;
     channel.add_member(&req.did);
+
+    // Persist channel update to SQLite
+    state.persist_channel(&channel_id, channel).await;
+
     Ok(Json(
         serde_json::json!({"added": req.did, "channel": channel_id}),
     ))
@@ -237,6 +248,9 @@ pub async fn remove_channel_member(
         .ok_or_else(|| ApiError::not_found(format!("channel {channel_id} not found")))?;
     let removed = channel.remove_member(&did);
     if removed {
+        // Persist channel update to SQLite
+        state.persist_channel(&channel_id, channel).await;
+
         Ok(Json(
             serde_json::json!({"removed": did, "channel": channel_id}),
         ))
@@ -297,6 +311,11 @@ pub async fn send_message(
         .entry(req.channel_id.clone())
         .or_default()
         .push(message);
+
+    // Persist messages for this channel to SQLite
+    if let Some(msgs) = messages.get(&req.channel_id) {
+        state.persist_channel_messages(&req.channel_id, msgs).await;
+    }
 
     state.emit(crate::state::RealtimeEvent::NewMessage {
         channel_id: req.channel_id.clone(),
@@ -374,9 +393,14 @@ pub async fn delete_message(
     Path(message_id): Path<String>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let mut messages = state.messages.write().await;
-    for msgs in messages.values_mut() {
+    for (channel_id, msgs) in messages.iter_mut() {
         if let Some(pos) = msgs.iter().position(|m| m.id == message_id) {
             msgs.remove(pos);
+            // Persist messages for this channel to SQLite
+            let ch_id = channel_id.clone();
+            let msgs_snapshot = msgs.clone();
+            drop(messages);
+            state.persist_channel_messages(&ch_id, &msgs_snapshot).await;
             return Ok(Json(serde_json::json!({"deleted": message_id})));
         }
     }

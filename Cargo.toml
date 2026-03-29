@@ -16,6 +16,7 @@ members = [
     "crates/nous-browser",
     "crates/nous-api",
     "crates/nous-tui",
+    "crates/nous-node",
     "crates/nous-cli",
     "crates/nous-nostr",
     "crates/nous-integration",

@@ -1,0 +1,25 @@
+[package]
+name = "nous-node"
+description = "Node orchestrator — ties identity, storage, networking, and messaging together"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+nous-core = { path = "../nous-core" }
+nous-identity = { path = "../nous-identity" }
+nous-storage = { path = "../nous-storage" }
+nous-net = { path = "../nous-net" }
+nous-messaging = { path = "../nous-messaging" }
+libp2p = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+tokio = { workspace = true, features = ["test-util"] }
+tracing-subscriber = { workspace = true }
