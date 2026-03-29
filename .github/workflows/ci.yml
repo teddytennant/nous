@@ -132,6 +132,28 @@ jobs:
           npm ci 2>/dev/null || true
           cargo build --manifest-path src-tauri/Cargo.toml
 
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: arduino/setup-protoc@v3
+        with:
+          version: "25.x"
+      - uses: Swatinem/rust-cache@v2
+      - name: Run integration tests
+        run: cargo test -p nous-integration --test '*'
+
+  audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: rustsec/audit-check@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
   bench:
     name: Benchmarks
     runs-on: ubuntu-latest
