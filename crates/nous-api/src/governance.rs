@@ -5,7 +5,7 @@ use std::sync::Arc;
 use utoipa::{IntoParams, ToSchema};
 
 use nous_governance::{
-    Ballot, CommittedVote, Dao, Proposal, VoteResult, VoteTally,
+    Ballot, CommittedVote, Dao, Proposal, VoteChoice, VoteResult, VoteTally,
 };
 
 use crate::error::ApiError;
@@ -589,6 +589,154 @@ pub async fn get_private_tally(
     }))
 }
 
+// ── Convenience Handlers (custodial signing) ─────────────────────────────
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct SimpleProposalRequest {
+    pub proposer_did: String,
+    pub title: String,
+    pub description: String,
+    pub quorum: Option<f64>,
+    pub threshold: Option<f64>,
+    pub voting_days: Option<i64>,
+}
+
+#[utoipa::path(
+    post, path = "/api/v1/daos/{dao_id}/proposals",
+    tag = "governance",
+    params(("dao_id" = String, Path, description = "DAO identifier")),
+    request_body = SimpleProposalRequest,
+    responses(
+        (status = 200, description = "Proposal created"),
+        (status = 400, description = "Invalid request"),
+        (status = 404, description = "DAO or identity not found")
+    )
+)]
+pub async fn create_proposal(
+    State(state): State<Arc<AppState>>,
+    Path(dao_id): Path<String>,
+    Json(req): Json<SimpleProposalRequest>,
+) -> Result<Json<ProposalResponse>, ApiError> {
+    if req.title.is_empty() {
+        return Err(ApiError::bad_request("title cannot be empty"));
+    }
+    if req.proposer_did.is_empty() {
+        return Err(ApiError::bad_request("proposer_did cannot be empty"));
+    }
+
+    // Verify DAO exists and proposer is a member
+    let daos = state.daos.read().await;
+    let dao = daos
+        .get(&dao_id)
+        .ok_or_else(|| ApiError::not_found(format!("DAO {dao_id} not found")))?;
+    if !dao.is_member(&req.proposer_did) {
+        return Err(ApiError::unauthorized("proposer is not a DAO member"));
+    }
+    drop(daos);
+
+    // Look up stored identity for signing
+    let identities = state.identities.read().await;
+    let identity = identities
+        .get(&req.proposer_did)
+        .ok_or_else(|| ApiError::not_found("identity not found — create one first"))?;
+
+    let mut builder = nous_governance::proposal::ProposalBuilder::new(
+        &dao_id,
+        &req.title,
+        &req.description,
+    );
+    if let Some(q) = req.quorum {
+        builder = builder.quorum(q);
+    }
+    if let Some(t) = req.threshold {
+        builder = builder.threshold(t);
+    }
+    if let Some(days) = req.voting_days {
+        builder = builder.voting_duration(chrono::Duration::days(days));
+    }
+
+    let proposal = builder.submit(identity).map_err(ApiError::from)?;
+    let response = ProposalResponse::from(&proposal);
+
+    drop(identities);
+
+    let tally = VoteTally::new(&proposal.id, proposal.quorum, proposal.threshold);
+
+    let mut proposals = state.proposals.write().await;
+    proposals.insert(proposal.id.clone(), proposal);
+    drop(proposals);
+
+    let mut tallies = state.tallies.write().await;
+    tallies.insert(response.id.clone(), tally);
+
+    Ok(Json(response))
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct SimpleVoteRequest {
+    pub voter_did: String,
+    pub choice: String,
+    pub credits: u64,
+}
+
+#[utoipa::path(
+    post, path = "/api/v1/proposals/{proposal_id}/vote",
+    tag = "governance",
+    params(("proposal_id" = String, Path, description = "Proposal identifier")),
+    request_body = SimpleVoteRequest,
+    responses(
+        (status = 200, description = "Vote cast"),
+        (status = 400, description = "Invalid request"),
+        (status = 404, description = "Proposal or identity not found")
+    )
+)]
+pub async fn simple_vote(
+    State(state): State<Arc<AppState>>,
+    Path(proposal_id): Path<String>,
+    Json(req): Json<SimpleVoteRequest>,
+) -> Result<Json<MutationResponse>, ApiError> {
+    if req.voter_did.is_empty() {
+        return Err(ApiError::bad_request("voter_did cannot be empty"));
+    }
+
+    let choice = match req.choice.to_lowercase().as_str() {
+        "for" => VoteChoice::For,
+        "against" => VoteChoice::Against,
+        "abstain" => VoteChoice::Abstain,
+        _ => return Err(ApiError::bad_request("choice must be for, against, or abstain")),
+    };
+
+    // Verify proposal exists
+    let proposals = state.proposals.read().await;
+    if !proposals.contains_key(&proposal_id) {
+        return Err(ApiError::not_found(format!("proposal {proposal_id} not found")));
+    }
+    drop(proposals);
+
+    // Look up stored identity for signing
+    let identities = state.identities.read().await;
+    let identity = identities
+        .get(&req.voter_did)
+        .ok_or_else(|| ApiError::not_found("identity not found — create one first"))?;
+
+    let ballot = Ballot::new(&proposal_id, identity, choice, req.credits)
+        .map_err(ApiError::from)?;
+
+    drop(identities);
+
+    let mut tallies = state.tallies.write().await;
+    let tally = tallies
+        .get_mut(&proposal_id)
+        .ok_or_else(|| ApiError::internal("tally not initialized for proposal"))?;
+
+    tally.cast(ballot).map_err(ApiError::from)?;
+
+    Ok(Json(MutationResponse {
+        success: true,
+        message: "vote cast".into(),
+    }))
+}
+
 // ── Tests ──────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -1103,5 +1251,265 @@ mod tests {
         let bytes = response.into_body().collect().await.unwrap().to_bytes();
         let result: PrivateTallyResponse = serde_json::from_slice(&bytes).unwrap();
         assert_eq!(result.total_votes, 0);
+    }
+
+    // Helper: create identity via API, returns DID
+    async fn create_test_identity(app: &axum::Router) -> String {
+        let response = app
+            .clone()
+            .oneshot(json_request(
+                "POST",
+                "/api/v1/identities",
+                serde_json::json!({ "display_name": "Test User" }),
+            ))
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = response.into_body().collect().await.unwrap().to_bytes();
+        let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        body["did"].as_str().unwrap().to_string()
+    }
+
+    #[tokio::test]
+    async fn convenience_create_proposal() {
+        let app = test_app().await;
+        let did = create_test_identity(&app).await;
+
+        // Create DAO with this identity as founder
+        let response = app
+            .clone()
+            .oneshot(json_request(
+                "POST",
+                "/api/v1/daos",
+                serde_json::json!({
+                    "founder_did": &did,
+                    "name": "ConvDAO",
+                    "description": "Test convenience endpoints"
+                }),
+            ))
+            .await
+            .unwrap();
+
+        let bytes = response.into_body().collect().await.unwrap().to_bytes();
+        let dao: DaoResponse = serde_json::from_slice(&bytes).unwrap();
+
+        // Create proposal via convenience endpoint
+        let response = app
+            .clone()
+            .oneshot(json_request(
+                "POST",
+                &format!("/api/v1/daos/{}/proposals", dao.id),
+                serde_json::json!({
+                    "proposer_did": &did,
+                    "title": "Fund development",
+                    "description": "Allocate 1000 tokens to dev team"
+                }),
+            ))
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = response.into_body().collect().await.unwrap().to_bytes();
+        let prop: ProposalResponse = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(prop.title, "Fund development");
+        assert_eq!(prop.dao_id, dao.id);
+    }
+
+    #[tokio::test]
+    async fn convenience_vote_on_proposal() {
+        let app = test_app().await;
+        let proposer_did = create_test_identity(&app).await;
+        let voter_did = create_test_identity(&app).await;
+
+        // Create DAO
+        let response = app
+            .clone()
+            .oneshot(json_request(
+                "POST",
+                "/api/v1/daos",
+                serde_json::json!({
+                    "founder_did": &proposer_did,
+                    "name": "VoteDAO",
+                    "description": "Test voting"
+                }),
+            ))
+            .await
+            .unwrap();
+
+        let bytes = response.into_body().collect().await.unwrap().to_bytes();
+        let dao: DaoResponse = serde_json::from_slice(&bytes).unwrap();
+
+        // Add voter as member
+        let _ = app
+            .clone()
+            .oneshot(json_request(
+                "POST",
+                &format!("/api/v1/daos/{}/members", dao.id),
+                serde_json::json!({ "did": &voter_did }),
+            ))
+            .await
+            .unwrap();
+
+        // Create proposal via convenience endpoint
+        let response = app
+            .clone()
+            .oneshot(json_request(
+                "POST",
+                &format!("/api/v1/daos/{}/proposals", dao.id),
+                serde_json::json!({
+                    "proposer_did": &proposer_did,
+                    "title": "Vote test",
+                    "description": "Testing simple vote"
+                }),
+            ))
+            .await
+            .unwrap();
+
+        let bytes = response.into_body().collect().await.unwrap().to_bytes();
+        let prop: ProposalResponse = serde_json::from_slice(&bytes).unwrap();
+
+        // Cast vote via convenience endpoint
+        let response = app
+            .clone()
+            .oneshot(json_request(
+                "POST",
+                &format!("/api/v1/proposals/{}/vote", prop.id),
+                serde_json::json!({
+                    "voter_did": &voter_did,
+                    "choice": "for",
+                    "credits": 16
+                }),
+            ))
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        // Check tally
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/api/v1/votes/{}", prop.id))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = response.into_body().collect().await.unwrap().to_bytes();
+        let tally: VoteResultResponse = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(tally.votes_for, 4); // sqrt(16) = 4
+        assert_eq!(tally.total_voters, 1);
+    }
+
+    #[tokio::test]
+    async fn convenience_proposal_rejects_non_member() {
+        let app = test_app().await;
+        let founder_did = create_test_identity(&app).await;
+        let outsider_did = create_test_identity(&app).await;
+
+        let response = app
+            .clone()
+            .oneshot(json_request(
+                "POST",
+                "/api/v1/daos",
+                serde_json::json!({
+                    "founder_did": &founder_did,
+                    "name": "ClosedDAO",
+                    "description": "Members only"
+                }),
+            ))
+            .await
+            .unwrap();
+
+        let bytes = response.into_body().collect().await.unwrap().to_bytes();
+        let dao: DaoResponse = serde_json::from_slice(&bytes).unwrap();
+
+        // Try to create proposal as non-member
+        let response = app
+            .clone()
+            .oneshot(json_request(
+                "POST",
+                &format!("/api/v1/daos/{}/proposals", dao.id),
+                serde_json::json!({
+                    "proposer_did": &outsider_did,
+                    "title": "Rejected",
+                    "description": "Should fail"
+                }),
+            ))
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn convenience_vote_invalid_choice() {
+        let app = test_app().await;
+        let did = create_test_identity(&app).await;
+
+        let response = app
+            .clone()
+            .oneshot(json_request(
+                "POST",
+                "/api/v1/proposals/prop:fake/vote",
+                serde_json::json!({
+                    "voter_did": &did,
+                    "choice": "maybe",
+                    "credits": 1
+                }),
+            ))
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn convenience_proposal_with_custom_params() {
+        let app = test_app().await;
+        let did = create_test_identity(&app).await;
+
+        let response = app
+            .clone()
+            .oneshot(json_request(
+                "POST",
+                "/api/v1/daos",
+                serde_json::json!({
+                    "founder_did": &did,
+                    "name": "CustomDAO",
+                    "description": "Test custom params"
+                }),
+            ))
+            .await
+            .unwrap();
+
+        let bytes = response.into_body().collect().await.unwrap().to_bytes();
+        let dao: DaoResponse = serde_json::from_slice(&bytes).unwrap();
+
+        let response = app
+            .clone()
+            .oneshot(json_request(
+                "POST",
+                &format!("/api/v1/daos/{}/proposals", dao.id),
+                serde_json::json!({
+                    "proposer_did": &did,
+                    "title": "Custom vote",
+                    "description": "Custom parameters",
+                    "quorum": 0.33,
+                    "threshold": 0.67,
+                    "voting_days": 3
+                }),
+            ))
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = response.into_body().collect().await.unwrap().to_bytes();
+        let prop: ProposalResponse = serde_json::from_slice(&bytes).unwrap();
+        assert!((prop.quorum - 0.33).abs() < f64::EPSILON);
+        assert!((prop.threshold - 0.67).abs() < f64::EPSILON);
     }
 }
