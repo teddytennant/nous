@@ -2,6 +2,7 @@ pub mod app;
 pub mod client;
 pub mod config;
 pub mod input;
+pub mod poll;
 pub mod tabs;
 #[cfg(unix)]
 pub mod terminal_panel;
