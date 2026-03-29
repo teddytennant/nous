@@ -3,6 +3,7 @@ pub mod error;
 pub mod graphql;
 pub mod grpc;
 pub mod middleware;
+pub mod nostr;
 pub mod routes;
 pub mod state;
 
