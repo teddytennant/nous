@@ -86,8 +86,8 @@ impl Escrow {
         }
 
         // Only buyer or arbiter can release funds to seller
-        let authorized = caller_did == self.buyer_did
-            || self.arbiter_did.as_deref() == Some(caller_did);
+        let authorized =
+            caller_did == self.buyer_did || self.arbiter_did.as_deref() == Some(caller_did);
 
         if !authorized {
             return Err(Error::PermissionDenied(
@@ -108,8 +108,8 @@ impl Escrow {
         }
 
         // Only seller or arbiter can refund
-        let authorized = caller_did == self.seller_did
-            || self.arbiter_did.as_deref() == Some(caller_did);
+        let authorized =
+            caller_did == self.seller_did || self.arbiter_did.as_deref() == Some(caller_did);
 
         if !authorized {
             return Err(Error::PermissionDenied(
