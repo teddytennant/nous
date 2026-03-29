@@ -216,6 +216,11 @@ pub async fn create_dao(
     let mut daos = state.daos.write().await;
     daos.insert(dao.id.clone(), dao);
 
+    state.emit(crate::state::RealtimeEvent::DaoCreated {
+        id: response.id.clone(),
+        name: response.name.clone(),
+    });
+
     Ok(Json(response))
 }
 
@@ -363,6 +368,12 @@ pub async fn submit_proposal(
     let mut tallies = state.tallies.write().await;
     tallies.insert(response.id.clone(), tally);
 
+    state.emit(crate::state::RealtimeEvent::ProposalCreated {
+        id: response.id.clone(),
+        title: response.title.clone(),
+        dao_id: response.dao_id.clone(),
+    });
+
     Ok(Json(response))
 }
 
@@ -459,7 +470,14 @@ pub async fn cast_vote(
         .get_mut(&ballot.proposal_id)
         .ok_or_else(|| ApiError::internal("tally not initialized for proposal"))?;
 
+    let proposal_id = ballot.proposal_id.clone();
+    let voter = ballot.voter_did.clone();
     tally.cast(ballot).map_err(ApiError::from)?;
+
+    state.emit(crate::state::RealtimeEvent::VoteCast {
+        proposal_id,
+        voter,
+    });
 
     Ok(Json(MutationResponse {
         success: true,
