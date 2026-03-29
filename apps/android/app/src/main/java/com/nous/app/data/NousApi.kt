@@ -96,6 +96,75 @@ data class ProposalListResponse(
 )
 
 @Serializable
+data class TransactionResponse(
+    val id: String,
+    val from_did: String,
+    val to_did: String,
+    val token: String,
+    val amount: String,
+    val memo: String? = null,
+    val status: String,
+    val created_at: String,
+)
+
+@Serializable
+data class TransactionListResponse(
+    val transactions: List<TransactionResponse>,
+    val count: Int,
+)
+
+@Serializable
+data class ChannelResponse(
+    val id: String,
+    val name: String,
+    val channel_type: String,
+    val member_count: Int,
+    val last_message: String? = null,
+    val last_message_at: String? = null,
+    val created_at: String,
+)
+
+@Serializable
+data class ChannelListResponse(
+    val channels: List<ChannelResponse>,
+    val count: Int,
+)
+
+@Serializable
+data class MessageResponse(
+    val id: String,
+    val channel_id: String,
+    val sender_did: String,
+    val content: String,
+    val created_at: String,
+)
+
+@Serializable
+data class MessageListResponse(
+    val messages: List<MessageResponse>,
+    val count: Int,
+)
+
+@Serializable
+data class SendMessageRequest(
+    val content: String,
+)
+
+@Serializable
+data class SendTransactionRequest(
+    val to_did: String,
+    val token: String,
+    val amount: String,
+    val memo: String? = null,
+)
+
+@Serializable
+data class CreatePostRequest(
+    val content: String,
+    val tags: List<String> = emptyList(),
+)
+
+@Serializable
 data class CreateIdentityRequest(
     val display_name: String? = null,
 )
@@ -134,4 +203,31 @@ class NousApi(private val baseUrl: String = "http://10.0.2.2:8080/api/v1") {
 
     suspend fun listProposals(): ProposalListResponse =
         client.get("$baseUrl/proposals").body()
+
+    suspend fun getTransactions(did: String, limit: Int = 50): TransactionListResponse =
+        client.get("$baseUrl/wallets/$did/transactions?limit=$limit").body()
+
+    suspend fun sendTransaction(fromDid: String, request: SendTransactionRequest): TransactionResponse =
+        client.post("$baseUrl/wallets/$fromDid/send") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
+
+    suspend fun listChannels(): ChannelListResponse =
+        client.get("$baseUrl/channels").body()
+
+    suspend fun getMessages(channelId: String, limit: Int = 50): MessageListResponse =
+        client.get("$baseUrl/channels/$channelId/messages?limit=$limit").body()
+
+    suspend fun sendMessage(channelId: String, request: SendMessageRequest): MessageResponse =
+        client.post("$baseUrl/channels/$channelId/messages") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
+
+    suspend fun createPost(request: CreatePostRequest): FeedEvent =
+        client.post("$baseUrl/feed") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
 }
