@@ -182,10 +182,7 @@ impl DoubleRatchet {
         }
 
         if let Some(mut ck) = self.chain_recv {
-            let pub_bytes = self
-                .dh_remote
-                .map(|pk| pk.to_bytes())
-                .unwrap_or([0u8; 32]);
+            let pub_bytes = self.dh_remote.map(|pk| pk.to_bytes()).unwrap_or([0u8; 32]);
 
             while self.recv_count < until {
                 let (new_ck, mk) = kdf_chain(&ck);
@@ -239,8 +236,8 @@ impl DoubleRatchet {
 
     /// Restore a ratchet from persisted bytes (produced by `to_persisted`).
     pub fn from_persisted(bytes: &[u8]) -> Result<Self> {
-        let state: PersistedRatchetState =
-            serde_json::from_slice(bytes).map_err(|e| Error::Crypto(format!("ratchet deserialize: {e}")))?;
+        let state: PersistedRatchetState = serde_json::from_slice(bytes)
+            .map_err(|e| Error::Crypto(format!("ratchet deserialize: {e}")))?;
 
         let dh_self = StaticSecret::from(state.dh_self_secret);
         let dh_self_pub = X25519PublicKey::from(state.dh_self_pub);
@@ -443,7 +440,8 @@ mod tests {
         let spk_pub = X25519PublicKey::from(&spk).to_bytes();
 
         let mut alice = DoubleRatchet::init_initiator([1u8; 32], &spk_pub);
-        let mut eve = DoubleRatchet::init_responder([2u8; 32], StaticSecret::random_from_rng(OsRng));
+        let mut eve =
+            DoubleRatchet::init_responder([2u8; 32], StaticSecret::random_from_rng(OsRng));
 
         let msg = alice.encrypt(b"secret").unwrap();
         assert!(eve.decrypt(&msg).is_err());
