@@ -155,6 +155,12 @@ pub async fn create_post(
     let mut feed = state.feed.write().await;
     feed.insert(event.clone());
 
+    state.emit(crate::state::RealtimeEvent::NewPost {
+        id: event.id.clone(),
+        author: event.pubkey.clone(),
+        content: req.content.clone(),
+    });
+
     Ok(Json(event))
 }
 
