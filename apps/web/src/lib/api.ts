@@ -587,3 +587,90 @@ export const payments = {
   cancelInvoice: (invoiceId: string) =>
     request<InvoiceResponse>(`/invoices/${invoiceId}/cancel`, { method: "POST" }),
 };
+
+// ── AI ──────────────────────────────────────────────────────────────────────
+
+export interface AgentResponse {
+  id: string;
+  name: string;
+  system_prompt: string;
+  model: string;
+  temperature: number;
+  max_tokens: number;
+  capabilities: string[];
+}
+
+export interface AgentListResponse {
+  agents: AgentResponse[];
+  count: number;
+}
+
+export interface ChatResponse {
+  conversation_id: string;
+  response: string;
+  role: string;
+  message_count: number;
+}
+
+export interface ConversationResponse {
+  id: string;
+  agent_id: string;
+  message_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AIMessage {
+  id: string;
+  role: string;
+  content: string;
+  timestamp: string;
+}
+
+export const ai = {
+  createAgent: (data: {
+    name: string;
+    system_prompt?: string;
+    model?: string;
+    temperature?: number;
+    max_tokens?: number;
+    capabilities?: string[];
+  }) =>
+    request<AgentResponse>("/agents", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  listAgents: () => request<AgentListResponse>("/agents"),
+
+  getAgent: (agentId: string) => request<AgentResponse>(`/agents/${agentId}`),
+
+  deleteAgent: (agentId: string) =>
+    request<{ deleted: boolean }>(`/agents/${agentId}`, { method: "DELETE" }),
+
+  chat: (data: {
+    agent_id: string;
+    message: string;
+    conversation_id?: string;
+  }) =>
+    request<ChatResponse>("/chat", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  listConversations: (params?: { agent_id?: string; limit?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.agent_id) query.set("agent_id", params.agent_id);
+    if (params?.limit) query.set("limit", String(params.limit));
+    const qs = query.toString();
+    return request<ConversationResponse[]>(`/conversations${qs ? `?${qs}` : ""}`);
+  },
+
+  getConversation: (conversationId: string) =>
+    request<AIMessage[]>(`/conversations/${conversationId}`),
+
+  deleteConversation: (conversationId: string) =>
+    request<{ deleted: boolean }>(`/conversations/${conversationId}`, {
+      method: "DELETE",
+    }),
+};
