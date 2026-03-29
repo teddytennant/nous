@@ -82,7 +82,9 @@ impl SocialService for NousSocialService {
             return Err(Status::invalid_argument("content must not be empty"));
         }
         if req.content.len() > 10_000 {
-            return Err(Status::invalid_argument("content exceeds 10,000 characters"));
+            return Err(Status::invalid_argument(
+                "content exceeds 10,000 characters",
+            ));
         }
 
         let tags: Vec<nous_social::Tag> = req
@@ -110,7 +112,11 @@ impl SocialService for NousSocialService {
         request: Request<pb::GetFeedRequest>,
     ) -> Result<Response<pb::GetFeedResponse>, Status> {
         let req = request.into_inner();
-        let limit = if req.limit == 0 { 50 } else { req.limit as usize };
+        let limit = if req.limit == 0 {
+            50
+        } else {
+            req.limit as usize
+        };
         let feed = self.state.feed.read().await;
 
         let events: Vec<&nous_social::SignedEvent> = if !req.author.is_empty() {
@@ -188,7 +194,11 @@ impl SocialService for NousSocialService {
         request: Request<pb::GetTimelineRequest>,
     ) -> Result<Response<pb::GetFeedResponse>, Status> {
         let req = request.into_inner();
-        let limit = if req.limit == 0 { 50 } else { req.limit as usize };
+        let limit = if req.limit == 0 {
+            50
+        } else {
+            req.limit as usize
+        };
 
         let graph = self.state.follow_graph.read().await;
         let following: Vec<String> = graph
@@ -206,10 +216,7 @@ impl SocialService for NousSocialService {
             .collect();
 
         let count = events.len() as u32;
-        Ok(Response::new(pb::GetFeedResponse {
-            events,
-            count,
-        }))
+        Ok(Response::new(pb::GetFeedResponse { events, count }))
     }
 }
 
@@ -246,7 +253,9 @@ impl IdentityService for NousIdentityService {
         })
         .to_string();
 
-        Ok(Response::new(pb::ResolveDocumentResponse { document_json: doc_json }))
+        Ok(Response::new(pb::ResolveDocumentResponse {
+            document_json: doc_json,
+        }))
     }
 }
 
@@ -331,7 +340,11 @@ impl GovernanceService for NousGovernanceService {
     ) -> Result<Response<pb::ListProposalsResponse>, Status> {
         let req = request.into_inner();
         let proposals = self.state.proposals.read().await;
-        let limit = if req.limit == 0 { 50 } else { req.limit as usize };
+        let limit = if req.limit == 0 {
+            50
+        } else {
+            req.limit as usize
+        };
 
         let list: Vec<pb::ProposalMessage> = proposals
             .values()
@@ -462,7 +475,11 @@ impl MarketplaceService for NousMarketplaceService {
     ) -> Result<Response<pb::SearchListingsResponse>, Status> {
         let req = request.into_inner();
         let listings = self.state.listings.read().await;
-        let limit = if req.limit == 0 { 50 } else { req.limit as usize };
+        let limit = if req.limit == 0 {
+            50
+        } else {
+            req.limit as usize
+        };
 
         let results: Vec<pb::ListingMessage> = listings
             .values()
