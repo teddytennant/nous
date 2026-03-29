@@ -3,10 +3,10 @@ pub mod error;
 pub mod files;
 pub mod governance;
 pub mod graphql;
+pub mod grpc;
 pub mod identity;
 pub mod marketplace;
 pub mod messaging;
-pub mod grpc;
 pub mod middleware;
 pub mod nostr;
 pub mod openapi;
@@ -17,9 +17,9 @@ pub mod state;
 pub use config::ApiConfig;
 pub use graphql::NousSchema;
 
+use axum::Router;
 use axum::middleware as axum_mw;
 use axum::routing::{delete, get, post};
-use axum::Router;
 use state::AppState;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
@@ -86,7 +86,10 @@ pub fn router(config: ApiConfig) -> Router {
         .route("/listings", post(marketplace::create_listing))
         .route("/listings", get(marketplace::search_listings))
         .route("/listings/{listing_id}", get(marketplace::get_listing))
-        .route("/listings/{listing_id}", delete(marketplace::cancel_listing))
+        .route(
+            "/listings/{listing_id}",
+            delete(marketplace::cancel_listing),
+        )
         .route(
             "/listings/{listing_id}/purchase",
             post(marketplace::purchase_listing),
@@ -133,7 +136,10 @@ pub fn router(config: ApiConfig) -> Router {
             "/credentials/{credential_id}/verify",
             post(identity::verify_credential),
         )
-        .route("/identities/{did}/reputation", get(identity::get_reputation))
+        .route(
+            "/identities/{did}/reputation",
+            get(identity::get_reputation),
+        )
         .route(
             "/identities/{did}/reputation",
             post(identity::add_reputation_event),
@@ -156,10 +162,7 @@ pub fn router(config: ApiConfig) -> Router {
             "/escrows/{escrow_id}/release",
             post(payments::release_escrow),
         )
-        .route(
-            "/escrows/{escrow_id}/refund",
-            post(payments::refund_escrow),
-        )
+        .route("/escrows/{escrow_id}/refund", post(payments::refund_escrow))
         .route(
             "/escrows/{escrow_id}/dispute",
             post(payments::dispute_escrow),
