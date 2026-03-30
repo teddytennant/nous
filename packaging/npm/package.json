@@ -1,0 +1,35 @@
+{
+  "name": "nous-cli",
+  "version": "0.1.0",
+  "description": "Decentralized everything-app — identity, messaging, governance, payments, AI, and more",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/teddytennant/nous.git"
+  },
+  "homepage": "https://github.com/teddytennant/nous",
+  "author": "Teddy Tennant <teddytennant@icloud.com>",
+  "bin": {
+    "nous": "bin/nous",
+    "nous-api": "bin/nous-api"
+  },
+  "scripts": {
+    "postinstall": "node install.js"
+  },
+  "keywords": [
+    "nous",
+    "decentralized",
+    "p2p",
+    "identity",
+    "messaging",
+    "governance",
+    "cli"
+  ],
+  "files": [
+    "install.js",
+    "bin/"
+  ],
+  "engines": {
+    "node": ">=16"
+  }
+}

@@ -34,17 +34,67 @@ Decentralized everything-app built in Rust. Self-sovereign identity (DID:key), e
 
 **REST** on `:8080` · **GraphQL** on `:8080/graphql` · **gRPC** on `:8081` · **Nostr relay** on `:9735`
 
-## Quickstart
+## Install
+
+### Shell (Linux / macOS)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/teddytennant/nous/main/install.sh | sh
+```
+
+### Homebrew
+
+```bash
+brew install teddytennant/tap/nous
+```
+
+### Cargo
+
+```bash
+cargo install --git https://github.com/teddytennant/nous --bin nous --bin nous-api
+```
+
+### npm
+
+```bash
+npm install -g nous-cli
+```
+
+### Nix
+
+```bash
+# Run without installing
+nix run github:teddytennant/nous
+
+# Install into profile
+nix profile install github:teddytennant/nous
+
+# Dev shell with all build dependencies
+nix develop github:teddytennant/nous
+```
+
+### GitHub Releases
+
+Pre-built binaries for Linux (x86_64, aarch64), macOS (x86_64, aarch64), and Windows (x86_64) are available on the [Releases](https://github.com/teddytennant/nous/releases) page.
+
+### From Source
 
 ```bash
 git clone https://github.com/teddytennant/nous.git
 cd nous
-cargo build --workspace
-cargo run --bin nous -- init          # create a local identity
-cargo run --bin nous-api              # start the API server on :8080
+cargo build --workspace --release
+# Binaries are in target/release/nous and target/release/nous-api
 ```
 
-## Prerequisites
+## Quickstart
+
+```bash
+nous init          # create a local identity
+nous status        # check node info
+nous-api           # start the API server on :8080
+```
+
+## Prerequisites (building from source)
 
 - **Rust** (edition 2024 — requires nightly or Rust 1.85+)
 - **Protobuf compiler** (`protoc`) — needed for gRPC code generation

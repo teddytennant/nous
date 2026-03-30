@@ -1,0 +1,124 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            archive: tar.gz
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            archive: tar.gz
+            cross: true
+          - target: x86_64-apple-darwin
+            os: macos-13
+            archive: tar.gz
+          - target: aarch64-apple-darwin
+            os: macos-14
+            archive: tar.gz
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            archive: zip
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: arduino/setup-protoc@v3
+        with:
+          version: "25.x"
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Install cross
+        if: matrix.cross
+        run: cargo install cross --git https://github.com/cross-rs/cross
+
+      - name: Build (cross)
+        if: matrix.cross
+        run: cross build --release --target ${{ matrix.target }} --bin nous --bin nous-api
+
+      - name: Build (native)
+        if: "!matrix.cross"
+        run: cargo build --release --target ${{ matrix.target }} --bin nous --bin nous-api
+
+      - name: Package (unix)
+        if: matrix.archive == 'tar.gz'
+        shell: bash
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+          staging="nous-${tag}-${{ matrix.target }}"
+          mkdir "$staging"
+          cp "target/${{ matrix.target }}/release/nous" "$staging/"
+          cp "target/${{ matrix.target }}/release/nous-api" "$staging/"
+          cp README.md LICENSE "$staging/" 2>/dev/null || true
+          tar czf "${staging}.tar.gz" "$staging"
+          echo "ASSET=${staging}.tar.gz" >> "$GITHUB_ENV"
+
+      - name: Package (windows)
+        if: matrix.archive == 'zip'
+        shell: bash
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+          staging="nous-${tag}-${{ matrix.target }}"
+          mkdir "$staging"
+          cp "target/${{ matrix.target }}/release/nous.exe" "$staging/"
+          cp "target/${{ matrix.target }}/release/nous-api.exe" "$staging/"
+          cp README.md LICENSE "$staging/" 2>/dev/null || true
+          7z a "${staging}.zip" "$staging"
+          echo "ASSET=${staging}.zip" >> "$GITHUB_ENV"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nous-${{ matrix.target }}
+          path: ${{ env.ASSET }}
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Generate checksums
+        run: |
+          cd artifacts
+          find . -type f \( -name "*.tar.gz" -o -name "*.zip" \) -exec mv {} . \;
+          sha256sum *.tar.gz *.zip > SHA256SUMS.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            artifacts/*.tar.gz
+            artifacts/*.zip
+            artifacts/SHA256SUMS.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

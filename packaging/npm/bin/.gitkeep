@@ -1,0 +1,1 @@
+#\!/bin/sh\necho "Run postinstall first: npm run postinstall"
