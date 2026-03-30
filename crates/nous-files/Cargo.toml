@@ -10,6 +10,7 @@ authors.workspace = true
 [dependencies]
 nous-core = { path = "../nous-core" }
 nous-crypto = { path = "../nous-crypto" }
+nous-storage = { path = "../nous-storage" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
