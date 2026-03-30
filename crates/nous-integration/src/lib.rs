@@ -1192,4 +1192,233 @@ mod tests {
         assert!(credential.verify().is_ok());
         assert_eq!(seller_rep.total_score(), 20);
     }
+
+    // ── Sender Keys: Group Encryption E2E ────────────────────
+
+    #[test]
+    fn group_encrypted_messaging_with_sender_keys() {
+        use nous_messaging::sender_key::{SenderKey, SenderKeyStore};
+
+        let alice = Identity::generate();
+        let bob = Identity::generate();
+        let _carol = Identity::generate();
+        let group_id = "group:engineering";
+
+        // Each member generates a sender key for the group
+        let mut alice_key = SenderKey::generate(alice.did(), group_id);
+        let mut bob_key = SenderKey::generate(bob.did(), group_id);
+
+        // Distribute keys: each member receives everyone else's sender key distribution
+        // In production, these would be encrypted with pairwise Double Ratchet sessions
+        let alice_dist = alice_key.to_distribution();
+        let bob_dist = bob_key.to_distribution();
+
+        // Bob's store has Alice's key
+        let mut bob_store = SenderKeyStore::new();
+        bob_store.process_distribution(&alice_dist);
+
+        // Carol's store has both Alice's and Bob's keys
+        let mut carol_store = SenderKeyStore::new();
+        carol_store.process_distribution(&alice_dist);
+        carol_store.process_distribution(&bob_dist);
+
+        // Alice sends a signed message to the group
+        let msg_text = b"New protocol proposal: quadratic token-weighted voting";
+        let encrypted = alice_key.encrypt(msg_text).unwrap();
+
+        // Create a signed message wrapping the encrypted group payload
+        let signed = MessageBuilder::text(
+            group_id,
+            &serde_json::to_string(&encrypted).unwrap(),
+        )
+        .sign(&alice)
+        .unwrap();
+
+        // Verify the message signature (identity layer)
+        assert!(signed.verify().is_ok());
+        assert_eq!(signed.sender_did, alice.did());
+
+        // Bob decrypts the group message
+        let bob_plain = bob_store.decrypt(&encrypted).unwrap();
+        assert_eq!(bob_plain, msg_text);
+
+        // Carol decrypts the same message
+        let carol_plain = carol_store.decrypt(&encrypted).unwrap();
+        assert_eq!(carol_plain, msg_text);
+
+        // Bob sends a reply
+        let bob_msg = bob_key.encrypt(b"Seconded. Let me draft the implementation.").unwrap();
+        let carol_plain2 = carol_store.decrypt(&bob_msg).unwrap();
+        assert_eq!(carol_plain2, b"Seconded. Let me draft the implementation.");
+
+        // Key rotation after Carol leaves the group
+        alice_key.rotate();
+        bob_key.rotate();
+
+        // Redistribute new keys (only to remaining members)
+        bob_store.process_distribution(&alice_key.to_distribution());
+
+        // Alice sends with rotated key
+        let post_rotation = alice_key.encrypt(b"Carol removed. Rotating keys.").unwrap();
+        let bob_plain2 = bob_store.decrypt(&post_rotation).unwrap();
+        assert_eq!(bob_plain2, b"Carol removed. Rotating keys.");
+
+        // Carol cannot decrypt (she has the old generation key)
+        assert!(carol_store.decrypt(&post_rotation).is_err());
+    }
+
+    // ── Encrypted File Attachment E2E ────────────────────────
+
+    #[test]
+    fn encrypted_file_sharing_via_attachments() {
+        use nous_messaging::attachment::{AttachmentDecoder, AttachmentEncoder};
+
+        let sender = Identity::generate();
+        let receiver = Identity::generate();
+
+        // Establish a session for the shared encryption key
+        let session = nous_messaging::Session::establish(
+            sender.keypair(),
+            sender.did(),
+            &receiver.keypair().exchange_public_bytes(),
+            receiver.did(),
+        );
+
+        // Generate a file-specific encryption key from the session
+        let file_key_payload = session.encrypt(b"file-key-derivation").unwrap();
+        let mut file_key = [0u8; 32];
+        let key_bytes = serde_json::to_vec(&file_key_payload).unwrap();
+        for (i, byte) in key_bytes.iter().take(32).enumerate() {
+            file_key[i] = *byte;
+        }
+
+        // Encode a "document" file
+        let document = b"# Protocol Specification\n\nThis document describes the Nous governance protocol...".repeat(100);
+        let encoder = AttachmentEncoder::new().with_chunk_size(1024);
+        let (meta, chunks) = encoder
+            .encode("spec.md", "text/markdown", &document, &file_key)
+            .unwrap();
+
+        assert_eq!(meta.file_name, "spec.md");
+        assert_eq!(meta.size, document.len() as u64);
+        assert!(meta.chunk_count > 1);
+
+        // Send metadata as a message
+        let msg = MessageBuilder::file(
+            "dm:alice-bob",
+            &meta.file_name,
+            &meta.mime_type,
+            meta.size,
+            &meta.hash,
+        )
+        .sign(&sender)
+        .unwrap();
+        assert!(msg.verify().is_ok());
+
+        // Receiver decodes the chunks with the same key
+        let decoded = AttachmentDecoder::decode(&meta, &chunks, &file_key).unwrap();
+        assert_eq!(decoded, document);
+
+        // Tampered file key fails
+        let mut wrong_key = file_key;
+        wrong_key[0] ^= 0xFF;
+        assert!(AttachmentDecoder::decode(&meta, &chunks, &wrong_key).is_err());
+    }
+
+    // ── Message Store with Ephemeral Policies ────────────────
+
+    #[test]
+    fn message_store_with_replies_and_search() {
+        use chrono::{Duration, Utc};
+        use nous_messaging::store::{Cursor, MessageStore, StoredMessage};
+
+        let alice = Identity::generate();
+        let bob = Identity::generate();
+        let channel = "grp:eng-team";
+
+        let mut store = MessageStore::new();
+
+        // Alice starts a discussion
+        store
+            .insert(StoredMessage {
+                id: "msg:1".into(),
+                channel_id: channel.into(),
+                sender_did: alice.did().into(),
+                body: "Should we implement quadratic voting for treasury proposals?".into(),
+                timestamp: Utc::now(),
+                reply_to: None,
+                edited_at: None,
+                deleted: false,
+                pinned: false,
+            })
+            .unwrap();
+
+        // Bob replies
+        store
+            .insert(StoredMessage {
+                id: "msg:2".into(),
+                channel_id: channel.into(),
+                sender_did: bob.did().into(),
+                body: "Yes, it prevents whale domination. I'll draft the proposal.".into(),
+                timestamp: Utc::now() + Duration::seconds(1),
+                reply_to: Some("msg:1".into()),
+                edited_at: None,
+                deleted: false,
+                pinned: false,
+            })
+            .unwrap();
+
+        // Alice follows up
+        store
+            .insert(StoredMessage {
+                id: "msg:3".into(),
+                channel_id: channel.into(),
+                sender_did: alice.did().into(),
+                body: "Perfect. Pin the original for reference.".into(),
+                timestamp: Utc::now() + Duration::seconds(2),
+                reply_to: Some("msg:1".into()),
+                edited_at: None,
+                deleted: false,
+                pinned: false,
+            })
+            .unwrap();
+
+        // Pin the original
+        store.pin("msg:1").unwrap();
+        let pinned = store.pinned(channel);
+        assert_eq!(pinned.len(), 1);
+        assert_eq!(pinned[0].id, "msg:1");
+
+        // Search for voting-related messages
+        let results = store.search(channel, "quadratic", 10);
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].id, "msg:1");
+
+        // Search for "proposal"
+        let results = store.search(channel, "proposal", 10);
+        assert_eq!(results.len(), 2); // msg:1 and msg:2
+
+        // Check replies
+        let replies = store.replies_to("msg:1");
+        assert_eq!(replies.len(), 2);
+
+        // Bob edits his reply
+        store.edit("msg:2", bob.did(), "Yes, quadratic voting prevents whale domination. Drafting now.").unwrap();
+        let edited = store.get("msg:2").unwrap();
+        assert!(edited.edited_at.is_some());
+
+        // Pagination: fetch latest 2
+        let page = store.fetch(channel, 2, None);
+        assert_eq!(page.messages.len(), 2);
+        assert!(page.has_more);
+
+        // Fetch before msg:3
+        let page = store.fetch(channel, 10, Some(&Cursor::Before("msg:3".into())));
+        assert_eq!(page.messages.len(), 2);
+
+        // Count excludes deleted
+        assert_eq!(store.count(channel), 3);
+        store.delete("msg:3", alice.did()).unwrap();
+        assert_eq!(store.count(channel), 2);
+    }
 }
