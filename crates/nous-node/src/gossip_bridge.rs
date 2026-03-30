@@ -103,11 +103,7 @@ impl GossipBridge {
 
     /// Handle a raw incoming message from a peer.
     /// Returns actions to take and whether the message was new.
-    pub fn handle_incoming(
-        &mut self,
-        data: &[u8],
-        from_peer: &str,
-    ) -> (Vec<GossipAction>, bool) {
+    pub fn handle_incoming(&mut self, data: &[u8], from_peer: &str) -> (Vec<GossipAction>, bool) {
         let msg: GossipMessage = match serde_json::from_slice(data) {
             Ok(m) => m,
             Err(e) => {
