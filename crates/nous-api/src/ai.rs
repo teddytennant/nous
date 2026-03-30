@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use utoipa::{IntoParams, ToSchema};
 
-use nous_ai::{Agent, Conversation, Message, Role};
+use nous_ai::{Agent, Conversation, ExecutionConfig, Message, Role, run_agent};
 
 use crate::error::ApiError;
 use crate::state::AppState;
@@ -222,14 +222,29 @@ pub async fn chat(
     // Add the user message.
     conv.add_message(Message::user(&req.message));
 
-    // Without a real InferenceBackend, produce a placeholder response.
-    // In production, this would call `run_agent` with the configured backend.
-    let response_text = format!(
-        "I'm {}, your AI assistant. I received your message. \
-         (No inference backend is configured — plug in an InferenceBackend to enable real responses.)",
-        agent.name
-    );
-    conv.add_message(Message::assistant(&response_text));
+    let backend = state.inference_backend.read().await.clone();
+    let response_text = if let Some(backend) = backend.as_ref() {
+        let agent_clone = agent.clone();
+        // Drop the agents read lock before the potentially long inference call.
+        drop(agents);
+        let config = ExecutionConfig::default();
+        match run_agent(&agent_clone, conv, backend.as_ref(), None, &config).await {
+            Ok(result) => result.response,
+            Err(e) => {
+                return Err(ApiError::internal(format!("inference backend error: {e}")));
+            }
+        }
+    } else {
+        // No backend configured — return a clear placeholder.
+        let text = format!(
+            "[no inference backend configured] I'm {}, your AI assistant. \
+             Configure an InferenceBackend on AppState to enable real responses.",
+            agent.name
+        );
+        drop(agents);
+        conv.add_message(Message::assistant(&text));
+        text
+    };
 
     // Persist conversation to SQLite
     state.persist_conversation(&conv_id, conv).await;
