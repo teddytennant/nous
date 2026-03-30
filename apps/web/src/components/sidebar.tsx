@@ -15,6 +15,7 @@ const nav = [
   { name: "Wallet", href: "/wallet" },
   { name: "AI", href: "/ai" },
   { name: "Identity", href: "/identity" },
+  { name: "Network", href: "/network" },
   { name: "Settings", href: "/settings" },
 ];
 
