@@ -4,9 +4,15 @@ use uuid::Uuid;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Role {
+    /// A system message that sets the agent's behavior.
     System,
+    /// A message from the user.
     User,
+    /// A response from the assistant.
     Assistant,
+    /// A tool call request from the assistant.
+    ToolCall,
+    /// A tool execution result.
     Tool,
 }
 
@@ -54,6 +60,21 @@ impl Message {
         }
     }
 
+    /// Create a tool call message. The `content` is typically the tool name or
+    /// serialized call arguments, and `call_id` links this call to its result.
+    pub fn tool_call(content: impl Into<String>, call_id: impl Into<String>) -> Self {
+        Self {
+            id: Uuid::new_v4().to_string(),
+            role: Role::ToolCall,
+            content: content.into(),
+            timestamp: Utc::now(),
+            tool_call_id: Some(call_id.into()),
+            metadata: std::collections::HashMap::new(),
+        }
+    }
+
+    /// Create a tool result message. The `content` is the tool execution output
+    /// and `call_id` links it back to the originating tool call.
     pub fn tool_result(content: impl Into<String>, call_id: impl Into<String>) -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
@@ -159,6 +180,10 @@ mod tests {
 
         let asst = Message::assistant("hi there");
         assert_eq!(asst.role, Role::Assistant);
+
+        let call = Message::tool_call(r#"{"tool":"search","args":{}}"#, "call-1");
+        assert_eq!(call.role, Role::ToolCall);
+        assert_eq!(call.tool_call_id.as_deref(), Some("call-1"));
 
         let tool = Message::tool_result("result", "call-1");
         assert_eq!(tool.role, Role::Tool);

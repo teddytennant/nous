@@ -281,6 +281,7 @@ pub async fn get_conversation(
                 Role::System => "system".to_string(),
                 Role::User => "user".to_string(),
                 Role::Assistant => "assistant".to_string(),
+                Role::ToolCall => "tool_call".to_string(),
                 Role::Tool => "tool".to_string(),
             },
             content: m.content.clone(),

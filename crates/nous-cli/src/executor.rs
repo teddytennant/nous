@@ -653,9 +653,7 @@ impl Executor {
                     node.did()
                 ));
 
-                node.start()
-                    .await
-                    .map_err(|e| format!("node start: {e}"))?;
+                node.start().await.map_err(|e| format!("node start: {e}"))?;
 
                 // Let mDNS discover peers for a few seconds.
                 tokio::time::sleep(std::time::Duration::from_secs(3)).await;
@@ -670,8 +668,8 @@ impl Executor {
                     display_name: None,
                     network: nous_net::NodeConfig::default(),
                 };
-                let node = nous_node::NousNode::new(config)
-                    .map_err(|e| format!("node init: {e}"))?;
+                let node =
+                    nous_node::NousNode::new(config).map_err(|e| format!("node init: {e}"))?;
 
                 self.output.table(
                     &["Property", "Value"],
@@ -711,12 +709,9 @@ impl Executor {
                 let mut node =
                     nous_node::NousNode::new(config).map_err(|e| format!("node init: {e}"))?;
 
-                node.start()
-                    .await
-                    .map_err(|e| format!("node start: {e}"))?;
+                node.start().await.map_err(|e| format!("node start: {e}"))?;
 
-                self.output
-                    .success(&format!("Connecting to {addr}..."));
+                self.output.success(&format!("Connecting to {addr}..."));
 
                 // Give time for the connection to establish.
                 tokio::time::sleep(std::time::Duration::from_secs(5)).await;
