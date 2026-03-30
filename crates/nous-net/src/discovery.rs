@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, HashSet};
 use std::time::{Duration, Instant};
 
 /// Health status of a bootstrap node.
@@ -310,7 +310,7 @@ impl PeerExchange {
     pub fn can_exchange_with(&self, peer_id: &str) -> bool {
         self.exchange_cooldowns
             .get(peer_id)
-            .map_or(true, |last| last.elapsed() >= self.cooldown_duration)
+            .is_none_or(|last| last.elapsed() >= self.cooldown_duration)
     }
 
     /// Get peers to share with a remote peer.
