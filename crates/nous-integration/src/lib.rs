@@ -1799,4 +1799,200 @@ mod tests {
         let dao_details = parse(resp).await;
         assert_eq!(dao_details["name"], "TestDAO");
     }
+
+    // ── Terminal Command System ──────────────────────────────────
+
+    #[test]
+    fn terminal_command_parse_and_execute_roundtrip() {
+        use nous_terminal::command::{CommandRegistry, CommandStatus, execute_builtin, parse};
+        use nous_terminal::completion::Completer;
+        use nous_terminal::history::History;
+
+        let registry = CommandRegistry::new();
+
+        // 1. Parse a command
+        let cmd = parse("/wallet balance --json").unwrap();
+        assert_eq!(cmd.name, "wallet");
+        assert_eq!(cmd.subcommand.as_deref(), Some("balance"));
+        assert_eq!(cmd.flags.get("json"), Some(&None));
+
+        // 2. Help for a specific command
+        let help_cmd = parse("/help identity").unwrap();
+        let output = execute_builtin(&help_cmd, &registry).unwrap();
+        assert_eq!(output.status, CommandStatus::Success);
+        assert!(output.text.contains("show"));
+        assert!(output.text.contains("create"));
+
+        // 3. Unknown command
+        let unknown = parse("/foobar").unwrap();
+        let output = execute_builtin(&unknown, &registry).unwrap();
+        assert_eq!(output.status, CommandStatus::NotFound);
+
+        // 4. Known command dispatches to API (returns None)
+        let wallet = parse("/wallet balance").unwrap();
+        assert!(execute_builtin(&wallet, &registry).is_none());
+
+        // 5. Completion for wallet subcommands
+        let completer = Completer::new();
+        let completions = completer.complete("/wallet ", &registry);
+        assert!(completions.iter().any(|c| c.text == "balance"));
+        assert!(completions.iter().any(|c| c.text == "send"));
+        assert!(completions.iter().any(|c| c.text == "receive"));
+
+        // 6. History roundtrip
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("test_history.txt");
+        {
+            let mut history = History::with_file(&path);
+            history.push("/wallet balance");
+            history.push("/identity show");
+            history.push("/help");
+            history.save().unwrap();
+        }
+        {
+            let mut history = History::with_file(&path);
+            assert_eq!(history.len(), 3);
+            assert_eq!(history.previous(), Some("/help"));
+            assert_eq!(history.previous(), Some("/identity show"));
+            assert_eq!(history.previous(), Some("/wallet balance"));
+        }
+    }
+
+    #[test]
+    fn terminal_prompt_renders_identity_and_wallet() {
+        use nous_terminal::prompt::{
+            ConnectionStatus, IdentitySegment, PromptConfig, PromptState, WalletSegment,
+            format_did_short, render_ansi, render_plain,
+        };
+
+        let identity = nous_identity::Identity::generate();
+        let did = identity.did();
+
+        let state = PromptState {
+            identity: Some(IdentitySegment {
+                did: did.to_string(),
+                display_name: Some("alice".into()),
+            }),
+            wallet: Some(WalletSegment {
+                primary_balance: "1.5 ETH".into(),
+                pending_tx: 3,
+            }),
+            connection: ConnectionStatus::Online,
+            path: None,
+        };
+
+        let config = PromptConfig::default();
+
+        // Plain prompt
+        let plain = render_plain(&state, &config);
+        assert!(plain.contains("online"));
+        assert!(plain.contains("alice"));
+        assert!(plain.contains("1.5 ETH"));
+        assert!(plain.contains("(+3)"));
+        assert!(plain.contains("nous"));
+
+        // ANSI prompt
+        let ansi = render_ansi(&state, &config);
+        assert!(ansi.contains("\x1b[")); // has escape codes
+        assert!(ansi.contains("alice"));
+        assert!(ansi.contains("1.5 ETH"));
+
+        // DID formatting
+        let short = format_did_short(&did);
+        assert!(short.contains("..."));
+    }
+
+    // ── API Peers Endpoint ───────────────────────────────────────
+
+    #[tokio::test]
+    async fn api_peers_connect_list_disconnect() {
+        use axum::body::Body;
+        use axum::http::{Request, StatusCode};
+        use http_body_util::BodyExt;
+        use tower::ServiceExt;
+
+        let app = nous_api::router(nous_api::ApiConfig::default());
+
+        // 1. List peers — empty
+        let resp = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/peers")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let body = resp.into_body().collect().await.unwrap().to_bytes();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["count"], 0);
+
+        // 2. Connect a peer
+        let req = serde_json::json!({
+            "multiaddr": "/ip4/10.0.0.1/tcp/9000"
+        });
+        let resp = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/peers")
+                    .header("content-type", "application/json")
+                    .body(Body::from(serde_json::to_vec(&req).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let body = resp.into_body().collect().await.unwrap().to_bytes();
+        let peer: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        let peer_id = peer["peer_id"].as_str().unwrap().to_string();
+        assert!(peer_id.starts_with("12D3KooW"));
+        assert_eq!(peer["multiaddr"], "/ip4/10.0.0.1/tcp/9000");
+
+        // 3. List peers — should have 1
+        let resp = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/peers")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = resp.into_body().collect().await.unwrap().to_bytes();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["count"], 1);
+
+        // 4. Disconnect the peer
+        let resp = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("DELETE")
+                    .uri(&format!("/api/v1/peers/{peer_id}"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        // 5. List peers — back to 0
+        let resp = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/peers")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = resp.into_body().collect().await.unwrap().to_bytes();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["count"], 0);
+    }
 }
