@@ -3388,6 +3388,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "ed25519-dalek",
+ "hex",
  "hkdf",
  "hmac",
  "nous-core",
