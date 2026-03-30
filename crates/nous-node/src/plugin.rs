@@ -272,10 +272,7 @@ impl PluginManager {
             .filter(|c| !effective_granted.contains(c))
             .collect();
         if !missing.is_empty() {
-            return Err(format!(
-                "missing capabilities: {:?}",
-                missing
-            ));
+            return Err(format!("missing capabilities: {:?}", missing));
         }
 
         // Register hooks.
@@ -462,6 +459,7 @@ impl Default for PluginManager {
 }
 
 /// Helper to create a test manifest.
+#[cfg(test)]
 fn test_manifest(id: &str) -> PluginManifest {
     PluginManifest {
         id: id.to_string(),
@@ -581,25 +579,43 @@ mod tests {
         let caps = all_caps(&manifest);
         mgr.install(manifest, vec![], caps).unwrap();
 
-        assert_eq!(mgr.state("com.example.lifecycle"), Some(PluginState::Installed));
+        assert_eq!(
+            mgr.state("com.example.lifecycle"),
+            Some(PluginState::Installed)
+        );
 
         mgr.start("com.example.lifecycle").unwrap();
-        assert_eq!(mgr.state("com.example.lifecycle"), Some(PluginState::Running));
+        assert_eq!(
+            mgr.state("com.example.lifecycle"),
+            Some(PluginState::Running)
+        );
 
         mgr.stop("com.example.lifecycle").unwrap();
-        assert_eq!(mgr.state("com.example.lifecycle"), Some(PluginState::Stopped));
+        assert_eq!(
+            mgr.state("com.example.lifecycle"),
+            Some(PluginState::Stopped)
+        );
 
         mgr.disable("com.example.lifecycle").unwrap();
-        assert_eq!(mgr.state("com.example.lifecycle"), Some(PluginState::Disabled));
+        assert_eq!(
+            mgr.state("com.example.lifecycle"),
+            Some(PluginState::Disabled)
+        );
 
         // Can't start when disabled.
         assert!(mgr.start("com.example.lifecycle").is_err());
 
         mgr.enable("com.example.lifecycle").unwrap();
-        assert_eq!(mgr.state("com.example.lifecycle"), Some(PluginState::Stopped));
+        assert_eq!(
+            mgr.state("com.example.lifecycle"),
+            Some(PluginState::Stopped)
+        );
 
         mgr.start("com.example.lifecycle").unwrap();
-        assert_eq!(mgr.state("com.example.lifecycle"), Some(PluginState::Running));
+        assert_eq!(
+            mgr.state("com.example.lifecycle"),
+            Some(PluginState::Running)
+        );
     }
 
     #[test]
