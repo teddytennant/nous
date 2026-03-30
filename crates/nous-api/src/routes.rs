@@ -56,6 +56,129 @@ pub async fn node_info() -> Json<NodeInfo> {
     })
 }
 
+/// Status of a single node subsystem.
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct SubsystemStatus {
+    /// Subsystem name (e.g., "networking", "identity").
+    pub name: String,
+    /// Current status.
+    pub status: SubsystemHealth,
+    /// Number of active entities managed by this subsystem.
+    pub active_count: usize,
+    /// Optional status message.
+    pub message: Option<String>,
+}
+
+/// Health state of a subsystem.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum SubsystemHealth {
+    /// Fully operational.
+    Healthy,
+    /// Operational but with warnings.
+    Degraded,
+    /// Not operational.
+    Down,
+}
+
+/// Response containing all subsystem statuses.
+#[derive(Debug, Serialize, ToSchema)]
+pub struct SubsystemsResponse {
+    pub subsystems: Vec<SubsystemStatus>,
+    pub overall: SubsystemHealth,
+}
+
+#[utoipa::path(
+    get, path = "/api/v1/node/subsystems",
+    tag = "node",
+    responses((status = 200, description = "Subsystem health statuses", body = SubsystemsResponse))
+)]
+pub async fn node_subsystems(State(state): State<Arc<AppState>>) -> Json<SubsystemsResponse> {
+    let peers = state.peers.read().await;
+    let identities = state.identities.read().await;
+    let channels = state.channels.read().await;
+    let daos = state.daos.read().await;
+    let wallets = state.wallets.read().await;
+    let feed = state.feed.read().await;
+    let agents = state.agents.read().await;
+    let file_store = state.file_store.read().await;
+
+    let subsystems = vec![
+        SubsystemStatus {
+            name: "networking".into(),
+            status: if peers.is_empty() {
+                SubsystemHealth::Degraded
+            } else {
+                SubsystemHealth::Healthy
+            },
+            active_count: peers.len(),
+            message: Some(format!("{} connected peers", peers.len())),
+        },
+        SubsystemStatus {
+            name: "identity".into(),
+            status: if identities.is_empty() {
+                SubsystemHealth::Degraded
+            } else {
+                SubsystemHealth::Healthy
+            },
+            active_count: identities.len(),
+            message: None,
+        },
+        SubsystemStatus {
+            name: "messaging".into(),
+            status: SubsystemHealth::Healthy,
+            active_count: channels.len(),
+            message: Some(format!("{} active channels", channels.len())),
+        },
+        SubsystemStatus {
+            name: "governance".into(),
+            status: SubsystemHealth::Healthy,
+            active_count: daos.len(),
+            message: Some(format!("{} DAOs", daos.len())),
+        },
+        SubsystemStatus {
+            name: "payments".into(),
+            status: SubsystemHealth::Healthy,
+            active_count: wallets.len(),
+            message: Some(format!("{} wallets", wallets.len())),
+        },
+        SubsystemStatus {
+            name: "social".into(),
+            status: SubsystemHealth::Healthy,
+            active_count: feed.len(),
+            message: Some(format!("{} events in feed", feed.len())),
+        },
+        SubsystemStatus {
+            name: "ai".into(),
+            status: SubsystemHealth::Healthy,
+            active_count: agents.len(),
+            message: Some(format!("{} agents", agents.len())),
+        },
+        SubsystemStatus {
+            name: "storage".into(),
+            status: SubsystemHealth::Healthy,
+            active_count: file_store.stats().total_files,
+            message: Some(format!("{} files", file_store.stats().total_files)),
+        },
+    ];
+
+    let overall = if subsystems.iter().any(|s| s.status == SubsystemHealth::Down) {
+        SubsystemHealth::Down
+    } else if subsystems
+        .iter()
+        .any(|s| s.status == SubsystemHealth::Degraded)
+    {
+        SubsystemHealth::Degraded
+    } else {
+        SubsystemHealth::Healthy
+    };
+
+    Json(SubsystemsResponse {
+        subsystems,
+        overall,
+    })
+}
+
 #[derive(Debug, Deserialize, ToSchema, IntoParams)]
 pub struct FeedQuery {
     pub limit: Option<usize>,
@@ -447,6 +570,44 @@ mod tests {
         let body = response.into_body().collect().await.unwrap().to_bytes();
         let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
         assert_eq!(json["protocol"], "nous");
+    }
+
+    #[tokio::test]
+    async fn node_subsystems_endpoint() {
+        let app = test_app().await;
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/node/subsystems")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        let subsystems = json["subsystems"].as_array().unwrap();
+        assert_eq!(subsystems.len(), 8);
+
+        // Check all expected subsystem names are present
+        let names: Vec<&str> = subsystems
+            .iter()
+            .map(|s| s["name"].as_str().unwrap())
+            .collect();
+        assert!(names.contains(&"networking"));
+        assert!(names.contains(&"identity"));
+        assert!(names.contains(&"messaging"));
+        assert!(names.contains(&"governance"));
+        assert!(names.contains(&"payments"));
+        assert!(names.contains(&"social"));
+        assert!(names.contains(&"ai"));
+        assert!(names.contains(&"storage"));
+
+        // Overall should be degraded (no peers/identities in fresh state)
+        assert_eq!(json["overall"], "degraded");
     }
 
     #[tokio::test]
