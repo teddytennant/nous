@@ -1428,4 +1428,375 @@ mod tests {
         store.delete("msg:3", alice.did()).unwrap();
         assert_eq!(store.count(channel), 2);
     }
+
+    // ── Delivery Receipt Flow ──────────────────────────────────
+
+    #[test]
+    fn delivery_receipt_end_to_end() {
+        use nous_messaging::receipt::{Receipt, ReceiptKind, ReceiptTracker};
+
+        let alice = Identity::generate();
+        let bob = Identity::generate();
+        let carol = Identity::generate();
+
+        let mut tracker = ReceiptTracker::new();
+        let now = chrono::Utc::now();
+
+        // Alice sends 3 messages to bob and carol
+        let msg_ids = ["msg:receipt:1", "msg:receipt:2", "msg:receipt:3"];
+        for msg_id in &msg_ids {
+            tracker.register_sent(msg_id, &[bob.did(), carol.did()], now);
+        }
+        assert_eq!(tracker.tracked_message_count(), 3);
+
+        // Bob delivers all 3 via batch
+        let batch = ReceiptTracker::batch_deliver(&msg_ids, &bob);
+        assert_eq!(batch.len(), 3);
+        for receipt in &batch {
+            assert!(receipt.verify().is_ok());
+            assert!(tracker.process_receipt(receipt).unwrap());
+        }
+
+        // Carol delivers first 2
+        let carol_receipts = ReceiptTracker::batch_deliver(&msg_ids[..2], &carol);
+        for receipt in &carol_receipts {
+            tracker.process_receipt(receipt).unwrap();
+        }
+
+        // msg:receipt:1 and msg:receipt:2 — both delivered to both
+        let fully_delivered = tracker.messages_fully_at(ReceiptKind::Delivered);
+        assert!(fully_delivered.contains(&"msg:receipt:1"));
+        assert!(fully_delivered.contains(&"msg:receipt:2"));
+        // msg:receipt:3 — only bob delivered, carol still at Sent
+        assert!(!fully_delivered.contains(&"msg:receipt:3"));
+
+        // Bob reads msg:receipt:1
+        let read_receipt = Receipt::new("msg:receipt:1", ReceiptKind::Read, &bob);
+        assert!(read_receipt.verify().is_ok());
+        tracker.process_receipt(&read_receipt).unwrap();
+
+        let status = tracker.status("msg:receipt:1").unwrap();
+        assert!(status.read_by().contains(bob.did()));
+        assert!(!status.read_by().contains(carol.did()));
+        assert!(status.delivered_to().contains(bob.did()));
+        assert!(status.delivered_to().contains(carol.did()));
+
+        // Overall should be Delivered (carol hasn't read)
+        assert_eq!(status.overall(), Some(ReceiptKind::Delivered));
+
+        // Carol reads too — now overall is Read
+        let carol_read = Receipt::new("msg:receipt:1", ReceiptKind::Read, &carol);
+        tracker.process_receipt(&carol_read).unwrap();
+        assert_eq!(
+            tracker.status("msg:receipt:1").unwrap().overall(),
+            Some(ReceiptKind::Read)
+        );
+
+        // Tampered receipt fails
+        let mut tampered = Receipt::new("msg:receipt:2", ReceiptKind::Read, &bob);
+        tampered.recipient_did = carol.did().to_string();
+        assert!(tracker.process_receipt(&tampered).is_err());
+
+        // Counts check
+        let (sent, delivered, read) = tracker.status("msg:receipt:1").unwrap().counts();
+        assert_eq!(sent, 0);
+        assert_eq!(delivered, 0);
+        assert_eq!(read, 2);
+
+        // Remove tracking
+        tracker.remove("msg:receipt:1");
+        assert_eq!(tracker.tracked_message_count(), 2);
+    }
+
+    // ── Encrypted Vault + Identity Recovery ────────────────────
+
+    #[test]
+    fn vault_stores_and_recovers_identity() {
+        use nous_storage::vault::{EntryCategory, Vault};
+
+        let alice = Identity::generate();
+        let alice_did = alice.did().to_string();
+
+        // Export the signing key as bytes
+        let key_bytes = alice.export_signing_key();
+
+        // Store in an encrypted vault
+        let mut vault = Vault::from_passphrase("test-passphrase-123");
+        vault
+            .put(
+                "alice_signing_key",
+                "Alice's ed25519 signing key",
+                EntryCategory::PrivateKey,
+                &key_bytes,
+            )
+            .unwrap();
+
+        // Retrieve from vault
+        let recovered_bytes = vault.get("alice_signing_key").unwrap();
+        assert_eq!(recovered_bytes.data, key_bytes);
+        assert_eq!(recovered_bytes.category, EntryCategory::PrivateKey);
+
+        // Restore the identity from the recovered key
+        let restored = Identity::restore(&recovered_bytes.data).unwrap();
+        assert_eq!(restored.did(), alice_did);
+
+        // Sign with restored identity and verify with original
+        let message = b"vault recovery test";
+        let signer = Signer::new(restored.keypair());
+        let sig = signer.sign(message);
+        assert!(Verifier::verify(&alice.keypair().verifying_key(), message, &sig).is_ok());
+
+        // Vault search works
+        let results = vault.search("alice");
+        assert_eq!(results.len(), 1);
+
+        // Filter by category
+        let pk_entries = vault.list_by_category(EntryCategory::PrivateKey);
+        assert_eq!(pk_entries.len(), 1);
+
+        // Rekey the vault (change master password)
+        let new_key = {
+            use sha2::{Digest, Sha256};
+            let mut h = Sha256::new();
+            h.update(b"nous-vault-master-key-v1");
+            h.update(b"new-passphrase-456");
+            let hash: [u8; 32] = h.finalize().into();
+            hash
+        };
+        vault.rekey(new_key).unwrap();
+        let still_works = vault.get("alice_signing_key").unwrap();
+        assert_eq!(still_works.data, key_bytes);
+    }
+
+    // ── Browser URL Resolution ─────────────────────────────────
+
+    #[test]
+    fn browser_resolves_all_protocols() {
+        use nous_browser::resolver::{Protocol, UrlResolver};
+
+        let mut resolver = UrlResolver::new("https://ipfs.nous.dev");
+
+        // IPFS
+        let result = resolver
+            .resolve("ipfs://QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG")
+            .unwrap();
+        assert_eq!(result.protocol, Protocol::Ipfs);
+        assert!(result.resolved.starts_with("https://ipfs.nous.dev/ipfs/"));
+        assert!(result.protocol.is_decentralized());
+
+        // IPNS
+        let result = resolver.resolve("ipns://docs.ipfs.tech").unwrap();
+        assert_eq!(result.protocol, Protocol::Ipns);
+        assert!(result.resolved.contains("/ipns/docs.ipfs.tech"));
+
+        // Arweave
+        let result = resolver.resolve("ar://abc123def456").unwrap();
+        assert_eq!(result.protocol, Protocol::Arweave);
+        assert_eq!(result.resolved, "https://arweave.net/abc123def456");
+
+        // ENS without cache — falls back to IPNS gateway
+        let result = resolver.resolve("vitalik.eth").unwrap();
+        assert_eq!(result.protocol, Protocol::Ens);
+        assert!(result.resolved.contains("vitalik.eth"));
+
+        // ENS with cache
+        resolver.cache_ens("app.uniswap.eth", "ipfs://QmUniswapApp");
+        let result = resolver.resolve("app.uniswap.eth").unwrap();
+        assert_eq!(result.resolved, "ipfs://QmUniswapApp");
+
+        // Nous protocol
+        let result = resolver.resolve("nous://governance/proposals").unwrap();
+        assert_eq!(result.protocol, Protocol::Nous);
+        assert!(result.resolved.contains("governance/proposals"));
+
+        // HTTPS passthrough
+        let result = resolver.resolve("https://example.com/page").unwrap();
+        assert_eq!(result.protocol, Protocol::Https);
+        assert_eq!(result.resolved, "https://example.com/page");
+
+        // HTTP fallback
+        let result = resolver.resolve("http://localhost:8080").unwrap();
+        assert_eq!(result.protocol, Protocol::Http);
+
+        // Serialization roundtrip
+        let result = resolver.resolve("ipfs://QmTest").unwrap();
+        let json = serde_json::to_string(&result).unwrap();
+        let restored: nous_browser::resolver::ResolvedUrl = serde_json::from_str(&json).unwrap();
+        assert_eq!(restored.original, result.original);
+        assert_eq!(restored.protocol, result.protocol);
+    }
+
+    // ── API Governance Roundtrip ───────────────────────────────
+
+    #[tokio::test]
+    async fn api_governance_full_roundtrip() {
+        use axum::body::Body;
+        use axum::http::{Request, StatusCode};
+        use http_body_util::BodyExt;
+        use tower::ServiceExt;
+
+        let app = nous_api::router(nous_api::ApiConfig::default());
+
+        fn json_req(method: &str, uri: &str, body: &serde_json::Value) -> Request<Body> {
+            Request::builder()
+                .method(method)
+                .uri(uri)
+                .header("content-type", "application/json")
+                .body(Body::from(serde_json::to_vec(body).unwrap()))
+                .unwrap()
+        }
+
+        async fn parse(resp: axum::http::Response<Body>) -> serde_json::Value {
+            let bytes = resp.into_body().collect().await.unwrap().to_bytes();
+            serde_json::from_slice(&bytes).unwrap()
+        }
+
+        // 1. Create an identity to use as DAO creator
+        let resp = app
+            .clone()
+            .oneshot(json_req(
+                "POST",
+                "/api/v1/identities",
+                &serde_json::json!({"display_name": "dao_admin"}),
+            ))
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let creator = parse(resp).await;
+        let creator_did = creator["did"].as_str().unwrap().to_string();
+
+        // 2. Create a voter identity
+        let resp = app
+            .clone()
+            .oneshot(json_req(
+                "POST",
+                "/api/v1/identities",
+                &serde_json::json!({"display_name": "voter1"}),
+            ))
+            .await
+            .unwrap();
+        let voter = parse(resp).await;
+        let voter_did = voter["did"].as_str().unwrap().to_string();
+
+        // 3. Create a DAO
+        let resp = app
+            .clone()
+            .oneshot(json_req(
+                "POST",
+                "/api/v1/daos",
+                &serde_json::json!({
+                    "name": "TestDAO",
+                    "description": "Integration test DAO",
+                    "founder_did": creator_did
+                }),
+            ))
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let dao = parse(resp).await;
+        let dao_id = dao["id"].as_str().unwrap().to_string();
+
+        // 4. Add voter as member
+        let uri = format!("/api/v1/daos/{dao_id}/members");
+        let resp = app
+            .clone()
+            .oneshot(json_req(
+                "POST",
+                &uri,
+                &serde_json::json!({"did": voter_did}),
+            ))
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        // 5. Create a proposal (custodial)
+        let uri = format!("/api/v1/daos/{dao_id}/proposals");
+        let resp = app
+            .clone()
+            .oneshot(json_req(
+                "POST",
+                &uri,
+                &serde_json::json!({
+                    "title": "Fund project Alpha",
+                    "description": "Allocate 1000 tokens to project Alpha",
+                    "proposer_did": creator_did
+                }),
+            ))
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let proposal = parse(resp).await;
+        let proposal_id = proposal["id"].as_str().unwrap().to_string();
+
+        // 6. Both members vote
+        let vote_uri = format!("/api/v1/proposals/{proposal_id}/vote");
+        let resp = app
+            .clone()
+            .oneshot(json_req(
+                "POST",
+                &vote_uri,
+                &serde_json::json!({
+                    "voter_did": creator_did,
+                    "choice": "for",
+                    "credits": 1
+                }),
+            ))
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let resp = app
+            .clone()
+            .oneshot(json_req(
+                "POST",
+                &vote_uri,
+                &serde_json::json!({
+                    "voter_did": voter_did,
+                    "choice": "for",
+                    "credits": 1
+                }),
+            ))
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        // 7. Check tally
+        let tally_uri = format!("/api/v1/votes/{proposal_id}");
+        let resp = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri(&tally_uri)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let tally = parse(resp).await;
+        assert!(tally["votes_for"].as_u64().unwrap() >= 2);
+
+        // 8. List proposals
+        let resp = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/proposals")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        // 9. Get DAO details
+        let uri = format!("/api/v1/daos/{dao_id}");
+        let resp = app
+            .oneshot(Request::builder().uri(&uri).body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let dao_details = parse(resp).await;
+        assert_eq!(dao_details["name"], "TestDAO");
+    }
 }
