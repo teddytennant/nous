@@ -44,10 +44,28 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    check();
-    const interval = setInterval(check, 15000);
-    return () => clearInterval(interval);
-  }, [check]);
+    let cancelled = false;
+    const run = async () => {
+      try {
+        const h = await node.health();
+        if (!cancelled) {
+          setHealth(h);
+          setStatus("online");
+        }
+      } catch {
+        if (!cancelled) {
+          setHealth(null);
+          setStatus("offline");
+        }
+      }
+    };
+    run();
+    const interval = setInterval(run, 15000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
 
   const apiUrl =
     process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
