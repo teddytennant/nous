@@ -92,6 +92,8 @@ pub struct AppState {
     pub conversations: RwLock<HashMap<String, Conversation>>,
     // AI inference backend (None = placeholder mode)
     pub inference_backend: RwLock<Option<Arc<dyn InferenceBackend>>>,
+    // Network peers
+    pub peers: RwLock<Vec<crate::routes::PeerInfo>>,
     // Real-time event bus
     pub events: broadcast::Sender<RealtimeEvent>,
     // SQLite persistence — rusqlite::Connection is Send but not Sync,
@@ -195,6 +197,7 @@ impl AppState {
             agents: RwLock::new(agents),
             conversations: RwLock::new(conversations),
             inference_backend: RwLock::new(None),
+            peers: RwLock::new(Vec::new()),
             events: events_tx,
             db: Mutex::new(db),
         })
