@@ -47,11 +47,7 @@ pub struct Receipt {
 
 impl Receipt {
     /// Create and sign a new receipt.
-    pub fn new(
-        message_id: impl Into<String>,
-        kind: ReceiptKind,
-        identity: &Identity,
-    ) -> Receipt {
+    pub fn new(message_id: impl Into<String>, kind: ReceiptKind, identity: &Identity) -> Receipt {
         let message_id = message_id.into();
         let timestamp = Utc::now();
         let payload = signable_bytes(&message_id, identity.did(), kind, timestamp);
@@ -248,11 +244,7 @@ impl ReceiptTracker {
     }
 
     /// Get the highest receipt kind for a specific (message, recipient) pair.
-    pub fn recipient_status(
-        &self,
-        message_id: &str,
-        recipient_did: &str,
-    ) -> Option<ReceiptKind> {
+    pub fn recipient_status(&self, message_id: &str, recipient_did: &str) -> Option<ReceiptKind> {
         self.statuses
             .get(message_id)
             .and_then(|s| s.recipients.get(recipient_did).copied())
@@ -275,10 +267,7 @@ impl ReceiptTracker {
 
     /// Batch-generate delivery receipts for multiple messages at once.
     /// Returns a vec of signed receipts.
-    pub fn batch_deliver(
-        message_ids: &[&str],
-        identity: &Identity,
-    ) -> Vec<Receipt> {
+    pub fn batch_deliver(message_ids: &[&str], identity: &Identity) -> Vec<Receipt> {
         message_ids
             .iter()
             .map(|id| Receipt::new(*id, ReceiptKind::Delivered, identity))
@@ -286,10 +275,7 @@ impl ReceiptTracker {
     }
 
     /// Batch-generate read receipts for multiple messages at once.
-    pub fn batch_read(
-        message_ids: &[&str],
-        identity: &Identity,
-    ) -> Vec<Receipt> {
+    pub fn batch_read(message_ids: &[&str], identity: &Identity) -> Vec<Receipt> {
         message_ids
             .iter()
             .map(|id| Receipt::new(*id, ReceiptKind::Read, identity))
@@ -582,7 +568,11 @@ mod tests {
     fn unknown_message_returns_none() {
         let tracker = ReceiptTracker::new();
         assert!(tracker.status("msg:nonexistent").is_none());
-        assert!(tracker.recipient_status("msg:nonexistent", "did:key:x").is_none());
+        assert!(
+            tracker
+                .recipient_status("msg:nonexistent", "did:key:x")
+                .is_none()
+        );
     }
 
     #[test]
