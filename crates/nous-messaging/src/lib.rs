@@ -3,6 +3,7 @@ pub mod ephemeral;
 pub mod group;
 pub mod message;
 pub mod ratchet;
+pub mod sender_key;
 pub mod session;
 pub mod x3dh;
 
@@ -11,5 +12,6 @@ pub use ephemeral::{ChannelEphemeralPolicy, EphemeralMessage, EphemeralStore, Tt
 pub use group::{Group, GroupMember, GroupRole, GroupSettings, JoinPolicy};
 pub use message::{Message, MessageContent};
 pub use ratchet::{DoubleRatchet, RatchetHeader, RatchetMessage};
+pub use sender_key::{SenderKey, SenderKeyDistribution, SenderKeyMessage, SenderKeyStore};
 pub use session::Session;
 pub use x3dh::{PreKeyBundle, X3dhOutput};
