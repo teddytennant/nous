@@ -2,6 +2,7 @@
 //! a single coherent Nous node that can be started, used, and shut down.
 
 pub mod gossip_bridge;
+pub mod health;
 pub mod routing;
 
 use std::path::PathBuf;
