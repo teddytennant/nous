@@ -3,6 +3,7 @@
 
 pub mod gossip_bridge;
 pub mod health;
+pub mod plugin;
 pub mod rate_limit;
 pub mod routing;
 
