@@ -3182,6 +3182,8 @@ dependencies = [
  "nous-governance",
  "nous-identity",
  "nous-marketplace",
+ "nous-net",
+ "nous-storage",
  "rand 0.8.5",
  "serde_json",
 ]
@@ -3283,6 +3285,7 @@ dependencies = [
  "hkdf",
  "nous-core",
  "nous-crypto",
+ "nous-storage",
  "rand 0.8.5",
  "serde",
  "serde_json",
