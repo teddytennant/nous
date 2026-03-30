@@ -21,6 +21,7 @@ nous-payments = { path = "../nous-payments" }
 nous-files = { path = "../nous-files" }
 nous-browser = { path = "../nous-browser" }
 nous-api = { path = "../nous-api" }
+nous-terminal = { path = "../nous-terminal" }
 axum = "0.8"
 http-body-util = "0.1"
 tower = { version = "0.5", features = ["util"] }
