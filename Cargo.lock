@@ -3363,6 +3363,7 @@ dependencies = [
  "nous-payments",
  "nous-social",
  "nous-storage",
+ "nous-terminal",
  "rand 0.8.5",
  "serde_json",
  "sha2",
