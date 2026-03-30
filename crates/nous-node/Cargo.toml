@@ -16,6 +16,7 @@ nous-messaging = { path = "../nous-messaging" }
 nous-social = { path = "../nous-social" }
 nous-governance = { path = "../nous-governance" }
 nous-marketplace = { path = "../nous-marketplace" }
+nous-payments = { path = "../nous-payments" }
 libp2p = { workspace = true }
 tokio = { workspace = true }
 serde = { workspace = true }
