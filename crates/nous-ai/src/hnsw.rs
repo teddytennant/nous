@@ -163,7 +163,12 @@ impl HnswIndex {
     }
 
     /// Insert a vector into the index.
-    pub fn insert(&mut self, id: impl Into<String>, embedding: &Embedding, metadata: impl Into<String>) {
+    pub fn insert(
+        &mut self,
+        id: impl Into<String>,
+        embedding: &Embedding,
+        metadata: impl Into<String>,
+    ) {
         let id = id.into();
         if embedding.dimensions != self.dimensions {
             return;
@@ -228,11 +233,7 @@ impl HnswIndex {
             } else {
                 self.config.m
             };
-            let selected: Vec<usize> = neighbors
-                .iter()
-                .take(m)
-                .map(|c| c.index)
-                .collect();
+            let selected: Vec<usize> = neighbors.iter().take(m).map(|c| c.index).collect();
 
             node.neighbors[lc] = selected.clone();
 
@@ -255,7 +256,8 @@ impl HnswIndex {
             };
             let neighbors_at_lc: Vec<usize> = self.nodes[node_index].neighbors[lc].clone();
             for &neighbor_idx in &neighbors_at_lc {
-                if neighbor_idx < self.nodes.len() && lc < self.nodes[neighbor_idx].neighbors.len() {
+                if neighbor_idx < self.nodes.len() && lc < self.nodes[neighbor_idx].neighbors.len()
+                {
                     let already = self.nodes[neighbor_idx].neighbors[lc].contains(&node_index);
                     if !already {
                         self.nodes[neighbor_idx].neighbors[lc].push(node_index);
@@ -489,10 +491,7 @@ impl HnswIndex {
             .map(|&n| (Self::distance(&node_vec, &self.nodes[n].vector), n))
             .collect();
 
-        scored.sort_by(|a, b| {
-            a.0.partial_cmp(&b.0)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        });
+        scored.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
         scored.truncate(max_connections);
 
         self.nodes[node_idx].neighbors[layer] = scored.into_iter().map(|(_, idx)| idx).collect();
@@ -730,16 +729,10 @@ mod tests {
             let q: Vec<f32> = (0..dims).map(|_| rng.r#gen::<f32>()).collect();
             let qe = emb(q);
 
-            let hnsw_ids: HashSet<String> = index
-                .search(&qe, k)
-                .into_iter()
-                .map(|r| r.id)
-                .collect();
-            let brute_ids: HashSet<String> = brute
-                .search(&qe, k)
-                .into_iter()
-                .map(|r| r.id)
-                .collect();
+            let hnsw_ids: HashSet<String> =
+                index.search(&qe, k).into_iter().map(|r| r.id).collect();
+            let brute_ids: HashSet<String> =
+                brute.search(&qe, k).into_iter().map(|r| r.id).collect();
 
             let intersection = hnsw_ids.intersection(&brute_ids).count();
             total_recall += intersection as f64 / k as f64;
