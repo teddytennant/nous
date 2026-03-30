@@ -93,9 +93,7 @@ impl MessageStore {
             .ok_or_else(|| Error::NotFound("message not found".into()))?;
 
         if msg.sender_did != sender_did {
-            return Err(Error::PermissionDenied(
-                "only the sender can edit".into(),
-            ));
+            return Err(Error::PermissionDenied("only the sender can edit".into()));
         }
 
         if msg.deleted {
@@ -115,9 +113,7 @@ impl MessageStore {
             .ok_or_else(|| Error::NotFound("message not found".into()))?;
 
         if msg.sender_did != sender_did {
-            return Err(Error::PermissionDenied(
-                "only the sender can delete".into(),
-            ));
+            return Err(Error::PermissionDenied("only the sender can delete".into()));
         }
 
         msg.deleted = true;
@@ -264,11 +260,7 @@ impl MessageStore {
 
         channel_idx
             .keys()
-            .filter(|(_, id)| {
-                self.messages
-                    .get(id)
-                    .is_some_and(|m| !m.deleted)
-            })
+            .filter(|(_, id)| self.messages.get(id).is_some_and(|m| !m.deleted))
             .count()
     }
 
@@ -353,7 +345,9 @@ mod tests {
     #[test]
     fn edit_message() {
         let mut store = MessageStore::new();
-        store.insert(msg("m1", "ch1", "alice", "original", 0)).unwrap();
+        store
+            .insert(msg("m1", "ch1", "alice", "original", 0))
+            .unwrap();
 
         store.edit("m1", "alice", "edited").unwrap();
         let m = store.get("m1").unwrap();
@@ -385,7 +379,9 @@ mod tests {
     #[test]
     fn delete_message() {
         let mut store = MessageStore::new();
-        store.insert(msg("m1", "ch1", "alice", "secret", 0)).unwrap();
+        store
+            .insert(msg("m1", "ch1", "alice", "secret", 0))
+            .unwrap();
 
         store.delete("m1", "alice").unwrap();
         let m = store.get("m1").unwrap();
@@ -405,7 +401,13 @@ mod tests {
         let mut store = MessageStore::new();
         for i in 0..5 {
             store
-                .insert(msg(&format!("m{i}"), "ch1", "alice", &format!("msg {i}"), i))
+                .insert(msg(
+                    &format!("m{i}"),
+                    "ch1",
+                    "alice",
+                    &format!("msg {i}"),
+                    i,
+                ))
                 .unwrap();
         }
 
@@ -423,7 +425,13 @@ mod tests {
         let mut store = MessageStore::new();
         for i in 0..3 {
             store
-                .insert(msg(&format!("m{i}"), "ch1", "alice", &format!("msg {i}"), i))
+                .insert(msg(
+                    &format!("m{i}"),
+                    "ch1",
+                    "alice",
+                    &format!("msg {i}"),
+                    i,
+                ))
                 .unwrap();
         }
 
@@ -437,7 +445,13 @@ mod tests {
         let mut store = MessageStore::new();
         for i in 0..5 {
             store
-                .insert(msg(&format!("m{i}"), "ch1", "alice", &format!("msg {i}"), i))
+                .insert(msg(
+                    &format!("m{i}"),
+                    "ch1",
+                    "alice",
+                    &format!("msg {i}"),
+                    i,
+                ))
                 .unwrap();
         }
 
@@ -453,7 +467,13 @@ mod tests {
         let mut store = MessageStore::new();
         for i in 0..5 {
             store
-                .insert(msg(&format!("m{i}"), "ch1", "alice", &format!("msg {i}"), i))
+                .insert(msg(
+                    &format!("m{i}"),
+                    "ch1",
+                    "alice",
+                    &format!("msg {i}"),
+                    i,
+                ))
                 .unwrap();
         }
 
@@ -475,9 +495,15 @@ mod tests {
     #[test]
     fn search_messages() {
         let mut store = MessageStore::new();
-        store.insert(msg("m1", "ch1", "alice", "hello world", 0)).unwrap();
-        store.insert(msg("m2", "ch1", "bob", "goodbye world", 1)).unwrap();
-        store.insert(msg("m3", "ch1", "carol", "hello there", 2)).unwrap();
+        store
+            .insert(msg("m1", "ch1", "alice", "hello world", 0))
+            .unwrap();
+        store
+            .insert(msg("m2", "ch1", "bob", "goodbye world", 1))
+            .unwrap();
+        store
+            .insert(msg("m3", "ch1", "carol", "hello there", 2))
+            .unwrap();
 
         let results = store.search("ch1", "hello", 10);
         assert_eq!(results.len(), 2);
@@ -488,7 +514,9 @@ mod tests {
     #[test]
     fn search_case_insensitive() {
         let mut store = MessageStore::new();
-        store.insert(msg("m1", "ch1", "alice", "Hello World", 0)).unwrap();
+        store
+            .insert(msg("m1", "ch1", "alice", "Hello World", 0))
+            .unwrap();
 
         let results = store.search("ch1", "hello", 10);
         assert_eq!(results.len(), 1);
@@ -497,7 +525,9 @@ mod tests {
     #[test]
     fn search_excludes_deleted() {
         let mut store = MessageStore::new();
-        store.insert(msg("m1", "ch1", "alice", "secret hello", 0)).unwrap();
+        store
+            .insert(msg("m1", "ch1", "alice", "secret hello", 0))
+            .unwrap();
         store.delete("m1", "alice").unwrap();
 
         let results = store.search("ch1", "hello", 10);
@@ -528,7 +558,9 @@ mod tests {
         let mut store = MessageStore::new();
         store.insert(msg("m1", "ch1", "alice", "hello", 0)).unwrap();
         store.insert(msg("m2", "ch1", "bob", "world", 1)).unwrap();
-        store.insert(msg("m3", "ch1", "carol", "deleted", 2)).unwrap();
+        store
+            .insert(msg("m3", "ch1", "carol", "deleted", 2))
+            .unwrap();
         store.delete("m3", "carol").unwrap();
 
         assert_eq!(store.count("ch1"), 2);
@@ -538,9 +570,15 @@ mod tests {
     #[test]
     fn pin_and_unpin() {
         let mut store = MessageStore::new();
-        store.insert(msg("m1", "ch1", "alice", "important", 0)).unwrap();
-        store.insert(msg("m2", "ch1", "bob", "also important", 1)).unwrap();
-        store.insert(msg("m3", "ch1", "carol", "not important", 2)).unwrap();
+        store
+            .insert(msg("m1", "ch1", "alice", "important", 0))
+            .unwrap();
+        store
+            .insert(msg("m2", "ch1", "bob", "also important", 1))
+            .unwrap();
+        store
+            .insert(msg("m3", "ch1", "carol", "not important", 2))
+            .unwrap();
 
         store.pin("m1").unwrap();
         store.pin("m2").unwrap();
@@ -564,14 +602,18 @@ mod tests {
     #[test]
     fn replies_to_message() {
         let mut store = MessageStore::new();
-        store.insert(msg("m1", "ch1", "alice", "question?", 0)).unwrap();
+        store
+            .insert(msg("m1", "ch1", "alice", "question?", 0))
+            .unwrap();
         store
             .insert(reply("m2", "ch1", "bob", "answer 1", "m1", 1))
             .unwrap();
         store
             .insert(reply("m3", "ch1", "carol", "answer 2", "m1", 2))
             .unwrap();
-        store.insert(msg("m4", "ch1", "dave", "unrelated", 3)).unwrap();
+        store
+            .insert(msg("m4", "ch1", "dave", "unrelated", 3))
+            .unwrap();
 
         let replies = store.replies_to("m1");
         assert_eq!(replies.len(), 2);
@@ -580,7 +622,9 @@ mod tests {
     #[test]
     fn replies_excludes_deleted() {
         let mut store = MessageStore::new();
-        store.insert(msg("m1", "ch1", "alice", "question?", 0)).unwrap();
+        store
+            .insert(msg("m1", "ch1", "alice", "question?", 0))
+            .unwrap();
         store
             .insert(reply("m2", "ch1", "bob", "answer", "m1", 1))
             .unwrap();
@@ -593,7 +637,9 @@ mod tests {
     #[test]
     fn channels_isolated() {
         let mut store = MessageStore::new();
-        store.insert(msg("m1", "ch1", "alice", "in ch1", 0)).unwrap();
+        store
+            .insert(msg("m1", "ch1", "alice", "in ch1", 0))
+            .unwrap();
         store.insert(msg("m2", "ch2", "bob", "in ch2", 1)).unwrap();
 
         assert_eq!(store.count("ch1"), 1);
