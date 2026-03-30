@@ -19,5 +19,7 @@ chrono = { workspace = true }
 uuid = { workspace = true }
 rusqlite = { workspace = true }
 
+rand = { workspace = true }
+
 [dev-dependencies]
 tempfile = { workspace = true }
