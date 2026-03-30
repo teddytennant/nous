@@ -85,7 +85,11 @@ pub fn extract_mentions(text: &str) -> Vec<Mention> {
             Mention::Here
         } else if word.starts_with("did:") {
             Mention::Did(word.to_string())
-        } else if word.len() <= 64 && word.chars().all(|c| c.is_alphanumeric() || c == '_' || c == '-') {
+        } else if word.len() <= 64
+            && word
+                .chars()
+                .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
+        {
             Mention::Name(word.to_string())
         } else {
             continue;
@@ -134,7 +138,8 @@ mod tests {
 
     #[test]
     fn extract_did_mention() {
-        let mentions = extract_mentions("Hello @did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK");
+        let mentions =
+            extract_mentions("Hello @did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK");
         assert_eq!(mentions.len(), 1);
         assert_eq!(
             mentions[0],
@@ -266,14 +271,8 @@ mod tests {
 
     #[test]
     fn is_mentioned_direct() {
-        assert!(is_mentioned(
-            "Hey @did:key:z123",
-            "did:key:z123"
-        ));
-        assert!(!is_mentioned(
-            "Hey @did:key:z123",
-            "did:key:z456"
-        ));
+        assert!(is_mentioned("Hey @did:key:z123", "did:key:z123"));
+        assert!(!is_mentioned("Hey @did:key:z123", "did:key:z456"));
     }
 
     #[test]

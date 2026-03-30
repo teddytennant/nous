@@ -12,7 +12,9 @@ pub mod session;
 pub mod store;
 pub mod x3dh;
 
-pub use attachment::{AttachmentDecoder, AttachmentEncoder, AttachmentMeta, ChunkRef, EncryptedChunk};
+pub use attachment::{
+    AttachmentDecoder, AttachmentEncoder, AttachmentMeta, ChunkRef, EncryptedChunk,
+};
 pub use channel::{Channel, ChannelKind};
 pub use ephemeral::{ChannelEphemeralPolicy, EphemeralMessage, EphemeralStore, Ttl};
 pub use group::{Group, GroupMember, GroupRole, GroupSettings, JoinPolicy};

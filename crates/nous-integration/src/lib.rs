@@ -1227,12 +1227,9 @@ mod tests {
         let encrypted = alice_key.encrypt(msg_text).unwrap();
 
         // Create a signed message wrapping the encrypted group payload
-        let signed = MessageBuilder::text(
-            group_id,
-            &serde_json::to_string(&encrypted).unwrap(),
-        )
-        .sign(&alice)
-        .unwrap();
+        let signed = MessageBuilder::text(group_id, &serde_json::to_string(&encrypted).unwrap())
+            .sign(&alice)
+            .unwrap();
 
         // Verify the message signature (identity layer)
         assert!(signed.verify().is_ok());
@@ -1247,7 +1244,9 @@ mod tests {
         assert_eq!(carol_plain, msg_text);
 
         // Bob sends a reply
-        let bob_msg = bob_key.encrypt(b"Seconded. Let me draft the implementation.").unwrap();
+        let bob_msg = bob_key
+            .encrypt(b"Seconded. Let me draft the implementation.")
+            .unwrap();
         let carol_plain2 = carol_store.decrypt(&bob_msg).unwrap();
         assert_eq!(carol_plain2, b"Seconded. Let me draft the implementation.");
 
@@ -1293,7 +1292,9 @@ mod tests {
         }
 
         // Encode a "document" file
-        let document = b"# Protocol Specification\n\nThis document describes the Nous governance protocol...".repeat(100);
+        let document =
+            b"# Protocol Specification\n\nThis document describes the Nous governance protocol..."
+                .repeat(100);
         let encoder = AttachmentEncoder::new().with_chunk_size(1024);
         let (meta, chunks) = encoder
             .encode("spec.md", "text/markdown", &document, &file_key)
@@ -1403,7 +1404,13 @@ mod tests {
         assert_eq!(replies.len(), 2);
 
         // Bob edits his reply
-        store.edit("msg:2", bob.did(), "Yes, quadratic voting prevents whale domination. Drafting now.").unwrap();
+        store
+            .edit(
+                "msg:2",
+                bob.did(),
+                "Yes, quadratic voting prevents whale domination. Drafting now.",
+            )
+            .unwrap();
         let edited = store.get("msg:2").unwrap();
         assert!(edited.edited_at.is_some());
 

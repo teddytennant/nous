@@ -13,8 +13,8 @@
 use std::collections::HashMap;
 
 use hmac::{Hmac, Mac};
-use rand::rngs::OsRng;
 use rand::RngCore;
+use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 use zeroize::Zeroize;
@@ -458,9 +458,14 @@ mod tests {
     #[test]
     fn remove_group() {
         let mut store = SenderKeyStore::new();
-        store.process_distribution(&SenderKey::generate("did:key:alice", "group:1").to_distribution());
-        store.process_distribution(&SenderKey::generate("did:key:bob", "group:1").to_distribution());
-        store.process_distribution(&SenderKey::generate("did:key:carol", "group:2").to_distribution());
+        store.process_distribution(
+            &SenderKey::generate("did:key:alice", "group:1").to_distribution(),
+        );
+        store
+            .process_distribution(&SenderKey::generate("did:key:bob", "group:1").to_distribution());
+        store.process_distribution(
+            &SenderKey::generate("did:key:carol", "group:2").to_distribution(),
+        );
 
         assert_eq!(store.len(), 3);
         store.remove_group("group:1");

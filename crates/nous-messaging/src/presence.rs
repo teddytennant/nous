@@ -140,10 +140,7 @@ impl ReadReceiptTracker {
 
     /// Get the number of readers for a message.
     pub fn read_count(&self, message_id: &str) -> usize {
-        self.receipts
-            .get(message_id)
-            .map(|r| r.len())
-            .unwrap_or(0)
+        self.receipts.get(message_id).map(|r| r.len()).unwrap_or(0)
     }
 
     /// Check if a specific user has read a message.
@@ -167,12 +164,10 @@ impl ReadReceiptTracker {
         let last = self.last_read_in(channel_id, user_did);
         match last {
             None => message_ids.len(), // never read anything
-            Some(last_id) => {
-                message_ids
-                    .iter()
-                    .position(|id| *id == last_id)
-                    .unwrap_or(message_ids.len())
-            }
+            Some(last_id) => message_ids
+                .iter()
+                .position(|id| *id == last_id)
+                .unwrap_or(message_ids.len()),
         }
     }
 }
@@ -265,7 +260,10 @@ impl PresenceTracker {
     }
 
     pub fn online_count(&self) -> usize {
-        self.users.values().filter(|p| p.status.is_available()).count()
+        self.users
+            .values()
+            .filter(|p| p.status.is_available())
+            .count()
     }
 
     /// Mark stale users as offline.
