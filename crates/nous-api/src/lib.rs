@@ -43,6 +43,7 @@ pub fn router_with_state(state: std::sync::Arc<AppState>) -> Router {
         // Node
         .route("/health", get(routes::health))
         .route("/node", get(routes::node_info))
+        .route("/node/subsystems", get(routes::node_subsystems))
         // Peers
         .route("/peers", get(routes::list_peers))
         .route("/peers", post(routes::connect_peer))
