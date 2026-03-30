@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::chunking::{ChunkOptions, chunk_text};
 use crate::embedding::{Embedding, EmbeddingIndex};
-use crate::search::{KeywordResult, SearchEngine};
+use crate::search::SearchEngine;
 
 /// How to retrieve documents.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -132,8 +132,7 @@ impl RagPipeline {
             let chunk_id = format!("{}:chunk:{}", id, i);
 
             // Index for keyword search.
-            self.keyword_index
-                .index(&chunk_id, &chunk.text, &title);
+            self.keyword_index.index(&chunk_id, &chunk.text, &title);
 
             self.chunk_texts
                 .push((chunk_id.clone(), id.clone(), title.clone()));
@@ -193,10 +192,7 @@ impl RagPipeline {
         scored.retain(|(_, s)| *s >= self.config.min_score);
 
         // Sort by score descending.
-        scored.sort_by(|a, b| {
-            b.1.partial_cmp(&a.1)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        });
+        scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
         scored.truncate(self.config.max_chunks);
 
         // Build retrieved chunks.
@@ -250,7 +246,11 @@ impl RagPipeline {
     }
 
     /// Hybrid search: combine keyword and semantic scores via weighted fusion.
-    fn hybrid_search(&self, query: &str, query_embedding: Option<&Embedding>) -> Vec<(String, f32)> {
+    fn hybrid_search(
+        &self,
+        query: &str,
+        query_embedding: Option<&Embedding>,
+    ) -> Vec<(String, f32)> {
         let kw = self.config.keyword_weight;
         let sem = 1.0 - kw;
 
@@ -385,7 +385,12 @@ mod tests {
     #[test]
     fn ingest_document() {
         let mut pipeline = RagPipeline::new(test_config());
-        let ids = pipeline.ingest("doc-1", "Governance Guide", "Quadratic voting enables more nuanced preference expression.", &chunk_opts());
+        let ids = pipeline.ingest(
+            "doc-1",
+            "Governance Guide",
+            "Quadratic voting enables more nuanced preference expression.",
+            &chunk_opts(),
+        );
 
         assert_eq!(pipeline.document_count(), 1);
         assert!(!ids.is_empty());
@@ -395,9 +400,24 @@ mod tests {
     #[test]
     fn keyword_retrieval() {
         let mut pipeline = RagPipeline::new(test_config());
-        pipeline.ingest("d1", "Governance", "Quadratic voting enables nuanced preference expression in DAOs.", &chunk_opts());
-        pipeline.ingest("d2", "Messaging", "End-to-end encryption protects message privacy using X25519 key exchange.", &chunk_opts());
-        pipeline.ingest("d3", "Identity", "Self-sovereign identity uses DID documents for decentralized authentication.", &chunk_opts());
+        pipeline.ingest(
+            "d1",
+            "Governance",
+            "Quadratic voting enables nuanced preference expression in DAOs.",
+            &chunk_opts(),
+        );
+        pipeline.ingest(
+            "d2",
+            "Messaging",
+            "End-to-end encryption protects message privacy using X25519 key exchange.",
+            &chunk_opts(),
+        );
+        pipeline.ingest(
+            "d3",
+            "Identity",
+            "Self-sovereign identity uses DID documents for decentralized authentication.",
+            &chunk_opts(),
+        );
 
         let ctx = pipeline.retrieve("voting governance", None);
         assert!(!ctx.chunks.is_empty());
@@ -413,7 +433,12 @@ mod tests {
         };
         let mut pipeline = RagPipeline::new(config);
 
-        let ids1 = pipeline.ingest("d1", "Governance", "Voting proposals delegation", &chunk_opts());
+        let ids1 = pipeline.ingest(
+            "d1",
+            "Governance",
+            "Voting proposals delegation",
+            &chunk_opts(),
+        );
         let ids2 = pipeline.ingest("d2", "Messaging", "Encryption chat messages", &chunk_opts());
 
         // Attach embeddings.
@@ -437,8 +462,18 @@ mod tests {
         };
         let mut pipeline = RagPipeline::new(config);
 
-        let ids1 = pipeline.ingest("d1", "Governance", "Quadratic voting delegation proposals", &chunk_opts());
-        let ids2 = pipeline.ingest("d2", "Messaging", "Encrypted peer messaging protocol", &chunk_opts());
+        let ids1 = pipeline.ingest(
+            "d1",
+            "Governance",
+            "Quadratic voting delegation proposals",
+            &chunk_opts(),
+        );
+        let ids2 = pipeline.ingest(
+            "d2",
+            "Messaging",
+            "Encrypted peer messaging protocol",
+            &chunk_opts(),
+        );
 
         pipeline.set_embedding(&ids1[0], Embedding::new(vec![1.0, 0.0, 0.0], "test"));
         pipeline.set_embedding(&ids2[0], Embedding::new(vec![0.0, 1.0, 0.0], "test"));
@@ -458,7 +493,12 @@ mod tests {
             ..test_config()
         };
         let mut pipeline = RagPipeline::new(config);
-        pipeline.ingest("d1", "Governance", "Quadratic voting proposals", &chunk_opts());
+        pipeline.ingest(
+            "d1",
+            "Governance",
+            "Quadratic voting proposals",
+            &chunk_opts(),
+        );
 
         let ctx = pipeline.retrieve("voting", None);
         assert!(!ctx.chunks.is_empty());
@@ -485,7 +525,12 @@ mod tests {
         };
         let mut pipeline = RagPipeline::new(config);
         for i in 0..10 {
-            pipeline.ingest(format!("d{i}"), format!("Doc {i}"), &format!("common keyword text {i}"), &chunk_opts());
+            pipeline.ingest(
+                format!("d{i}"),
+                format!("Doc {i}"),
+                &format!("common keyword text {i}"),
+                &chunk_opts(),
+            );
         }
 
         let ctx = pipeline.retrieve("common keyword", None);
@@ -509,8 +554,18 @@ mod tests {
     #[test]
     fn remove_document_from_pipeline() {
         let mut pipeline = RagPipeline::new(test_config());
-        pipeline.ingest("d1", "Governance", "Quadratic voting proposals", &chunk_opts());
-        pipeline.ingest("d2", "Messaging", "Encrypted messaging protocol", &chunk_opts());
+        pipeline.ingest(
+            "d1",
+            "Governance",
+            "Quadratic voting proposals",
+            &chunk_opts(),
+        );
+        pipeline.ingest(
+            "d2",
+            "Messaging",
+            "Encrypted messaging protocol",
+            &chunk_opts(),
+        );
 
         assert_eq!(pipeline.document_count(), 2);
         assert!(pipeline.remove_document("d1"));
@@ -529,7 +584,12 @@ mod tests {
     #[test]
     fn formatted_context_structure() {
         let mut pipeline = RagPipeline::new(test_config());
-        pipeline.ingest("d1", "Governance Guide", "Quadratic voting enables preference expression.", &chunk_opts());
+        pipeline.ingest(
+            "d1",
+            "Governance Guide",
+            "Quadratic voting enables preference expression.",
+            &chunk_opts(),
+        );
 
         let ctx = pipeline.retrieve("voting", None);
         assert!(ctx.formatted.contains("[Source: Governance Guide"));
@@ -548,8 +608,18 @@ mod tests {
     #[test]
     fn chunks_have_rank() {
         let mut pipeline = RagPipeline::new(test_config());
-        pipeline.ingest("d1", "Doc A", "governance voting proposal system", &chunk_opts());
-        pipeline.ingest("d2", "Doc B", "governance delegation mechanism", &chunk_opts());
+        pipeline.ingest(
+            "d1",
+            "Doc A",
+            "governance voting proposal system",
+            &chunk_opts(),
+        );
+        pipeline.ingest(
+            "d2",
+            "Doc B",
+            "governance delegation mechanism",
+            &chunk_opts(),
+        );
 
         let ctx = pipeline.retrieve("governance", None);
         assert!(ctx.chunks.len() >= 2);
