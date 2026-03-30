@@ -104,8 +104,6 @@ impl Bucket {
         let tokens = (self.tokens + elapsed * self.refill_rate).min(self.capacity);
         tokens as u64
     }
-
-
 }
 
 /// Per-peer token bucket rate limiter.
@@ -369,12 +367,7 @@ impl RateLimiter {
         self.check_at(endpoint, peer_id, Instant::now())
     }
 
-    pub fn check_at(
-        &mut self,
-        endpoint: &str,
-        peer_id: &str,
-        now: Instant,
-    ) -> RateLimitResult {
+    pub fn check_at(&mut self, endpoint: &str, peer_id: &str, now: Instant) -> RateLimitResult {
         let (burst_cfg, _sustained_cfg) = match self.endpoints.get(endpoint) {
             Some(cfg) => cfg.clone(),
             None => {
