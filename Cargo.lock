@@ -3176,6 +3176,7 @@ dependencies = [
 name = "nous-bench"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "criterion",
  "nous-ai",
  "nous-browser",
@@ -3184,10 +3185,13 @@ dependencies = [
  "nous-governance",
  "nous-identity",
  "nous-marketplace",
+ "nous-messaging",
  "nous-net",
+ "nous-payments",
  "nous-storage",
  "rand 0.8.5",
  "serde_json",
+ "x25519-dalek",
 ]
 
 [[package]]
@@ -3346,6 +3350,7 @@ dependencies = [
  "hex",
  "http-body-util",
  "nous-api",
+ "nous-browser",
  "nous-core",
  "nous-crypto",
  "nous-files",
@@ -3360,6 +3365,7 @@ dependencies = [
  "nous-storage",
  "rand 0.8.5",
  "serde_json",
+ "sha2",
  "tempfile",
  "tokio",
  "tower 0.5.3",
