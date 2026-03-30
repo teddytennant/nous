@@ -3,6 +3,7 @@
 
 pub mod gossip_bridge;
 pub mod health;
+pub mod rate_limit;
 pub mod routing;
 
 use std::path::PathBuf;
