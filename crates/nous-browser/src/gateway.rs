@@ -75,8 +75,8 @@ pub trait Gateway: Send + Sync {
 ///
 /// # Note
 ///
-/// This implementation uses synchronous HTTP via `std::net::TcpStream` to
-/// avoid adding an async HTTP client dependency. For production use with
+/// This implementation uses synchronous HTTP via `reqwest::blocking` to
+/// keep the [`Gateway`] trait synchronous. For production use with
 /// high-throughput requirements, consider implementing the [`Gateway`] trait
 /// with an async HTTP client.
 #[derive(Debug, Clone)]
@@ -135,27 +135,70 @@ impl Gateway for PublicIpfsGateway {
 
         let gateway_url = self.url_for_cid(cid);
 
-        // NOTE: In a real implementation, this would make an HTTP request to the
-        // gateway URL. We intentionally don't add reqwest/hyper as a dependency
-        // to keep the crate lightweight. The trait exists so that consumers can
-        // plug in their own HTTP client.
-        //
-        // For now, this returns a clear error indicating that actual HTTP fetching
-        // requires a runtime-specific implementation.
-        Err(GatewayError::RequestFailed(format!(
-            "HTTP fetch not implemented in core library — use the Gateway trait \
-             with your preferred HTTP client to fetch from {gateway_url}"
-        )))
+        let response = reqwest::blocking::get(&gateway_url)
+            .map_err(|e| GatewayError::RequestFailed(e.to_string()))?;
+
+        let status = response.status();
+        if status == reqwest::StatusCode::NOT_FOUND {
+            return Err(GatewayError::NotFound(cid.to_string()));
+        }
+        if !status.is_success() {
+            return Err(GatewayError::RequestFailed(format!(
+                "gateway returned HTTP {status}"
+            )));
+        }
+
+        let content_type = response
+            .headers()
+            .get(reqwest::header::CONTENT_TYPE)
+            .and_then(|v| v.to_str().ok())
+            .map(|s| s.to_string());
+
+        // Check Content-Length header before downloading the body when available.
+        if let Some(len) = response.content_length()
+            && len > self.max_size
+        {
+            return Err(GatewayError::ContentTooLarge {
+                size: len,
+                max: self.max_size,
+            });
+        }
+
+        let data = response
+            .bytes()
+            .map_err(|e| GatewayError::RequestFailed(e.to_string()))?;
+
+        let size = data.len() as u64;
+        if size > self.max_size {
+            return Err(GatewayError::ContentTooLarge {
+                size,
+                max: self.max_size,
+            });
+        }
+
+        Ok(FetchedContent {
+            cid: cid.to_string(),
+            gateway_url,
+            data: data.to_vec(),
+            content_type,
+            size,
+        })
     }
 
     fn exists(&self, cid: &str) -> Result<bool, GatewayError> {
         if cid.is_empty() {
             return Err(GatewayError::InvalidCid("CID cannot be empty".into()));
         }
-        // Same as fetch: requires HTTP client.
-        Err(GatewayError::RequestFailed(
-            "HTTP HEAD request not implemented in core library".into(),
-        ))
+
+        let gateway_url = self.url_for_cid(cid);
+
+        let client = reqwest::blocking::Client::new();
+        let response = client
+            .head(&gateway_url)
+            .send()
+            .map_err(|e| GatewayError::RequestFailed(e.to_string()))?;
+
+        Ok(response.status().is_success())
     }
 
     fn gateway_url(&self) -> &str {
@@ -251,8 +294,9 @@ mod tests {
     }
 
     #[test]
-    fn fetch_valid_cid_returns_not_implemented() {
-        let gw = PublicIpfsGateway::new();
+    fn fetch_unreachable_gateway_returns_request_failed() {
+        // Point at a port that nothing is listening on.
+        let gw = PublicIpfsGateway::with_url("http://127.0.0.1:19999");
         let result = gw.fetch("QmTest123");
         assert!(result.is_err());
         assert!(matches!(
@@ -271,9 +315,39 @@ mod tests {
     }
 
     #[test]
+    fn exists_unreachable_gateway_returns_request_failed() {
+        let gw = PublicIpfsGateway::with_url("http://127.0.0.1:19999");
+        let result = gw.exists("QmTest123");
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            GatewayError::RequestFailed(_)
+        ));
+    }
+
+    #[test]
     fn with_max_size() {
         let gw = PublicIpfsGateway::new().with_max_size(1024);
         assert_eq!(gw.max_size, 1024);
+    }
+
+    #[test]
+    fn url_construction_custom_gateway() {
+        let gw = PublicIpfsGateway::with_url("https://dweb.link");
+        assert_eq!(
+            gw.url_for_cid("bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi"),
+            "https://dweb.link/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi"
+        );
+        assert_eq!(
+            gw.url_for_ipns("docs.ipfs.tech"),
+            "https://dweb.link/ipns/docs.ipfs.tech"
+        );
+    }
+
+    #[test]
+    fn default_max_size_is_50mib() {
+        let gw = PublicIpfsGateway::new();
+        assert_eq!(gw.max_size, 50 * 1024 * 1024);
     }
 
     #[test]
