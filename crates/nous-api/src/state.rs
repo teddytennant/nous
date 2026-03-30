@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock, broadcast};
 
-use nous_ai::{Agent, Conversation};
+use nous_ai::{Agent, Conversation, InferenceBackend};
 use nous_files::FileStore;
 use nous_governance::{
     CommittedVote, Dao, DelegationRegistry, ExecutionEngine, Proposal, VoteTally,
@@ -90,6 +90,8 @@ pub struct AppState {
     // AI
     pub agents: RwLock<HashMap<String, Agent>>,
     pub conversations: RwLock<HashMap<String, Conversation>>,
+    // AI inference backend (None = placeholder mode)
+    pub inference_backend: RwLock<Option<Arc<dyn InferenceBackend>>>,
     // Real-time event bus
     pub events: broadcast::Sender<RealtimeEvent>,
     // SQLite persistence — rusqlite::Connection is Send but not Sync,
@@ -192,9 +194,15 @@ impl AppState {
             invoices: RwLock::new(invoices),
             agents: RwLock::new(agents),
             conversations: RwLock::new(conversations),
+            inference_backend: RwLock::new(None),
             events: events_tx,
             db: Mutex::new(db),
         })
+    }
+
+    /// Configure the inference backend used for AI chat.
+    pub async fn set_inference_backend(&self, backend: Arc<dyn InferenceBackend>) {
+        *self.inference_backend.write().await = Some(backend);
     }
 
     /// Broadcast a real-time event to all connected clients.
