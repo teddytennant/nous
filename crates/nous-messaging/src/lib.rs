@@ -27,8 +27,8 @@ pub use presence::{
     TypingTracker, UserPresence,
 };
 pub use ratchet::{DoubleRatchet, RatchetHeader, RatchetMessage};
+pub use receipt::{MessageStatus, Receipt, ReceiptKind, ReceiptTracker};
 pub use sender_key::{SenderKey, SenderKeyDistribution, SenderKeyMessage, SenderKeyStore};
 pub use session::Session;
-pub use receipt::{MessageStatus, Receipt, ReceiptKind, ReceiptTracker};
 pub use store::{Cursor, MessagePage, MessageStore, StoredMessage};
 pub use x3dh::{PreKeyBundle, X3dhOutput};
