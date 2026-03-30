@@ -338,6 +338,7 @@ impl OrProof {
         }
 
         // Verify each branch: s_i*G == R_i + c_i*Y_i.
+        #[allow(clippy::needless_range_loop)]
         for i in 0..n {
             let ri = match CompressedRistretto(self.commitments[i]).decompress() {
                 Some(p) => p,
@@ -495,6 +496,7 @@ impl SetMembershipProof {
         let h = pedersen_h();
 
         // Verify each branch: s_i*H == R_i + c_i * (C - vi*G).
+        #[allow(clippy::needless_range_loop)]
         for i in 0..n {
             let ri = match CompressedRistretto(self.commitments[i]).decompress() {
                 Some(p) => p,
