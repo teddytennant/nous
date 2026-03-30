@@ -931,4 +931,265 @@ mod tests {
         assert_eq!(parsed["data"]["title"], "Fund Development");
         assert_eq!(parsed["data"]["dao_id"], "d1");
     }
+
+    // ── E2E: Threshold Crypto → DKG → Threshold Signature ────
+
+    #[test]
+    fn threshold_crypto_dao_treasury_signing() {
+        use nous_crypto::threshold::{
+            ThresholdConfig, combine_partial_signatures, dkg_simulate, generate_signing_nonce,
+            partial_sign, verify_threshold_signature,
+        };
+
+        // DAO treasury with 3-of-5 threshold
+        let config = ThresholdConfig::new(3, 5).unwrap();
+        let (dkg_result, shares) = dkg_simulate(config).unwrap();
+
+        // 3 keyholders sign a treasury withdrawal
+        let message = b"withdraw 1000 NOUS to did:key:z6MkRecipient";
+        let signers = vec![shares[0].clone(), shares[2].clone(), shares[4].clone()];
+        let indices: Vec<u32> = signers.iter().map(|s| s.index).collect();
+
+        // Generate nonces
+        let nonces: Vec<([u8; 32], [u8; 32])> = (0..3).map(|_| generate_signing_nonce()).collect();
+
+        // Combine nonces
+        let combined_nonce = {
+            let mut sum = curve25519_dalek::ristretto::CompressedRistretto(nonces[0].1)
+                .decompress()
+                .unwrap();
+            for n in &nonces[1..] {
+                sum += curve25519_dalek::ristretto::CompressedRistretto(n.1)
+                    .decompress()
+                    .unwrap();
+            }
+            sum.compress().to_bytes()
+        };
+
+        // Partial signatures
+        let partials: Vec<_> = signers
+            .iter()
+            .zip(nonces.iter())
+            .map(|(share, (nonce_secret, _))| {
+                partial_sign(
+                    share,
+                    nonce_secret,
+                    &combined_nonce,
+                    &dkg_result.group_public_key,
+                    message,
+                    &indices,
+                )
+            })
+            .collect();
+
+        // Combine and verify
+        let sig = combine_partial_signatures(&partials, &combined_nonce);
+        assert!(verify_threshold_signature(
+            &sig,
+            &dkg_result.group_public_key,
+            message
+        ));
+
+        // Wrong message fails
+        assert!(!verify_threshold_signature(
+            &sig,
+            &dkg_result.group_public_key,
+            b"withdraw 9999 NOUS to attacker"
+        ));
+    }
+
+    // ── E2E: Payment Stream for Compute Billing ──────────────
+
+    #[test]
+    fn payment_stream_for_compute() {
+        use chrono::{Duration, Utc};
+        use nous_payments::stream::{PaymentStream, StreamConfig};
+
+        let compute_provider = Identity::generate();
+        let consumer = Identity::generate();
+
+        // Consumer starts a payment stream for GPU compute at 10 tokens/sec
+        let config = StreamConfig {
+            rate_per_second: 10,
+            token: "NOUS".into(),
+            continuous_claim: true,
+            min_claim_interval_secs: 0,
+            max_duration_secs: 3600, // max 1 hour
+        };
+
+        let start = Utc::now();
+        let mut stream =
+            PaymentStream::create(consumer.did(), compute_provider.did(), config, 36_000).unwrap();
+        stream.activate_at(start).unwrap();
+
+        // After 30 minutes, provider claims
+        let at_30m = start + Duration::minutes(30);
+        let receipt = stream.claim_at(at_30m).unwrap();
+        assert_eq!(receipt.amount, 18_000); // 30*60*10
+
+        // Consumer pauses (taking a break)
+        stream.pause_at(at_30m).unwrap();
+
+        // Resume 10 minutes later
+        stream.resume_at(start + Duration::minutes(40)).unwrap();
+
+        // After another 20 minutes, provider claims again
+        let at_60m = start + Duration::minutes(60);
+        let receipt2 = stream.claim_at(at_60m).unwrap();
+        assert_eq!(receipt2.amount, 12_000); // 20*60*10
+
+        // Total claimed: 30,000 of 36,000
+        assert_eq!(stream.total_claimed, 30_000);
+        assert_eq!(stream.remaining_deposit(at_60m), 6_000);
+    }
+
+    // ── E2E: Social Threads + Interactions ───────────────────
+
+    #[test]
+    fn social_thread_with_interactions() {
+        use nous_social::event::{EventKind, SignedEvent, Tag};
+        use nous_social::interaction::InteractionIndex;
+        use nous_social::thread::Thread;
+
+        let alice = Identity::generate();
+        let bob = Identity::generate();
+        let carol = Identity::generate();
+
+        // Alice posts, Bob and Carol reply
+        let mut root = SignedEvent::new(
+            alice.did(),
+            EventKind::TextNote,
+            "Governance proposal: fund core protocol dev",
+            vec![Tag::hashtag("governance")],
+        );
+        root.sign(alice.keypair());
+        let root_id = root.id.clone();
+
+        let mut reply1 = SignedEvent::new(
+            bob.did(),
+            EventKind::TextNote,
+            "Strong yes. The protocol needs investment.",
+            vec![Tag::event(&root_id)],
+        );
+        reply1.sign(bob.keypair());
+        let reply1_id = reply1.id.clone();
+
+        let mut reply2 = SignedEvent::new(
+            carol.did(),
+            EventKind::TextNote,
+            "Agreed, but we need a budget breakdown first.",
+            vec![Tag::event(&root_id)],
+        );
+        reply2.sign(carol.keypair());
+
+        let mut nested_reply = SignedEvent::new(
+            alice.did(),
+            EventKind::TextNote,
+            "Good point Carol. I'll draft one.",
+            vec![Tag::event(&reply2.id.clone())],
+        );
+        nested_reply.sign(alice.keypair());
+
+        // Build thread
+        let events = vec![
+            root.clone(),
+            reply1.clone(),
+            reply2.clone(),
+            nested_reply.clone(),
+        ];
+        let thread = Thread::from_events(&events).unwrap();
+
+        assert_eq!(thread.root_id, root_id);
+        assert_eq!(thread.len(), 4);
+        assert_eq!(thread.max_depth(), 2);
+        assert_eq!(thread.participants().len(), 3);
+
+        // Add reactions
+        let mut reaction1 = SignedEvent::new(
+            bob.did(),
+            EventKind::Reaction,
+            "🔥",
+            vec![Tag::event(&root_id)],
+        );
+        reaction1.sign(bob.keypair());
+
+        let mut reaction2 = SignedEvent::new(
+            carol.did(),
+            EventKind::Reaction,
+            "+",
+            vec![Tag::event(&root_id)],
+        );
+        reaction2.sign(carol.keypair());
+
+        let mut repost =
+            SignedEvent::new(bob.did(), EventKind::Repost, "", vec![Tag::event(&root_id)]);
+        repost.sign(bob.keypair());
+
+        // Index interactions
+        let mut idx = InteractionIndex::new();
+        idx.index_events(&[reaction1, reaction2, repost, reply1, reply2]);
+
+        let summary = idx.get(&root_id).unwrap();
+        assert_eq!(summary.reaction_count, 2);
+        assert_eq!(summary.repost_count, 1);
+        assert_eq!(summary.reply_count, 2);
+        assert_eq!(idx.score(&root_id), 5);
+    }
+
+    // ── E2E: Credential-Gated Marketplace ────────────────────
+
+    #[test]
+    fn credential_gated_marketplace_listing() {
+        use nous_identity::reputation::ReputationCategory;
+        use nous_identity::{CredentialBuilder, Reputation};
+        use nous_marketplace::{Listing, ListingCategory};
+
+        let seller = Identity::generate();
+        let buyer = Identity::generate();
+        let issuer = Identity::generate(); // credential authority
+
+        // Issuer verifies the seller's identity
+        let credential = CredentialBuilder::new(seller.did())
+            .add_type("VerifiedSeller")
+            .claims(serde_json::json!({"verified": true, "level": "professional"}))
+            .issue(&issuer)
+            .unwrap();
+        assert!(credential.verify().is_ok());
+
+        // Seller builds reputation
+        let mut seller_rep = Reputation::new(seller.did());
+        let rep_event = Reputation::issue_event(
+            &issuer,
+            seller.did(),
+            ReputationCategory::Trading,
+            20,
+            "verified professional seller",
+        )
+        .unwrap();
+        seller_rep.apply(&rep_event).unwrap();
+
+        // Seller creates a listing (only allowed with sufficient reputation)
+        let min_reputation = 10;
+        assert!(
+            seller_rep.score(ReputationCategory::Trading) >= min_reputation,
+            "seller must have sufficient trading reputation"
+        );
+
+        let listing = Listing::new(
+            seller.did(),
+            "Enterprise Security Audit",
+            "Full smart contract security audit by verified professional",
+            ListingCategory::Service,
+            "USDC",
+            50_000,
+        )
+        .unwrap();
+
+        assert!(listing.is_available());
+        assert_eq!(listing.seller_did, seller.did());
+
+        // Buyer can verify the seller's credential before purchasing
+        assert!(credential.verify().is_ok());
+        assert_eq!(seller_rep.total_score(), 20);
+    }
 }
