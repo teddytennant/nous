@@ -356,15 +356,15 @@ impl DiskFileStore {
                 if path == exclude_path || !path.is_file() {
                     continue;
                 }
-                if let Ok(data) = fs::read_to_string(&path) {
-                    if let Ok(history) = serde_json::from_str::<VersionHistory>(&data) {
-                        for chunk_ref in &history.current.chunks {
+                if let Ok(data) = fs::read_to_string(&path)
+                    && let Ok(history) = serde_json::from_str::<VersionHistory>(&data)
+                {
+                    for chunk_ref in &history.current.chunks {
+                        referenced.insert(chunk_ref.hash.clone());
+                    }
+                    for version in &history.history {
+                        for chunk_ref in &version.chunks {
                             referenced.insert(chunk_ref.hash.clone());
-                        }
-                        for version in &history.history {
-                            for chunk_ref in &version.chunks {
-                                referenced.insert(chunk_ref.hash.clone());
-                            }
                         }
                     }
                 }
