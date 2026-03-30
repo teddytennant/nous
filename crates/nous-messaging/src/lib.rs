@@ -6,6 +6,7 @@ pub mod message;
 pub mod ratchet;
 pub mod sender_key;
 pub mod session;
+pub mod store;
 pub mod x3dh;
 
 pub use attachment::{AttachmentDecoder, AttachmentEncoder, AttachmentMeta, ChunkRef, EncryptedChunk};
@@ -16,4 +17,5 @@ pub use message::{Message, MessageContent};
 pub use ratchet::{DoubleRatchet, RatchetHeader, RatchetMessage};
 pub use sender_key::{SenderKey, SenderKeyDistribution, SenderKeyMessage, SenderKeyStore};
 pub use session::Session;
+pub use store::{Cursor, MessagePage, MessageStore, StoredMessage};
 pub use x3dh::{PreKeyBundle, X3dhOutput};
