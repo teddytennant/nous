@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, startTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, startTransition } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { node, type HealthResponse, type NodeInfo } from "@/lib/api";
@@ -87,7 +87,6 @@ function statusLabel(status: string): string {
 export default function NetworkPage() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [nodeInfo, setNodeInfo] = useState<NodeInfo | null>(null);
-  const [peers, setPeers] = useState<Peer[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -108,13 +107,10 @@ export default function NetworkPage() {
   }, [fetchData]);
 
   // Simulated peer list (in production, would come from /api/v1/peers)
-  useEffect(() => {
-    if (!health || health.status !== "ok") {
-      setPeers([]);
-      return;
-    }
+  const peers: Peer[] = useMemo(() => {
+    if (!health || health.status !== "ok") return [];
     const now = new Date();
-    setPeers([
+    return [
       {
         id: "12D3KooWRf7b...q4xN",
         address: "/ip4/10.0.1.5/tcp/9000",
@@ -123,7 +119,7 @@ export default function NetworkPage() {
         connected_at: new Date(now.getTime() - 3_600_000 * 4).toISOString(),
         bytes_sent: 15_240_192,
         bytes_recv: 22_891_520,
-        status: "connected",
+        status: "connected" as const,
       },
       {
         id: "12D3KooWHx2L...r7mK",
@@ -133,7 +129,7 @@ export default function NetworkPage() {
         connected_at: new Date(now.getTime() - 3_600_000 * 2).toISOString(),
         bytes_sent: 8_192_000,
         bytes_recv: 12_480_512,
-        status: "connected",
+        status: "connected" as const,
       },
       {
         id: "12D3KooWYt9Z...k3pQ",
@@ -143,7 +139,7 @@ export default function NetworkPage() {
         connected_at: new Date(now.getTime() - 3_600_000 * 8).toISOString(),
         bytes_sent: 4_096_000,
         bytes_recv: 6_144_000,
-        status: "connected",
+        status: "connected" as const,
       },
       {
         id: "12D3KooWPm4V...n8bR",
@@ -153,9 +149,9 @@ export default function NetworkPage() {
         connected_at: new Date(now.getTime() - 3_600_000).toISOString(),
         bytes_sent: 2_048_000,
         bytes_recv: 1_536_000,
-        status: "connecting",
+        status: "connecting" as const,
       },
-    ]);
+    ];
   }, [health]);
 
   const overallStatus = health?.status === "ok" ? "operational" : error ? "offline" : "connecting";
