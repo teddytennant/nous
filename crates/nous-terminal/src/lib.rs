@@ -8,6 +8,7 @@
 
 pub mod command;
 pub mod completion;
+pub mod editor;
 pub mod history;
 pub mod prompt;
 mod render;
