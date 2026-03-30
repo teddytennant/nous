@@ -152,6 +152,385 @@ impl PedersenCommitment {
     }
 }
 
+// ── Equality Proof ────────────────────────────────────────────
+
+/// Proof that two Pedersen commitments contain the same value.
+///
+/// Given C1 = v*G + r1*H and C2 = v*G + r2*H, proves they share `v`
+/// without revealing `v`, `r1`, or `r2`.
+///
+/// The key insight: C1 - C2 = (r1-r2)*H, so proving knowledge of the
+/// discrete log of (C1-C2) w.r.t. H proves equal values.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EqualityProof {
+    pub commitment: [u8; 32],
+    pub response: [u8; 32],
+}
+
+impl EqualityProof {
+    /// Prove that two commitments contain the same value.
+    pub fn prove(
+        value: u64,
+        blinding_1: &[u8; 32],
+        blinding_2: &[u8; 32],
+    ) -> Self {
+        let r1 = Scalar::from_bytes_mod_order(*blinding_1);
+        let r2 = Scalar::from_bytes_mod_order(*blinding_2);
+        let diff = r1 - r2;
+
+        let k = Scalar::random(&mut OsRng);
+        let h = pedersen_h();
+        let r_commit = (k * h).compress().to_bytes();
+
+        // Challenge includes both commitments and the random commitment.
+        let c1 = PedersenCommitment::commit_with(value, blinding_1);
+        let c2 = PedersenCommitment::commit_with(value, blinding_2);
+
+        let mut input = Vec::with_capacity(96);
+        input.extend_from_slice(&r_commit);
+        input.extend_from_slice(&c1.commitment);
+        input.extend_from_slice(&c2.commitment);
+        let c = challenge_scalar(&input);
+
+        let s = k + c * diff;
+
+        Self {
+            commitment: r_commit,
+            response: s.to_bytes(),
+        }
+    }
+
+    /// Verify that two commitments contain the same value.
+    pub fn verify(&self, commit_1: &PedersenCommitment, commit_2: &PedersenCommitment) -> bool {
+        let c1 = match CompressedRistretto(commit_1.commitment).decompress() {
+            Some(p) => p,
+            None => return false,
+        };
+        let c2 = match CompressedRistretto(commit_2.commitment).decompress() {
+            Some(p) => p,
+            None => return false,
+        };
+        let r = match CompressedRistretto(self.commitment).decompress() {
+            Some(p) => p,
+            None => return false,
+        };
+
+        let h = pedersen_h();
+        let s = Scalar::from_bytes_mod_order(self.response);
+
+        let mut input = Vec::with_capacity(96);
+        input.extend_from_slice(&self.commitment);
+        input.extend_from_slice(&commit_1.commitment);
+        input.extend_from_slice(&commit_2.commitment);
+        let c = challenge_scalar(&input);
+
+        // Verify: s*H == R + c*(C1 - C2)
+        s * h == r + c * (c1 - c2)
+    }
+}
+
+// ── Disjunctive (OR) Proof ───────────────────────────────────
+
+/// A 1-of-N disjunctive Schnorr proof.
+///
+/// Proves knowledge of the discrete log for ONE of a set of public keys
+/// without revealing which one. Uses the Cramer-Damgard-Schoenmakers
+/// technique.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OrProof {
+    /// Per-branch commitments.
+    pub commitments: Vec<[u8; 32]>,
+    /// Per-branch challenges.
+    pub challenges: Vec<[u8; 32]>,
+    /// Per-branch responses.
+    pub responses: Vec<[u8; 32]>,
+}
+
+impl OrProof {
+    /// Prove knowledge of the secret for public_keys[real_index].
+    ///
+    /// # Panics
+    /// Panics if `real_index >= public_keys.len()` or if `public_keys` is empty.
+    pub fn prove(
+        secret: &[u8; 32],
+        real_index: usize,
+        public_keys: &[[u8; 32]],
+        message: &[u8],
+    ) -> Result<Self> {
+        let n = public_keys.len();
+        if n == 0 {
+            return Err(Error::Crypto("empty public key set".into()));
+        }
+        if real_index >= n {
+            return Err(Error::Crypto("real_index out of bounds".into()));
+        }
+
+        let x = Scalar::from_bytes_mod_order(*secret);
+
+        let mut commitments = vec![[0u8; 32]; n];
+        let mut challenges = vec![[0u8; 32]; n];
+        let mut responses = vec![[0u8; 32]; n];
+
+        // For all fake branches, simulate the proof.
+        for i in 0..n {
+            if i == real_index {
+                continue;
+            }
+            let ci = Scalar::random(&mut OsRng);
+            let si = Scalar::random(&mut OsRng);
+
+            let yi = match CompressedRistretto(public_keys[i]).decompress() {
+                Some(p) => p,
+                None => return Err(Error::Crypto("invalid public key".into())),
+            };
+
+            // R_i = s_i*G - c_i*Y_i (simulated commitment).
+            let ri = si * RISTRETTO_BASEPOINT_POINT - ci * yi;
+
+            commitments[i] = ri.compress().to_bytes();
+            challenges[i] = ci.to_bytes();
+            responses[i] = si.to_bytes();
+        }
+
+        // For the real branch, create an honest commitment.
+        let k = Scalar::random(&mut OsRng);
+        commitments[real_index] = (k * RISTRETTO_BASEPOINT_POINT).compress().to_bytes();
+
+        // Compute the overall challenge.
+        let mut hash_input = Vec::new();
+        for c in &commitments {
+            hash_input.extend_from_slice(c);
+        }
+        for pk in public_keys {
+            hash_input.extend_from_slice(pk);
+        }
+        hash_input.extend_from_slice(message);
+        let overall_c = challenge_scalar(&hash_input);
+
+        // Real branch challenge = overall_c - sum of fake challenges.
+        let fake_sum: Scalar = (0..n)
+            .filter(|&i| i != real_index)
+            .map(|i| Scalar::from_bytes_mod_order(challenges[i]))
+            .sum();
+
+        let real_c = overall_c - fake_sum;
+        challenges[real_index] = real_c.to_bytes();
+        responses[real_index] = (k + real_c * x).to_bytes();
+
+        Ok(Self {
+            commitments,
+            challenges,
+            responses,
+        })
+    }
+
+    /// Verify a 1-of-N OR proof.
+    pub fn verify(&self, public_keys: &[[u8; 32]], message: &[u8]) -> bool {
+        let n = public_keys.len();
+        if self.commitments.len() != n
+            || self.challenges.len() != n
+            || self.responses.len() != n
+        {
+            return false;
+        }
+        if n == 0 {
+            return false;
+        }
+
+        // Verify each branch: s_i*G == R_i + c_i*Y_i.
+        for i in 0..n {
+            let ri = match CompressedRistretto(self.commitments[i]).decompress() {
+                Some(p) => p,
+                None => return false,
+            };
+            let yi = match CompressedRistretto(public_keys[i]).decompress() {
+                Some(p) => p,
+                None => return false,
+            };
+            let si = Scalar::from_bytes_mod_order(self.responses[i]);
+            let ci = Scalar::from_bytes_mod_order(self.challenges[i]);
+
+            if si * RISTRETTO_BASEPOINT_POINT != ri + ci * yi {
+                return false;
+            }
+        }
+
+        // Verify overall challenge = sum of per-branch challenges.
+        let mut hash_input = Vec::new();
+        for c in &self.commitments {
+            hash_input.extend_from_slice(c);
+        }
+        for pk in public_keys {
+            hash_input.extend_from_slice(pk);
+        }
+        hash_input.extend_from_slice(message);
+        let expected = challenge_scalar(&hash_input);
+
+        let actual: Scalar = self
+            .challenges
+            .iter()
+            .map(|c| Scalar::from_bytes_mod_order(*c))
+            .sum();
+
+        expected == actual
+    }
+}
+
+// ── Set Membership Proof ──────────────────────────────────────
+
+/// Proof that a committed value belongs to a known set.
+///
+/// Given a Pedersen commitment C = v*G + r*H and a public set {v1, v2, ..., vn},
+/// proves that the committed value v is one of {v1, ..., vn} without
+/// revealing which one.
+///
+/// This uses a disjunctive technique: for each possible value vi in the set,
+/// compute C - vi*G = (v-vi)*G + r*H. For the real value, this equals r*H.
+/// Proving knowledge of r w.r.t. H for one of these "shifted" commitments
+/// proves membership.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SetMembershipProof {
+    pub commitments: Vec<[u8; 32]>,
+    pub challenges: Vec<[u8; 32]>,
+    pub responses: Vec<[u8; 32]>,
+}
+
+impl SetMembershipProof {
+    /// Prove that a committed value belongs to `valid_values`.
+    pub fn prove(
+        value: u64,
+        blinding: &[u8; 32],
+        valid_values: &[u64],
+    ) -> Result<Self> {
+        if valid_values.is_empty() {
+            return Err(Error::Crypto("empty value set".into()));
+        }
+
+        let real_index = valid_values
+            .iter()
+            .position(|&v| v == value)
+            .ok_or_else(|| Error::Crypto("value not in set".into()))?;
+
+        let r = Scalar::from_bytes_mod_order(*blinding);
+        let h = pedersen_h();
+        let n = valid_values.len();
+
+        let commitment_point = Scalar::from(value) * RISTRETTO_BASEPOINT_POINT + r * h;
+
+        let mut proof_commitments = vec![[0u8; 32]; n];
+        let mut challenges = vec![[0u8; 32]; n];
+        let mut responses = vec![[0u8; 32]; n];
+
+        // For fake branches: simulate proof of knowledge of DL of (C - vi*G) w.r.t. H.
+        for i in 0..n {
+            if i == real_index {
+                continue;
+            }
+            let ci = Scalar::random(&mut OsRng);
+            let si = Scalar::random(&mut OsRng);
+
+            // D_i = C - vi*G (should equal (v-vi)*G + r*H for wrong vi).
+            let di = commitment_point - Scalar::from(valid_values[i]) * RISTRETTO_BASEPOINT_POINT;
+
+            // R_i = s_i*H - c_i*D_i.
+            let ri = si * h - ci * di;
+
+            proof_commitments[i] = ri.compress().to_bytes();
+            challenges[i] = ci.to_bytes();
+            responses[i] = si.to_bytes();
+        }
+
+        // Real branch: C - v_real*G = r*H, prove knowledge of r.
+        let k = Scalar::random(&mut OsRng);
+        proof_commitments[real_index] = (k * h).compress().to_bytes();
+
+        // Overall challenge.
+        let mut hash_input = Vec::new();
+        for c in &proof_commitments {
+            hash_input.extend_from_slice(c);
+        }
+        hash_input.extend_from_slice(&commitment_point.compress().to_bytes());
+        for v in valid_values {
+            hash_input.extend_from_slice(&v.to_le_bytes());
+        }
+        let overall = challenge_scalar(&hash_input);
+
+        let fake_sum: Scalar = (0..n)
+            .filter(|&i| i != real_index)
+            .map(|i| Scalar::from_bytes_mod_order(challenges[i]))
+            .sum();
+
+        let real_c = overall - fake_sum;
+        challenges[real_index] = real_c.to_bytes();
+        responses[real_index] = (k + real_c * r).to_bytes();
+
+        Ok(Self {
+            commitments: proof_commitments,
+            challenges,
+            responses,
+        })
+    }
+
+    /// Verify that the committed value in `pedersen_commitment` belongs to `valid_values`.
+    pub fn verify(
+        &self,
+        pedersen_commitment: &PedersenCommitment,
+        valid_values: &[u64],
+    ) -> bool {
+        let n = valid_values.len();
+        if self.commitments.len() != n
+            || self.challenges.len() != n
+            || self.responses.len() != n
+        {
+            return false;
+        }
+        if n == 0 {
+            return false;
+        }
+
+        let c_point = match CompressedRistretto(pedersen_commitment.commitment).decompress() {
+            Some(p) => p,
+            None => return false,
+        };
+        let h = pedersen_h();
+
+        // Verify each branch: s_i*H == R_i + c_i * (C - vi*G).
+        for i in 0..n {
+            let ri = match CompressedRistretto(self.commitments[i]).decompress() {
+                Some(p) => p,
+                None => return false,
+            };
+
+            let di = c_point - Scalar::from(valid_values[i]) * RISTRETTO_BASEPOINT_POINT;
+            let si = Scalar::from_bytes_mod_order(self.responses[i]);
+            let ci = Scalar::from_bytes_mod_order(self.challenges[i]);
+
+            if si * h != ri + ci * di {
+                return false;
+            }
+        }
+
+        // Verify challenge sum.
+        let mut hash_input = Vec::new();
+        for c in &self.commitments {
+            hash_input.extend_from_slice(c);
+        }
+        hash_input.extend_from_slice(&pedersen_commitment.commitment);
+        for v in valid_values {
+            hash_input.extend_from_slice(&v.to_le_bytes());
+        }
+        let expected = challenge_scalar(&hash_input);
+
+        let actual: Scalar = self
+            .challenges
+            .iter()
+            .map(|c| Scalar::from_bytes_mod_order(*c))
+            .sum();
+
+        expected == actual
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -279,5 +658,254 @@ mod tests {
     fn pedersen_max_value() {
         let (c, opening) = PedersenCommitment::commit(u64::MAX);
         assert!(c.verify(&opening));
+    }
+
+    // ── Equality proof tests ──
+
+    #[test]
+    fn equality_proof_same_value() {
+        let r1 = Scalar::random(&mut OsRng);
+        let r2 = Scalar::random(&mut OsRng);
+        let value = 42u64;
+
+        let c1 = PedersenCommitment::commit_with(value, &r1.to_bytes());
+        let c2 = PedersenCommitment::commit_with(value, &r2.to_bytes());
+
+        let proof = EqualityProof::prove(value, &r1.to_bytes(), &r2.to_bytes());
+        assert!(proof.verify(&c1, &c2));
+    }
+
+    #[test]
+    fn equality_proof_rejects_different_values() {
+        let r1 = Scalar::random(&mut OsRng);
+        let r2 = Scalar::random(&mut OsRng);
+
+        let c1 = PedersenCommitment::commit_with(42, &r1.to_bytes());
+        let c2 = PedersenCommitment::commit_with(43, &r2.to_bytes());
+
+        // Prove with same value but commitments differ.
+        let proof = EqualityProof::prove(42, &r1.to_bytes(), &r2.to_bytes());
+        assert!(!proof.verify(&c1, &c2));
+    }
+
+    #[test]
+    fn equality_proof_zero_value() {
+        let r1 = Scalar::random(&mut OsRng);
+        let r2 = Scalar::random(&mut OsRng);
+
+        let c1 = PedersenCommitment::commit_with(0, &r1.to_bytes());
+        let c2 = PedersenCommitment::commit_with(0, &r2.to_bytes());
+
+        let proof = EqualityProof::prove(0, &r1.to_bytes(), &r2.to_bytes());
+        assert!(proof.verify(&c1, &c2));
+    }
+
+    #[test]
+    fn equality_proof_serializes() {
+        let r1 = Scalar::random(&mut OsRng);
+        let r2 = Scalar::random(&mut OsRng);
+
+        let c1 = PedersenCommitment::commit_with(100, &r1.to_bytes());
+        let c2 = PedersenCommitment::commit_with(100, &r2.to_bytes());
+
+        let proof = EqualityProof::prove(100, &r1.to_bytes(), &r2.to_bytes());
+        let json = serde_json::to_string(&proof).unwrap();
+        let restored: EqualityProof = serde_json::from_str(&json).unwrap();
+        assert!(restored.verify(&c1, &c2));
+    }
+
+    // ── OR proof tests ──
+
+    #[test]
+    fn or_proof_two_keys() {
+        let (s0, p0) = schnorr_keygen();
+        let (_, p1) = schnorr_keygen();
+        let keys = [p0, p1];
+
+        let proof = OrProof::prove(&s0, 0, &keys, b"vote").unwrap();
+        assert!(proof.verify(&keys, b"vote"));
+    }
+
+    #[test]
+    fn or_proof_second_key() {
+        let (_, p0) = schnorr_keygen();
+        let (s1, p1) = schnorr_keygen();
+        let keys = [p0, p1];
+
+        let proof = OrProof::prove(&s1, 1, &keys, b"vote").unwrap();
+        assert!(proof.verify(&keys, b"vote"));
+    }
+
+    #[test]
+    fn or_proof_three_keys() {
+        let (_, p0) = schnorr_keygen();
+        let (_, p1) = schnorr_keygen();
+        let (s2, p2) = schnorr_keygen();
+        let keys = [p0, p1, p2];
+
+        let proof = OrProof::prove(&s2, 2, &keys, b"membership").unwrap();
+        assert!(proof.verify(&keys, b"membership"));
+    }
+
+    #[test]
+    fn or_proof_rejects_wrong_message() {
+        let (s0, p0) = schnorr_keygen();
+        let (_, p1) = schnorr_keygen();
+        let keys = [p0, p1];
+
+        let proof = OrProof::prove(&s0, 0, &keys, b"original").unwrap();
+        assert!(!proof.verify(&keys, b"tampered"));
+    }
+
+    #[test]
+    fn or_proof_rejects_wrong_keys() {
+        let (s0, p0) = schnorr_keygen();
+        let (_, p1) = schnorr_keygen();
+        let keys = [p0, p1];
+
+        let proof = OrProof::prove(&s0, 0, &keys, b"test").unwrap();
+
+        // Verify against different keys.
+        let (_, wrong0) = schnorr_keygen();
+        let (_, wrong1) = schnorr_keygen();
+        assert!(!proof.verify(&[wrong0, wrong1], b"test"));
+    }
+
+    #[test]
+    fn or_proof_empty_keys_rejected() {
+        let (s, _) = schnorr_keygen();
+        let result = OrProof::prove(&s, 0, &[], b"test");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn or_proof_out_of_bounds_rejected() {
+        let (s, p) = schnorr_keygen();
+        let result = OrProof::prove(&s, 1, &[p], b"test");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn or_proof_serializes() {
+        let (s0, p0) = schnorr_keygen();
+        let (_, p1) = schnorr_keygen();
+        let keys = [p0, p1];
+
+        let proof = OrProof::prove(&s0, 0, &keys, b"serde").unwrap();
+        let json = serde_json::to_string(&proof).unwrap();
+        let restored: OrProof = serde_json::from_str(&json).unwrap();
+        assert!(restored.verify(&keys, b"serde"));
+    }
+
+    #[test]
+    fn or_proof_single_key() {
+        let (s, p) = schnorr_keygen();
+        let proof = OrProof::prove(&s, 0, &[p], b"single").unwrap();
+        assert!(proof.verify(&[p], b"single"));
+    }
+
+    // ── Set membership proof tests ──
+
+    #[test]
+    fn set_membership_proves_inclusion() {
+        let value = 42u64;
+        let valid = [10, 20, 42, 100, 200];
+        let r = Scalar::random(&mut OsRng);
+        let c = PedersenCommitment::commit_with(value, &r.to_bytes());
+
+        let proof = SetMembershipProof::prove(value, &r.to_bytes(), &valid).unwrap();
+        assert!(proof.verify(&c, &valid));
+    }
+
+    #[test]
+    fn set_membership_rejects_non_member() {
+        let value = 99u64;
+        let valid = [10, 20, 42, 100, 200];
+        let r = Scalar::random(&mut OsRng);
+
+        let result = SetMembershipProof::prove(value, &r.to_bytes(), &valid);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn set_membership_first_element() {
+        let valid = [10, 20, 30];
+        let r = Scalar::random(&mut OsRng);
+        let c = PedersenCommitment::commit_with(10, &r.to_bytes());
+
+        let proof = SetMembershipProof::prove(10, &r.to_bytes(), &valid).unwrap();
+        assert!(proof.verify(&c, &valid));
+    }
+
+    #[test]
+    fn set_membership_last_element() {
+        let valid = [10, 20, 30];
+        let r = Scalar::random(&mut OsRng);
+        let c = PedersenCommitment::commit_with(30, &r.to_bytes());
+
+        let proof = SetMembershipProof::prove(30, &r.to_bytes(), &valid).unwrap();
+        assert!(proof.verify(&c, &valid));
+    }
+
+    #[test]
+    fn set_membership_single_element() {
+        let valid = [42];
+        let r = Scalar::random(&mut OsRng);
+        let c = PedersenCommitment::commit_with(42, &r.to_bytes());
+
+        let proof = SetMembershipProof::prove(42, &r.to_bytes(), &valid).unwrap();
+        assert!(proof.verify(&c, &valid));
+    }
+
+    #[test]
+    fn set_membership_rejects_wrong_commitment() {
+        let valid = [10, 20, 30];
+        let r1 = Scalar::random(&mut OsRng);
+        let r2 = Scalar::random(&mut OsRng);
+
+        // Prove for value 20, but verify against commitment to 30.
+        let proof = SetMembershipProof::prove(20, &r1.to_bytes(), &valid).unwrap();
+        let wrong_c = PedersenCommitment::commit_with(30, &r2.to_bytes());
+        assert!(!proof.verify(&wrong_c, &valid));
+    }
+
+    #[test]
+    fn set_membership_rejects_wrong_set() {
+        let valid = [10, 20, 30];
+        let wrong_set = [40, 50, 60];
+        let r = Scalar::random(&mut OsRng);
+        let c = PedersenCommitment::commit_with(20, &r.to_bytes());
+
+        let proof = SetMembershipProof::prove(20, &r.to_bytes(), &valid).unwrap();
+        assert!(!proof.verify(&c, &wrong_set));
+    }
+
+    #[test]
+    fn set_membership_empty_set_rejected() {
+        let r = Scalar::random(&mut OsRng);
+        let result = SetMembershipProof::prove(42, &r.to_bytes(), &[]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn set_membership_serializes() {
+        let valid = [1, 2, 3, 4, 5];
+        let r = Scalar::random(&mut OsRng);
+        let c = PedersenCommitment::commit_with(3, &r.to_bytes());
+
+        let proof = SetMembershipProof::prove(3, &r.to_bytes(), &valid).unwrap();
+        let json = serde_json::to_string(&proof).unwrap();
+        let restored: SetMembershipProof = serde_json::from_str(&json).unwrap();
+        assert!(restored.verify(&c, &valid));
+    }
+
+    #[test]
+    fn set_membership_zero_value() {
+        let valid = [0, 1, 2];
+        let r = Scalar::random(&mut OsRng);
+        let c = PedersenCommitment::commit_with(0, &r.to_bytes());
+
+        let proof = SetMembershipProof::prove(0, &r.to_bytes(), &valid).unwrap();
+        assert!(proof.verify(&c, &valid));
     }
 }
