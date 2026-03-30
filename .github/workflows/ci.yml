@@ -109,7 +109,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build
-        run: xcodebuild build -scheme Nous -destination 'platform=iOS Simulator,name=iPhone 16' CODE_SIGNING_ALLOWED=NO
+        run: xcodebuild build -scheme Nous -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
 
   desktop:
     name: Desktop (Tauri)
