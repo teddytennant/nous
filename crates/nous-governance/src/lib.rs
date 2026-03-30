@@ -1,3 +1,4 @@
+pub mod analytics;
 pub mod dao;
 pub mod delegation;
 pub mod execution;
