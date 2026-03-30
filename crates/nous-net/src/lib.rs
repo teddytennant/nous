@@ -1,3 +1,4 @@
+pub mod bandwidth;
 pub mod behaviour;
 pub mod connection_manager;
 pub mod discovery;
@@ -11,6 +12,7 @@ pub mod rate_limit;
 pub mod signing;
 pub mod topics;
 
+pub use bandwidth::{BandwidthManager, PriorityQueue, Priority};
 pub use connection_manager::{ConnectionManager, Direction};
 pub use discovery::{BootstrapManager, PeerExchange, RendezvousRegistry};
 pub use events::{NodeEvent, WireMessage};
