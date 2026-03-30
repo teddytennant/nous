@@ -16,10 +16,14 @@ nous-marketplace = { path = "../nous-marketplace" }
 nous-browser = { path = "../nous-browser" }
 nous-ai = { path = "../nous-ai" }
 nous-net = { path = "../nous-net" }
+nous-messaging = { path = "../nous-messaging" }
+nous-payments = { path = "../nous-payments" }
 nous-storage = { path = "../nous-storage" }
 rand = { workspace = true }
 serde_json = { workspace = true }
+chrono = { workspace = true }
 criterion = { workspace = true }
+x25519-dalek = { workspace = true }
 
 [[bench]]
 name = "crypto_bench"
@@ -47,4 +51,12 @@ harness = false
 
 [[bench]]
 name = "storage_bench"
+harness = false
+
+[[bench]]
+name = "messaging_bench"
+harness = false
+
+[[bench]]
+name = "payments_bench"
 harness = false
