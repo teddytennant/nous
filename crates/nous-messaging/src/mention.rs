@@ -107,11 +107,11 @@ pub fn render_mentions(text: &str, resolver: &dyn Fn(&str) -> Option<String>) ->
     let mut result = text.to_string();
 
     for mention in mentions.iter().rev() {
-        if let Mention::Did(did) = mention {
-            if let Some(name) = resolver(did) {
-                let pattern = format!("@{did}");
-                result = result.replace(&pattern, &format!("@{name}"));
-            }
+        if let Mention::Did(did) = mention
+            && let Some(name) = resolver(did)
+        {
+            let pattern = format!("@{did}");
+            result = result.replace(&pattern, &format!("@{name}"));
         }
     }
 
