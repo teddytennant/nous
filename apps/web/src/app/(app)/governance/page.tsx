@@ -15,11 +15,12 @@ import {
   type DelegationResponse,
   type PowerEntry,
 } from "@/lib/api";
+import { GovernanceAnalytics } from "@/components/governance-analytics";
 
-type Tab = "proposals" | "daos" | "delegation";
+type Tab = "analytics" | "proposals" | "daos" | "delegation";
 
 export default function GovernancePage() {
-  const [tab, setTab] = useState<Tab>("proposals");
+  const [tab, setTab] = useState<Tab>("analytics");
   const [daos, setDaos] = useState<DaoResponse[]>([]);
   const [selectedDao, setSelectedDao] = useState<DaoDetailResponse | null>(
     null
@@ -261,7 +262,7 @@ export default function GovernancePage() {
 
       {/* Tabs */}
       <div className="flex gap-6 mb-10 border-b border-white/[0.06] pb-3">
-        {(["proposals", "daos", "delegation"] as Tab[]).map((t) => (
+        {(["analytics", "proposals", "daos", "delegation"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => {
@@ -279,6 +280,15 @@ export default function GovernancePage() {
           </button>
         ))}
       </div>
+
+      {/* ── Analytics Tab ── */}
+      {tab === "analytics" && (
+        <GovernanceAnalytics
+          daos={daos}
+          proposals={proposals}
+          tallies={tallies}
+        />
+      )}
 
       {/* ── Proposals Tab ── */}
       {tab === "proposals" && (
