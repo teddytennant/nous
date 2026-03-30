@@ -1,6 +1,7 @@
 pub mod behaviour;
 pub mod connection_manager;
 pub mod events;
+pub mod gossip;
 pub mod node;
 pub mod peer_store;
 pub mod protocol;
@@ -15,4 +16,5 @@ pub use peer_store::PeerStore;
 pub use protocol::NousProtocol;
 pub use rate_limit::RateLimiter;
 pub use signing::{is_signed, sign_message, verify_message};
+pub use gossip::{GossipConfig, GossipEngine, GossipId, GossipMessage, VectorClock};
 pub use topics::NousTopic;
