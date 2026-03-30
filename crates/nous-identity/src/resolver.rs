@@ -356,15 +356,14 @@ impl DidResolver {
         self.cache.retain(|_, entry| !entry.is_expired());
 
         // If still full, remove the oldest entry.
-        if self.cache.len() >= self.config.max_cache_size {
-            if let Some(oldest_key) = self
+        if self.cache.len() >= self.config.max_cache_size
+            && let Some(oldest_key) = self
                 .cache
                 .iter()
                 .min_by_key(|(_, entry)| entry.cached_at)
                 .map(|(k, _)| k.clone())
-            {
-                self.cache.remove(&oldest_key);
-            }
+        {
+            self.cache.remove(&oldest_key);
         }
     }
 }
