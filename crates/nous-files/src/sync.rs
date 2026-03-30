@@ -15,7 +15,7 @@ use std::collections::HashMap;
 use nous_storage::merkle::{MerkleHash, MerkleProof, MerkleTree};
 use serde::{Deserialize, Serialize};
 
-use crate::manifest::{ChunkRef, FileManifest};
+use crate::manifest::FileManifest;
 
 /// A snapshot of a peer's file state, suitable for sync comparison.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -264,19 +264,19 @@ impl SyncEngine {
 
         // Files both have but with different content.
         for (id, local_manifest) in local {
-            if let Some(remote_manifest) = remote.get(id) {
-                if local_manifest.id != remote_manifest.id {
-                    // Use manifest diff to find exactly which chunks differ.
-                    let (added, removed) = local_manifest.diff(remote_manifest);
-                    chunks_to_request.extend(added);
-                    chunks_to_send.extend(removed);
+            if let Some(remote_manifest) = remote.get(id)
+                && local_manifest.id != remote_manifest.id
+            {
+                // Use manifest diff to find exactly which chunks differ.
+                let (added, removed) = local_manifest.diff(remote_manifest);
+                chunks_to_request.extend(added);
+                chunks_to_send.extend(removed);
 
-                    // If remote has newer version, request the file.
-                    if remote_manifest.version > local_manifest.version {
-                        files_to_request.push(id.clone());
-                    } else if local_manifest.version > remote_manifest.version {
-                        files_to_send.push(id.clone());
-                    }
+                // If remote has newer version, request the file.
+                if remote_manifest.version > local_manifest.version {
+                    files_to_request.push(id.clone());
+                } else if local_manifest.version > remote_manifest.version {
+                    files_to_send.push(id.clone());
                 }
             }
         }
@@ -299,6 +299,7 @@ impl Default for SyncEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::manifest::ChunkRef;
 
     fn make_manifest(name: &str, chunks: Vec<ChunkRef>) -> FileManifest {
         FileManifest::new(name, "application/octet-stream", chunks, "did:key:zTest")
@@ -331,7 +332,10 @@ mod tests {
     #[test]
     fn remove_file() {
         let mut engine = SyncEngine::new();
-        engine.upsert("file-1", make_manifest("a.txt", vec![chunk_ref("aaa", 100)]));
+        engine.upsert(
+            "file-1",
+            make_manifest("a.txt", vec![chunk_ref("aaa", 100)]),
+        );
         assert!(engine.remove("file-1"));
         assert_eq!(engine.file_count(), 0);
         assert!(!engine.remove("file-1"));
@@ -529,9 +533,18 @@ mod tests {
     #[test]
     fn file_ids_sorted() {
         let mut engine = SyncEngine::new();
-        engine.upsert("z-file", make_manifest("z.txt", vec![chunk_ref("zzz", 100)]));
-        engine.upsert("a-file", make_manifest("a.txt", vec![chunk_ref("aaa", 100)]));
-        engine.upsert("m-file", make_manifest("m.txt", vec![chunk_ref("mmm", 100)]));
+        engine.upsert(
+            "z-file",
+            make_manifest("z.txt", vec![chunk_ref("zzz", 100)]),
+        );
+        engine.upsert(
+            "a-file",
+            make_manifest("a.txt", vec![chunk_ref("aaa", 100)]),
+        );
+        engine.upsert(
+            "m-file",
+            make_manifest("m.txt", vec![chunk_ref("mmm", 100)]),
+        );
 
         let snapshot = engine.snapshot();
         assert_eq!(snapshot.file_ids, vec!["a-file", "m-file", "z-file"]);
