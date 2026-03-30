@@ -72,6 +72,20 @@ pub enum MarketplaceEvent {
     OrderUpdate(nous_marketplace::Order),
 }
 
+/// A payments event received from the network.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum PaymentsEvent {
+    NewTransaction(nous_payments::Transaction),
+    InvoiceUpdate(nous_payments::Invoice),
+}
+
+/// An identity event received from the network.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum IdentityEvent {
+    CredentialIssued(nous_identity::Credential),
+    ReputationUpdate(nous_identity::ReputationEvent),
+}
+
 // ── Routed output ─────────────────────────────────────────────────────
 
 /// A successfully routed message, ready for the subsystem to consume.
@@ -81,8 +95,10 @@ pub enum RoutedMessage {
     Messaging(MessagingEvent),
     Governance(GovernanceEvent),
     Marketplace(MarketplaceEvent),
-    /// Topics we acknowledge but don't actively route yet (Payments, Identity,
-    /// Sync, Custom). Logged and forwarded as raw bytes.
+    Payments(PaymentsEvent),
+    Identity(IdentityEvent),
+    /// Topics we acknowledge but don't actively route yet (Sync, Custom).
+    /// Logged and forwarded as raw bytes.
     Unhandled {
         topic: NousTopic,
         sender_did: String,
@@ -188,8 +204,33 @@ impl MessageRouter {
                 }
             }
 
-            // Payments, Identity, Sync, Custom — acknowledged but not fully
-            // routed yet.
+            NousTopic::Payments => {
+                match serde_json::from_value::<PaymentsEvent>(envelope.payload.clone()) {
+                    Ok(pay) => {
+                        debug!("routed payments event");
+                        RoutedMessage::Payments(pay)
+                    }
+                    Err(e) => {
+                        warn!(error = %e, "failed to deserialize payments event payload");
+                        return Ok(());
+                    }
+                }
+            }
+
+            NousTopic::Identity => {
+                match serde_json::from_value::<IdentityEvent>(envelope.payload.clone()) {
+                    Ok(id) => {
+                        debug!("routed identity event");
+                        RoutedMessage::Identity(id)
+                    }
+                    Err(e) => {
+                        warn!(error = %e, "failed to deserialize identity event payload");
+                        return Ok(());
+                    }
+                }
+            }
+
+            // Sync, Custom — acknowledged but not fully routed yet.
             other => {
                 debug!(%other, "topic not actively routed, forwarding as unhandled");
                 RoutedMessage::Unhandled {
@@ -248,6 +289,24 @@ pub fn encode_marketplace(
     P2pEnvelope::new(NousTopic::Marketplace, sender_did, payload).encode()
 }
 
+/// Encode a payments event into bytes ready for gossipsub publishing.
+pub fn encode_payments(
+    sender_did: &str,
+    event: &PaymentsEvent,
+) -> Result<Vec<u8>, serde_json::Error> {
+    let payload = serde_json::to_value(event)?;
+    P2pEnvelope::new(NousTopic::Payments, sender_did, payload).encode()
+}
+
+/// Encode an identity event into bytes ready for gossipsub publishing.
+pub fn encode_identity(
+    sender_did: &str,
+    event: &IdentityEvent,
+) -> Result<Vec<u8>, serde_json::Error> {
+    let payload = serde_json::to_value(event)?;
+    P2pEnvelope::new(NousTopic::Identity, sender_did, payload).encode()
+}
+
 // ── Tests ─────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -302,6 +361,46 @@ mod tests {
         .unwrap();
         let event = MarketplaceEvent::NewListing(listing);
         encode_marketplace(sender, &event).unwrap()
+    }
+
+    fn make_payments_transaction_envelope(sender: &str) -> Vec<u8> {
+        let tx = nous_payments::Transaction::new(sender, "did:key:bob", "ETH", 500);
+        let event = PaymentsEvent::NewTransaction(tx);
+        encode_payments(sender, &event).unwrap()
+    }
+
+    fn make_payments_invoice_envelope(sender: &str) -> Vec<u8> {
+        let mut invoice = nous_payments::Invoice::new(sender, "did:key:bob", "ETH", 30);
+        invoice.add_item(nous_payments::LineItem::new("Consulting", 2, 250));
+        let event = PaymentsEvent::InvoiceUpdate(invoice);
+        encode_payments(sender, &event).unwrap()
+    }
+
+    fn make_identity_credential_envelope(sender: &str) -> Vec<u8> {
+        let issuer = nous_identity::Identity::generate();
+        let subject = nous_identity::Identity::generate();
+        let credential = nous_identity::CredentialBuilder::new(subject.did())
+            .add_type("MembershipCredential")
+            .claims(serde_json::json!({"role": "validator"}))
+            .issue(&issuer)
+            .unwrap();
+        let event = IdentityEvent::CredentialIssued(credential);
+        encode_identity(sender, &event).unwrap()
+    }
+
+    fn make_identity_reputation_envelope(sender: &str) -> Vec<u8> {
+        let issuer = nous_identity::Identity::generate();
+        let subject = nous_identity::Identity::generate();
+        let rep_event = nous_identity::Reputation::issue_event(
+            &issuer,
+            subject.did(),
+            nous_identity::reputation::ReputationCategory::Governance,
+            10,
+            "participated in vote",
+        )
+        .unwrap();
+        let event = IdentityEvent::ReputationUpdate(rep_event);
+        encode_identity(sender, &event).unwrap()
     }
 
     // ── Envelope tests ────────────────────────────────────────────────
@@ -377,6 +476,63 @@ mod tests {
         match mkt {
             MarketplaceEvent::NewListing(l) => assert_eq!(l.title, "Widget"),
             _ => panic!("expected NewListing"),
+        }
+    }
+
+    #[test]
+    fn encode_payments_transaction_roundtrip() {
+        let data = make_payments_transaction_envelope("did:key:alice");
+        let env = P2pEnvelope::decode(&data).unwrap();
+        assert_eq!(env.topic, NousTopic::Payments);
+        let pay: PaymentsEvent = serde_json::from_value(env.payload).unwrap();
+        match pay {
+            PaymentsEvent::NewTransaction(tx) => {
+                assert_eq!(tx.from_did, "did:key:alice");
+                assert_eq!(tx.amount, 500);
+            }
+            _ => panic!("expected NewTransaction"),
+        }
+    }
+
+    #[test]
+    fn encode_payments_invoice_roundtrip() {
+        let data = make_payments_invoice_envelope("did:key:alice");
+        let env = P2pEnvelope::decode(&data).unwrap();
+        assert_eq!(env.topic, NousTopic::Payments);
+        let pay: PaymentsEvent = serde_json::from_value(env.payload).unwrap();
+        match pay {
+            PaymentsEvent::InvoiceUpdate(inv) => {
+                assert_eq!(inv.total(), 500);
+            }
+            _ => panic!("expected InvoiceUpdate"),
+        }
+    }
+
+    #[test]
+    fn encode_identity_credential_roundtrip() {
+        let data = make_identity_credential_envelope("did:key:alice");
+        let env = P2pEnvelope::decode(&data).unwrap();
+        assert_eq!(env.topic, NousTopic::Identity);
+        let id: IdentityEvent = serde_json::from_value(env.payload).unwrap();
+        match id {
+            IdentityEvent::CredentialIssued(c) => {
+                assert!(c.r#type.contains(&"MembershipCredential".to_string()));
+            }
+            _ => panic!("expected CredentialIssued"),
+        }
+    }
+
+    #[test]
+    fn encode_identity_reputation_roundtrip() {
+        let data = make_identity_reputation_envelope("did:key:alice");
+        let env = P2pEnvelope::decode(&data).unwrap();
+        assert_eq!(env.topic, NousTopic::Identity);
+        let id: IdentityEvent = serde_json::from_value(env.payload).unwrap();
+        match id {
+            IdentityEvent::ReputationUpdate(r) => {
+                assert_eq!(r.delta, 10);
+            }
+            _ => panic!("expected ReputationUpdate"),
         }
     }
 
@@ -477,13 +633,13 @@ mod tests {
     async fn route_unhandled_topic() {
         let (router, mut rx) = MessageRouter::new(16);
 
-        // Build an envelope for the Payments topic (not actively routed).
-        let payload = serde_json::json!({"tx": "abc123"});
-        let env = P2pEnvelope::new(NousTopic::Payments, "did:key:frank", payload.clone());
+        // Build an envelope for the Sync topic (not actively routed).
+        let payload = serde_json::json!({"sync": "data"});
+        let env = P2pEnvelope::new(NousTopic::Sync, "did:key:frank", payload.clone());
         let data = env.encode().unwrap();
 
         router
-            .route(&NousTopic::Payments, &data, "did:key:local")
+            .route(&NousTopic::Sync, &data, "did:key:local")
             .await
             .unwrap();
 
@@ -494,7 +650,7 @@ mod tests {
                 sender_did,
                 payload: p,
             } => {
-                assert_eq!(topic, NousTopic::Payments);
+                assert_eq!(topic, NousTopic::Sync);
                 assert_eq!(sender_did, "did:key:frank");
                 assert_eq!(p, payload);
             }
