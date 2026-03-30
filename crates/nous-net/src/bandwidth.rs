@@ -354,12 +354,12 @@ impl BandwidthManager {
         }
 
         // Check per-peer limit.
-        if let Some(limit) = self.per_peer_limit {
-            if let Some(peer) = self.peers.get_mut(peer_id) {
-                let current = peer.send_rate();
-                if current + bytes as f64 > limit as f64 {
-                    return false;
-                }
+        if let Some(limit) = self.per_peer_limit
+            && let Some(peer) = self.peers.get_mut(peer_id)
+        {
+            let current = peer.send_rate();
+            if current + bytes as f64 > limit as f64 {
+                return false;
             }
         }
 
