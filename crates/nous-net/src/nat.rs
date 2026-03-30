@@ -300,8 +300,7 @@ impl RelayCandidate {
 
     /// Whether the relay verification is still fresh.
     pub fn is_fresh(&self, max_age: Duration) -> bool {
-        self.last_verified
-            .is_some_and(|t| t.elapsed() < max_age)
+        self.last_verified.is_some_and(|t| t.elapsed() < max_age)
     }
 }
 
@@ -353,9 +352,9 @@ impl RelaySelector {
 
     /// Get the currently active relay.
     pub fn active_relay(&self) -> Option<&RelayCandidate> {
-        self.active_relay.as_ref().and_then(|active| {
-            self.candidates.iter().find(|c| c.peer_id == *active)
-        })
+        self.active_relay
+            .as_ref()
+            .and_then(|active| self.candidates.iter().find(|c| c.peer_id == *active))
     }
 
     /// Record success for a relay.
@@ -632,7 +631,11 @@ mod tests {
         obs.observe("3.3.3.3".into()); // Should evict 1.1.1.1 (least confirmed)
 
         assert_eq!(obs.observation_count(), 2);
-        assert!(obs.confirmed_addresses().iter().any(|a| a.address == "2.2.2.2"));
+        assert!(
+            obs.confirmed_addresses()
+                .iter()
+                .any(|a| a.address == "2.2.2.2")
+        );
     }
 
     // --- HolePunchAttempt tests ---

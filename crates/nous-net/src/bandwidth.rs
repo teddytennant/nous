@@ -215,11 +215,7 @@ impl SlidingWindow {
 
     fn gc(&mut self) {
         let cutoff = Instant::now() - self.window_duration;
-        while self
-            .entries
-            .front()
-            .is_some_and(|(t, _)| *t < cutoff)
-        {
+        while self.entries.front().is_some_and(|(t, _)| *t < cutoff) {
             self.entries.pop_front();
         }
     }

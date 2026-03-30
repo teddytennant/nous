@@ -369,7 +369,8 @@ impl PeerExchange {
             .as_secs()
             .saturating_sub(max_age.as_secs());
 
-        self.known_peers.retain(|_, entry| entry.last_seen >= cutoff);
+        self.known_peers
+            .retain(|_, entry| entry.last_seen >= cutoff);
 
         // Also clean up expired cooldowns.
         self.exchange_cooldowns
@@ -422,19 +423,13 @@ impl RendezvousRegistry {
     /// Register a peer under a namespace.
     pub fn register(&mut self, peer_id: &str, namespace: &str) -> Result<(), &'static str> {
         // Check per-peer limit.
-        let peer_ns = self
-            .peer_namespaces
-            .entry(peer_id.to_string())
-            .or_default();
+        let peer_ns = self.peer_namespaces.entry(peer_id.to_string()).or_default();
         if peer_ns.len() >= self.max_per_peer && !peer_ns.contains(namespace) {
             return Err("peer has reached max namespace registrations");
         }
 
         // Check per-namespace limit.
-        let ns_peers = self
-            .namespaces
-            .entry(namespace.to_string())
-            .or_default();
+        let ns_peers = self.namespaces.entry(namespace.to_string()).or_default();
         if ns_peers.len() >= self.max_per_namespace && !ns_peers.contains(peer_id) {
             return Err("namespace has reached max registrations");
         }
@@ -529,7 +524,10 @@ impl RendezvousRegistry {
     }
 
     pub fn namespace_count(&self) -> usize {
-        self.namespaces.iter().filter(|(_, p)| !p.is_empty()).count()
+        self.namespaces
+            .iter()
+            .filter(|(_, p)| !p.is_empty())
+            .count()
     }
 
     pub fn total_registrations(&self) -> usize {
@@ -608,9 +606,7 @@ mod tests {
 
         // Both Unknown → either is fine.
         let first = mgr.next_healthy().unwrap().address.clone();
-        assert!(
-            first == "/ip4/1.1.1.1/tcp/9000" || first == "/ip4/2.2.2.2/tcp/9000"
-        );
+        assert!(first == "/ip4/1.1.1.1/tcp/9000" || first == "/ip4/2.2.2.2/tcp/9000");
 
         // Mark first as unhealthy.
         mgr.record_failure("/ip4/1.1.1.1/tcp/9000");
@@ -665,10 +661,7 @@ mod tests {
     fn pex_refresh_existing_peer() {
         let mut pex = PeerExchange::new(100, 10);
         pex.add_peer("peer-a".into(), vec!["/ip4/1.1.1.1/tcp/9000".into()]);
-        pex.add_peer(
-            "peer-a".into(),
-            vec!["/ip4/2.2.2.2/tcp/9000".into()],
-        );
+        pex.add_peer("peer-a".into(), vec!["/ip4/2.2.2.2/tcp/9000".into()]);
 
         // Should not duplicate, but should add new address.
         assert_eq!(pex.peer_count(), 1);

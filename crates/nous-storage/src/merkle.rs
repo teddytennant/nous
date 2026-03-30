@@ -338,10 +338,7 @@ mod tests {
         let tree = MerkleTree::from_leaves(&[b"left", b"right"]);
         assert_eq!(tree.leaf_count(), 2);
 
-        let expected_root = hash_node(
-            &hash_leaf(b"left"),
-            &hash_leaf(b"right"),
-        );
+        let expected_root = hash_node(&hash_leaf(b"left"), &hash_leaf(b"right"));
         assert_eq!(*tree.root(), expected_root);
     }
 

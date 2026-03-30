@@ -169,11 +169,7 @@ pub struct EqualityProof {
 
 impl EqualityProof {
     /// Prove that two commitments contain the same value.
-    pub fn prove(
-        value: u64,
-        blinding_1: &[u8; 32],
-        blinding_2: &[u8; 32],
-    ) -> Self {
+    pub fn prove(value: u64, blinding_1: &[u8; 32], blinding_2: &[u8; 32]) -> Self {
         let r1 = Scalar::from_bytes_mod_order(*blinding_1);
         let r2 = Scalar::from_bytes_mod_order(*blinding_2);
         let diff = r1 - r2;
@@ -327,10 +323,7 @@ impl OrProof {
     /// Verify a 1-of-N OR proof.
     pub fn verify(&self, public_keys: &[[u8; 32]], message: &[u8]) -> bool {
         let n = public_keys.len();
-        if self.commitments.len() != n
-            || self.challenges.len() != n
-            || self.responses.len() != n
-        {
+        if self.commitments.len() != n || self.challenges.len() != n || self.responses.len() != n {
             return false;
         }
         if n == 0 {
@@ -398,11 +391,7 @@ pub struct SetMembershipProof {
 
 impl SetMembershipProof {
     /// Prove that a committed value belongs to `valid_values`.
-    pub fn prove(
-        value: u64,
-        blinding: &[u8; 32],
-        valid_values: &[u64],
-    ) -> Result<Self> {
+    pub fn prove(value: u64, blinding: &[u8; 32], valid_values: &[u64]) -> Result<Self> {
         if valid_values.is_empty() {
             return Err(Error::Crypto("empty value set".into()));
         }
@@ -473,16 +462,9 @@ impl SetMembershipProof {
     }
 
     /// Verify that the committed value in `pedersen_commitment` belongs to `valid_values`.
-    pub fn verify(
-        &self,
-        pedersen_commitment: &PedersenCommitment,
-        valid_values: &[u64],
-    ) -> bool {
+    pub fn verify(&self, pedersen_commitment: &PedersenCommitment, valid_values: &[u64]) -> bool {
         let n = valid_values.len();
-        if self.commitments.len() != n
-            || self.challenges.len() != n
-            || self.responses.len() != n
-        {
+        if self.commitments.len() != n || self.challenges.len() != n || self.responses.len() != n {
             return false;
         }
         if n == 0 {

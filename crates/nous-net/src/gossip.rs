@@ -249,10 +249,7 @@ pub enum GossipAction {
         targets: Vec<String>,
     },
     /// Send a digest to this peer for anti-entropy sync.
-    SendDigest {
-        peer: String,
-        digest: GossipDigest,
-    },
+    SendDigest { peer: String, digest: GossipDigest },
     /// Send specific messages to a peer who is missing them.
     SendMissing {
         peer: String,
@@ -428,9 +425,7 @@ impl GossipEngine {
         let mut clock_summary = HashMap::new();
 
         for msg in self.messages.values() {
-            let entry = clock_summary
-                .entry(msg.origin.clone())
-                .or_insert(0u64);
+            let entry = clock_summary.entry(msg.origin.clone()).or_insert(0u64);
             *entry = (*entry).max(msg.clock.get(&msg.origin));
         }
 
@@ -501,18 +496,15 @@ impl GossipEngine {
             self.messages.remove(id);
         }
 
-        self.insertion_order.retain(|id| self.messages.contains_key(id));
+        self.insertion_order
+            .retain(|id| self.messages.contains_key(id));
     }
 
     fn push_to_peers(&mut self, msg: &GossipMessage) -> Vec<GossipAction> {
         self.push_to_peers_excluding(msg, "")
     }
 
-    fn push_to_peers_excluding(
-        &mut self,
-        msg: &GossipMessage,
-        exclude: &str,
-    ) -> Vec<GossipAction> {
+    fn push_to_peers_excluding(&mut self, msg: &GossipMessage, exclude: &str) -> Vec<GossipAction> {
         let targets: Vec<String> = self
             .peer_states
             .keys()

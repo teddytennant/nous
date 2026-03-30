@@ -7,6 +7,5 @@ pub use encryption::{EncryptedPayload, decrypt, encrypt};
 pub use keys::{KeyPair, SharedSecret};
 pub use signing::{Signature, Signer, Verifier};
 pub use zkp::{
-    EqualityProof, OrProof, PedersenCommitment, PedersenOpening, SchnorrProof,
-    SetMembershipProof,
+    EqualityProof, OrProof, PedersenCommitment, PedersenOpening, SchnorrProof, SetMembershipProof,
 };

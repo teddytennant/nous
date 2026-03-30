@@ -3404,18 +3404,23 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "bytes",
+ "chrono",
  "futures",
+ "hex",
  "libp2p",
  "nous-core",
  "nous-crypto",
  "nous-identity",
+ "rand 0.8.5",
  "serde",
  "serde_json",
+ "sha2",
  "tempfile",
  "thiserror 2.0.18",
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "uuid",
 ]
 
 [[package]]
@@ -3503,11 +3508,13 @@ name = "nous-storage"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "hex",
  "nous-core",
  "nous-crypto",
  "rusqlite",
  "serde",
  "serde_json",
+ "sha2",
  "tempfile",
  "thiserror 2.0.18",
  "uuid",

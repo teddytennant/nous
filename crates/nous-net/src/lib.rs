@@ -12,15 +12,15 @@ pub mod rate_limit;
 pub mod signing;
 pub mod topics;
 
-pub use bandwidth::{BandwidthManager, PriorityQueue, Priority};
+pub use bandwidth::{BandwidthManager, Priority, PriorityQueue};
 pub use connection_manager::{ConnectionManager, Direction};
 pub use discovery::{BootstrapManager, PeerExchange, RendezvousRegistry};
 pub use events::{NodeEvent, WireMessage};
+pub use gossip::{GossipConfig, GossipEngine, GossipId, GossipMessage, VectorClock};
+pub use nat::{ConnectivityStrategy, NatTraversal, NatType, RelayCandidate};
 pub use node::{NodeConfig, NousNode};
 pub use peer_store::PeerStore;
 pub use protocol::NousProtocol;
 pub use rate_limit::RateLimiter;
 pub use signing::{is_signed, sign_message, verify_message};
-pub use gossip::{GossipConfig, GossipEngine, GossipId, GossipMessage, VectorClock};
-pub use nat::{ConnectivityStrategy, NatTraversal, NatType, RelayCandidate};
 pub use topics::NousTopic;

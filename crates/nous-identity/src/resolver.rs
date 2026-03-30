@@ -234,12 +234,10 @@ impl DidResolver {
         let result = match &method {
             DidMethod::Key => self.resolve_did_key(did),
             DidMethod::Nous => self.resolve_did_nous(did),
-            DidMethod::Web => {
-                Err(Error::Identity("did:web resolution requires HTTP — not available in sync resolver".into()))
-            }
-            DidMethod::Unknown(m) => {
-                Err(Error::Identity(format!("unsupported DID method: {m}")))
-            }
+            DidMethod::Web => Err(Error::Identity(
+                "did:web resolution requires HTTP — not available in sync resolver".into(),
+            )),
+            DidMethod::Unknown(m) => Err(Error::Identity(format!("unsupported DID method: {m}"))),
         };
 
         match result {
@@ -387,7 +385,9 @@ mod tests {
 
     #[test]
     fn did_method_from_key() {
-        let method = DidMethod::from_did("did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK").unwrap();
+        let method =
+            DidMethod::from_did("did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK")
+                .unwrap();
         assert_eq!(method, DidMethod::Key);
         assert!(method.is_local());
     }
