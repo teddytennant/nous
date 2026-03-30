@@ -33,6 +33,34 @@ export const node = {
   info: () => request<NodeInfo>("/node"),
 };
 
+// ── Peers ─────────────────────────────────────────────────────────────────
+
+export interface PeerResponse {
+  peer_id: string;
+  multiaddr: string;
+  latency_ms: number | null;
+  bytes_sent: number;
+  bytes_recv: number;
+  connected_at: string;
+  protocols: string[];
+}
+
+export interface PeersListResponse {
+  peers: PeerResponse[];
+  count: number;
+}
+
+export const peers = {
+  list: () => request<PeersListResponse>("/peers"),
+  connect: (multiaddr: string) =>
+    request<PeerResponse>("/peers", {
+      method: "POST",
+      body: JSON.stringify({ multiaddr }),
+    }),
+  disconnect: (peerId: string) =>
+    request<void>(`/peers/${peerId}`, { method: "DELETE" }),
+};
+
 // ── Social ─────────────────────────────────────────────────────────────────
 
 export interface FeedEvent {
