@@ -94,9 +94,7 @@ impl AttachmentEncoder {
             chunk_refs.push(ChunkRef {
                 index: 0,
                 hash: hash.clone(),
-                encrypted_size: serde_json::to_vec(&encrypted)
-                    .map(|v| v.len())
-                    .unwrap_or(0),
+                encrypted_size: serde_json::to_vec(&encrypted).map(|v| v.len()).unwrap_or(0),
             });
             encrypted_chunks.push(EncryptedChunk {
                 index: 0,
@@ -107,9 +105,7 @@ impl AttachmentEncoder {
             for (i, chunk) in chunks.iter().enumerate() {
                 let chunk_hash = hex_sha256(chunk);
                 let encrypted = encryption::encrypt(encryption_key, chunk)?;
-                let enc_size = serde_json::to_vec(&encrypted)
-                    .map(|v| v.len())
-                    .unwrap_or(0);
+                let enc_size = serde_json::to_vec(&encrypted).map(|v| v.len()).unwrap_or(0);
 
                 chunk_refs.push(ChunkRef {
                     index: i,
@@ -207,8 +203,8 @@ fn hex_sha256(data: &[u8]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand::rngs::OsRng;
     use rand::RngCore;
+    use rand::rngs::OsRng;
 
     fn random_key() -> [u8; 32] {
         let mut key = [0u8; 32];
@@ -222,7 +218,9 @@ mod tests {
         let data = b"hello world";
         let encoder = AttachmentEncoder::new();
 
-        let (meta, chunks) = encoder.encode("test.txt", "text/plain", data, &key).unwrap();
+        let (meta, chunks) = encoder
+            .encode("test.txt", "text/plain", data, &key)
+            .unwrap();
 
         assert_eq!(meta.file_name, "test.txt");
         assert_eq!(meta.mime_type, "text/plain");
@@ -255,7 +253,9 @@ mod tests {
         let key = random_key();
         let encoder = AttachmentEncoder::new();
 
-        let (meta, chunks) = encoder.encode("empty.txt", "text/plain", b"", &key).unwrap();
+        let (meta, chunks) = encoder
+            .encode("empty.txt", "text/plain", b"", &key)
+            .unwrap();
 
         assert_eq!(meta.size, 0);
         assert_eq!(meta.chunk_count, 1);
@@ -326,9 +326,11 @@ mod tests {
         let encoder = AttachmentEncoder::new();
         let data = vec![0u8; MAX_FILE_SIZE + 1];
 
-        assert!(encoder
-            .encode("huge.bin", "application/octet-stream", &data, &key)
-            .is_err());
+        assert!(
+            encoder
+                .encode("huge.bin", "application/octet-stream", &data, &key)
+                .is_err()
+        );
     }
 
     #[test]
@@ -379,12 +381,8 @@ mod tests {
         let encoder = AttachmentEncoder::new();
         let data = b"deterministic";
 
-        let (meta1, _) = encoder
-            .encode("a.txt", "text/plain", data, &key)
-            .unwrap();
-        let (meta2, _) = encoder
-            .encode("b.txt", "text/plain", data, &key)
-            .unwrap();
+        let (meta1, _) = encoder.encode("a.txt", "text/plain", data, &key).unwrap();
+        let (meta2, _) = encoder.encode("b.txt", "text/plain", data, &key).unwrap();
 
         assert_eq!(meta1.hash, meta2.hash);
         assert_eq!(meta1.chunks[0].hash, meta2.chunks[0].hash);
