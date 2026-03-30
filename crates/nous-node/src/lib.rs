@@ -1,6 +1,7 @@
 //! Node orchestrator — ties identity, storage, networking, and messaging into
 //! a single coherent Nous node that can be started, used, and shut down.
 
+pub mod gossip_bridge;
 pub mod routing;
 
 use std::path::PathBuf;
