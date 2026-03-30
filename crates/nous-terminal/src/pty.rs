@@ -240,8 +240,16 @@ mod tests {
         assert!(pty.is_alive());
 
         pty.write_all(b"exit\n").unwrap();
-        std::thread::sleep(std::time::Duration::from_millis(200));
 
-        assert!(!pty.is_alive());
+        // Poll for exit with retries (process may take time on loaded systems)
+        let mut exited = false;
+        for _ in 0..20 {
+            std::thread::sleep(std::time::Duration::from_millis(50));
+            if !pty.is_alive() {
+                exited = true;
+                break;
+            }
+        }
+        assert!(exited, "child process did not exit within 1 second");
     }
 }
