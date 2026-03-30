@@ -67,13 +67,13 @@ impl Thread {
             );
         }
 
-        // Second pass: link children
-        let ids: Vec<String> = nodes.keys().cloned().collect();
-        for id in &ids {
-            if let Some(parent_id) = nodes.get(id).and_then(|n| n.parent_id.clone())
+        // Second pass: link children (iterate events in order for deterministic child ordering)
+        for event in events {
+            if let Some(node) = nodes.get(&event.id)
+                && let Some(parent_id) = node.parent_id.clone()
                 && let Some(parent) = nodes.get_mut(&parent_id)
             {
-                parent.children.push(id.clone());
+                parent.children.push(event.id.clone());
                 parent.reply_count += 1;
             }
         }
