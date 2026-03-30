@@ -40,9 +40,15 @@ fn bench_wallet_transfer(c: &mut Criterion) {
 fn bench_escrow_lifecycle(c: &mut Criterion) {
     c.bench_function("escrow_create_release", |b| {
         b.iter(|| {
-            let mut escrow =
-                Escrow::new("did:key:buyer", "did:key:seller", "USDC", 50_000, "bench", 24)
-                    .unwrap();
+            let mut escrow = Escrow::new(
+                "did:key:buyer",
+                "did:key:seller",
+                "USDC",
+                50_000,
+                "bench",
+                24,
+            )
+            .unwrap();
             escrow.release("did:key:buyer").unwrap();
             black_box(&escrow);
         });
@@ -52,9 +58,15 @@ fn bench_escrow_lifecycle(c: &mut Criterion) {
 fn bench_escrow_dispute(c: &mut Criterion) {
     c.bench_function("escrow_dispute", |b| {
         b.iter(|| {
-            let mut escrow =
-                Escrow::new("did:key:buyer", "did:key:seller", "USDC", 50_000, "bench", 24)
-                    .unwrap();
+            let mut escrow = Escrow::new(
+                "did:key:buyer",
+                "did:key:seller",
+                "USDC",
+                50_000,
+                "bench",
+                24,
+            )
+            .unwrap();
             escrow.dispute("did:key:buyer").unwrap();
             black_box(&escrow);
         });

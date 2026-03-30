@@ -62,7 +62,8 @@ fn bench_double_ratchet_roundtrip(c: &mut Criterion) {
         b.iter(|| {
             let mut alice =
                 DoubleRatchet::init_initiator(output.shared_secret, &bundle.signed_pre_key.key);
-            let mut bob = DoubleRatchet::init_responder(output.shared_secret, bob_spk_clone.clone());
+            let mut bob =
+                DoubleRatchet::init_responder(output.shared_secret, bob_spk_clone.clone());
 
             let msg = alice.encrypt(plaintext).unwrap();
             let decrypted = bob.decrypt(&msg).unwrap();
