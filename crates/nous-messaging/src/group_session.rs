@@ -13,7 +13,7 @@
 //! 3. Encrypts group messages with sender key (O(1) per message)
 //! 4. On member removal → all remaining members rotate sender keys
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
