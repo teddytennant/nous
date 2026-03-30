@@ -222,8 +222,8 @@ impl SearchEngine {
 
             // TF component with saturation and length normalization.
             let tf_f = tf as f32;
-            let tf_norm =
-                (tf_f * (self.config.k1 + 1.0)) / (tf_f + self.config.k1 * (1.0 - self.config.b + self.config.b * dl / avgdl));
+            let tf_norm = (tf_f * (self.config.k1 + 1.0))
+                / (tf_f + self.config.k1 * (1.0 - self.config.b + self.config.b * dl / avgdl));
 
             total_score += idf * tf_norm;
             matched.push((term.clone(), tf));
@@ -423,7 +423,11 @@ mod tests {
         assert_eq!(results.len(), 1);
         assert!(!results[0].matched_terms.is_empty());
 
-        let terms: Vec<&str> = results[0].matched_terms.iter().map(|(t, _)| t.as_str()).collect();
+        let terms: Vec<&str> = results[0]
+            .matched_terms
+            .iter()
+            .map(|(t, _)| t.as_str())
+            .collect();
         assert!(terms.contains(&"governance"));
         assert!(terms.contains(&"voting"));
     }
@@ -496,7 +500,11 @@ mod tests {
         for i in 0..500 {
             engine.index(
                 format!("doc-{i}"),
-                &format!("document number {i} about topic {} with content {}", i % 50, i % 10),
+                &format!(
+                    "document number {i} about topic {} with content {}",
+                    i % 50,
+                    i % 10
+                ),
                 "",
             );
         }
