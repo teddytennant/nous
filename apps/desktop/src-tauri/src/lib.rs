@@ -82,11 +82,39 @@ pub struct WalletBalance {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KeyInfo {
+    #[serde(rename = "type")]
+    pub key_type: String,
+    pub purpose: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IdentityInfo {
     pub did: String,
     pub display_name: Option<String>,
     pub signing_key_type: String,
     pub exchange_key_type: String,
+    #[serde(default)]
+    pub keys: Vec<KeyInfo>,
+}
+
+impl IdentityInfo {
+    /// Populate the `keys` vec from signing/exchange key types if empty.
+    fn with_keys_populated(mut self) -> Self {
+        if self.keys.is_empty() {
+            self.keys = vec![
+                KeyInfo {
+                    key_type: self.signing_key_type.clone(),
+                    purpose: "signing".into(),
+                },
+                KeyInfo {
+                    key_type: self.exchange_key_type.clone(),
+                    purpose: "exchange".into(),
+                },
+            ];
+        }
+        self
+    }
 }
 
 // API response types
@@ -252,7 +280,7 @@ async fn get_identity(api: State<'_, Arc<ApiClient>>) -> Result<IdentityInfo, St
             .get::<IdentityInfo>(&format!("/identities/{}", did))
             .await
     {
-        return Ok(info);
+        return Ok(info.with_keys_populated());
     }
 
     // Create a new identity
@@ -272,14 +300,16 @@ async fn get_identity(api: State<'_, Arc<ApiClient>>) -> Result<IdentityInfo, St
     {
         Ok(info) => {
             *api.identity_did.write().await = Some(info.did.clone());
-            Ok(info)
+            Ok(info.with_keys_populated())
         }
         Err(_) => Ok(IdentityInfo {
             did: "offline — start API server".into(),
             display_name: None,
             signing_key_type: "ed25519".into(),
             exchange_key_type: "x25519".into(),
-        }),
+            keys: vec![],
+        }
+        .with_keys_populated()),
     }
 }
 
@@ -575,9 +605,21 @@ mod tests {
             display_name: Some("Test".into()),
             signing_key_type: "ed25519".into(),
             exchange_key_type: "x25519".into(),
+            keys: vec![
+                KeyInfo {
+                    key_type: "ed25519".into(),
+                    purpose: "signing".into(),
+                },
+                KeyInfo {
+                    key_type: "x25519".into(),
+                    purpose: "exchange".into(),
+                },
+            ],
         };
         let json = serde_json::to_string(&info).unwrap();
         let deserialized: IdentityInfo = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.did, "did:key:zTest");
+        assert_eq!(deserialized.keys.len(), 2);
+        assert_eq!(deserialized.keys[0].purpose, "signing");
     }
 }
