@@ -74,6 +74,19 @@ async function loadIdentity() {
     const identity = await invoke('get_identity');
     document.getElementById('identity-did').textContent = identity.did;
 
+    const card = document.getElementById('identity-card');
+    const nameEl = card.querySelector('.display-name');
+    if (identity.display_name) {
+      if (nameEl) {
+        nameEl.textContent = identity.display_name;
+      } else {
+        const span = document.createElement('div');
+        span.className = 'display-name';
+        span.textContent = identity.display_name;
+        card.querySelector('.did-display').prepend(span);
+      }
+    }
+
     const keysSection = document.getElementById('keys-section');
     keysSection.innerHTML = identity.keys
       .map(k => `
