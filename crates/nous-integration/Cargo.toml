@@ -19,10 +19,12 @@ nous-nostr = { path = "../nous-nostr" }
 nous-net = { path = "../nous-net" }
 nous-payments = { path = "../nous-payments" }
 nous-files = { path = "../nous-files" }
+nous-browser = { path = "../nous-browser" }
 nous-api = { path = "../nous-api" }
 axum = "0.8"
 http-body-util = "0.1"
 tower = { version = "0.5", features = ["util"] }
+sha2 = { workspace = true }
 ed25519-dalek = { workspace = true }
 hex = { workspace = true }
 serde_json = { workspace = true }
