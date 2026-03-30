@@ -149,13 +149,15 @@ pub struct ToolRegistry {
 
 type BoxFuture<T> = std::pin::Pin<Box<dyn std::future::Future<Output = T> + Send>>;
 
+type ToolHandler = Box<
+    dyn Fn(HashMap<String, serde_json::Value>) -> BoxFuture<Result<serde_json::Value, Error>>
+        + Send
+        + Sync,
+>;
+
 struct RegisteredTool {
     definition: ToolDefinition,
-    handler: Box<
-        dyn Fn(HashMap<String, serde_json::Value>) -> BoxFuture<Result<serde_json::Value, Error>>
-            + Send
-            + Sync,
-    >,
+    handler: ToolHandler,
 }
 
 impl ToolRegistry {
