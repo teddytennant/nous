@@ -6,6 +6,10 @@
 //!
 //! Architecture: PTY → byte stream → VT parser → render state → platform renderer
 
+pub mod command;
+pub mod completion;
+pub mod history;
+pub mod prompt;
 mod render;
 mod vt;
 
