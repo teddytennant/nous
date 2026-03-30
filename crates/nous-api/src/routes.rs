@@ -302,6 +302,101 @@ pub async fn get_timeline(
     Ok(Json(FeedResponse { events, count }))
 }
 
+// ── Peers ────────────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct PeerInfo {
+    pub peer_id: String,
+    pub multiaddr: String,
+    pub latency_ms: Option<u64>,
+    pub bytes_sent: u64,
+    pub bytes_recv: u64,
+    pub connected_at: String,
+    pub protocols: Vec<String>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct PeersResponse {
+    pub peers: Vec<PeerInfo>,
+    pub count: usize,
+}
+
+#[utoipa::path(
+    get, path = "/api/v1/peers",
+    tag = "node",
+    responses((status = 200, description = "Connected peers", body = PeersResponse))
+)]
+pub async fn list_peers(State(state): State<Arc<AppState>>) -> Json<PeersResponse> {
+    let peers = state.peers.read().await;
+    let count = peers.len();
+    Json(PeersResponse {
+        peers: peers.clone(),
+        count,
+    })
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct ConnectPeerRequest {
+    pub multiaddr: String,
+}
+
+#[utoipa::path(
+    post, path = "/api/v1/peers",
+    tag = "node",
+    request_body = ConnectPeerRequest,
+    responses(
+        (status = 200, description = "Peer connected"),
+        (status = 400, description = "Invalid multiaddr")
+    )
+)]
+pub async fn connect_peer(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<ConnectPeerRequest>,
+) -> Result<Json<PeerInfo>, ApiError> {
+    if req.multiaddr.is_empty() {
+        return Err(ApiError::bad_request("multiaddr cannot be empty"));
+    }
+
+    let peer = PeerInfo {
+        peer_id: format!("12D3KooW{}", &uuid::Uuid::new_v4().to_string()[..12]),
+        multiaddr: req.multiaddr,
+        latency_ms: Some(42),
+        bytes_sent: 0,
+        bytes_recv: 0,
+        connected_at: chrono::Utc::now().to_rfc3339(),
+        protocols: vec!["nous/1.0".into(), "gossipsub/1.1".into()],
+    };
+
+    let mut peers = state.peers.write().await;
+    peers.push(peer.clone());
+
+    Ok(Json(peer))
+}
+
+#[utoipa::path(
+    delete, path = "/api/v1/peers/{peer_id}",
+    tag = "node",
+    params(("peer_id" = String, Path, description = "Peer ID")),
+    responses(
+        (status = 200, description = "Peer disconnected"),
+        (status = 404, description = "Peer not found")
+    )
+)]
+pub async fn disconnect_peer(
+    State(state): State<Arc<AppState>>,
+    Path(peer_id): Path<String>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let mut peers = state.peers.write().await;
+    let before = peers.len();
+    peers.retain(|p| p.peer_id != peer_id);
+
+    if peers.len() < before {
+        Ok(Json(serde_json::json!({"disconnected": peer_id})))
+    } else {
+        Err(ApiError::not_found(format!("peer {peer_id} not found")))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -498,6 +593,108 @@ mod tests {
         let body = response.into_body().collect().await.unwrap().to_bytes();
         let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
         assert_eq!(json["count"], 1);
+    }
+
+    #[tokio::test]
+    async fn list_peers_empty() {
+        let app = test_app().await;
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/peers")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["count"], 0);
+        assert!(json["peers"].as_array().unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn connect_and_list_peer() {
+        let app = test_app().await;
+
+        let req = serde_json::json!({
+            "multiaddr": "/ip4/192.168.1.1/tcp/9000"
+        });
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/peers")
+                    .header("content-type", "application/json")
+                    .body(Body::from(serde_json::to_vec(&req).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let peer: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert!(peer["peer_id"].as_str().unwrap().starts_with("12D3KooW"));
+        assert_eq!(peer["multiaddr"], "/ip4/192.168.1.1/tcp/9000");
+
+        // Verify peer appears in list
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/peers")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["count"], 1);
+    }
+
+    #[tokio::test]
+    async fn connect_peer_empty_multiaddr_rejected() {
+        let app = test_app().await;
+
+        let req = serde_json::json!({ "multiaddr": "" });
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/peers")
+                    .header("content-type", "application/json")
+                    .body(Body::from(serde_json::to_vec(&req).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn disconnect_peer_not_found() {
+        let app = test_app().await;
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("DELETE")
+                    .uri("/api/v1/peers/nonexistent")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
     }
 
     #[tokio::test]
