@@ -1,5 +1,6 @@
 pub mod behaviour;
 pub mod connection_manager;
+pub mod discovery;
 pub mod events;
 pub mod gossip;
 pub mod node;
@@ -10,6 +11,7 @@ pub mod signing;
 pub mod topics;
 
 pub use connection_manager::{ConnectionManager, Direction};
+pub use discovery::{BootstrapManager, PeerExchange, RendezvousRegistry};
 pub use events::{NodeEvent, WireMessage};
 pub use node::{NodeConfig, NousNode};
 pub use peer_store::PeerStore;
