@@ -496,7 +496,7 @@ export default function AIPage() {
                 return (
                   <Card
                     key={conv.id}
-                    className="bg-transparent border-0 rounded-none border-b border-white/[0.04] pb-5 mb-5 cursor-pointer group"
+                    className="bg-transparent border-0 rounded-none border-b border-white/[0.04] pb-5 mb-5 cursor-pointer group card-lift"
                     onClick={() => openConversation(conv.id)}
                   >
                     <CardContent className="p-0">
