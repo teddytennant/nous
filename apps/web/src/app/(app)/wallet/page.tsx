@@ -13,6 +13,7 @@ import {
   type EscrowResponse,
 } from "@/lib/api";
 import { EmptyState, WalletIllustration, TransactionsIllustration, InvoiceIllustration, EscrowIllustration } from "@/components/empty-state";
+import { useToast } from "@/components/toast";
 
 type WalletTab = "balances" | "invoices" | "escrow";
 
@@ -33,6 +34,7 @@ export default function WalletPage() {
   const [sendToken, setSendToken] = useState("ETH");
   const [sendMemo, setSendMemo] = useState("");
   const [sending, setSending] = useState(false);
+  const { toast } = useToast();
 
   // Invoice create state
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
@@ -104,6 +106,7 @@ export default function WalletPage() {
       const w = await payments.createWallet(userDid);
       setWallet(w);
       setError(null);
+      toast({ title: "Wallet created", variant: "success" });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to create wallet");
     }
@@ -126,6 +129,7 @@ export default function WalletPage() {
       setSendAmount("");
       setSendMemo("");
       await loadWallet();
+      toast({ title: "Transfer sent", description: `${sendAmount} ${sendToken} sent`, variant: "success" });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Transfer failed");
     }
@@ -155,6 +159,7 @@ export default function WalletPage() {
       setInvoiceMemo("");
       setInvoiceItems([{ description: "", quantity: "1", unit_price: "" }]);
       await loadInvoices();
+      toast({ title: "Invoice created", variant: "success" });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to create invoice");
     }
@@ -165,6 +170,7 @@ export default function WalletPage() {
       await payments.payInvoice(invoiceId);
       await loadInvoices();
       await loadWallet();
+      toast({ title: "Invoice paid", variant: "success" });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Payment failed");
     }
@@ -174,6 +180,7 @@ export default function WalletPage() {
     try {
       await payments.cancelInvoice(invoiceId);
       await loadInvoices();
+      toast({ title: "Invoice cancelled" });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Cancel failed");
     }
