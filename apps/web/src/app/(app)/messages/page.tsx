@@ -7,6 +7,7 @@ import { messaging, type ChannelResponse, type MessageResponse } from "@/lib/api
 import { useRealtime } from "@/lib/use-realtime";
 import { useToast } from "@/components/toast";
 import { EmptyState, MessagesIllustration } from "@/components/empty-state";
+import { usePageShortcuts } from "@/components/keyboard-shortcuts";
 
 type CreateMode = "dm" | "group" | null;
 
@@ -45,6 +46,10 @@ export default function MessagesPage() {
 
   const { toast } = useToast();
   const userDid = typeof window !== "undefined" ? localStorage.getItem("nous_did") || "" : "";
+
+  usePageShortcuts({
+    n: () => setCreateMode("dm"),
+  });
 
   const fetchChannels = useCallback(async () => {
     if (!userDid) { setLoading(false); return; }
