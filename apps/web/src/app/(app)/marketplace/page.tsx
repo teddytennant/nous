@@ -311,7 +311,7 @@ function ListingsTab() {
             }
           />
         ) : (
-          <div className="grid grid-cols-2 gap-px bg-white/[0.03]">
+          <div className="grid grid-cols-2 gap-px bg-white/[0.03] stagger-in">
             {listingsList.map((listing) => (
               <Card
                 key={listing.id}
