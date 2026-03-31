@@ -13,6 +13,7 @@ import {
 } from "@/lib/api";
 import { EmptyState, NetworkIllustration } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
+import { useToast } from "@/components/toast";
 
 interface Subsystem {
   name: string;
@@ -118,7 +119,8 @@ export default function NetworkPage() {
   const [nodeInfo, setNodeInfo] = useState<NodeInfo | null>(null);
   const [peerList, setPeerList] = useState<PeerResponse[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [apiOffline, setApiOffline] = useState(false);
+  const { toast } = useToast();
   const [connectAddr, setConnectAddr] = useState("");
   const [connecting, setConnecting] = useState(false);
 
@@ -132,9 +134,10 @@ export default function NetworkPage() {
       setHealth(h);
       setNodeInfo(n);
       setPeerList(p.peers);
-      setError(null);
+      setApiOffline(false);
     } catch {
-      setError("API offline");
+      setApiOffline(true);
+      toast({ title: "API offline", variant: "error" });
     } finally {
       setLoading(false);
     }
@@ -156,7 +159,7 @@ export default function NetworkPage() {
       setConnectAddr("");
       await fetchData();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Connection failed");
+      toast({ title: "Connection failed", description: e instanceof Error ? e.message : undefined, variant: "error" });
     } finally {
       setConnecting(false);
     }
@@ -167,14 +170,14 @@ export default function NetworkPage() {
       await peersApi.disconnect(peerId);
       await fetchData();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Disconnect failed");
+      toast({ title: "Disconnect failed", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
   }
 
   const overallStatus =
     health?.status === "ok"
       ? "operational"
-      : error
+      : apiOffline
         ? "offline"
         : "connecting";
 
@@ -221,18 +224,6 @@ export default function NetworkPage() {
   return (
     <div className="p-8 max-w-6xl">
       <PageHeader title="Network" subtitle="P2P mesh status, connected peers, and subsystem health" />
-
-      {error && (
-        <div className="text-xs text-red-500/70 font-mono mb-6 px-1 flex items-center justify-between">
-          <span>{error}</span>
-          <button
-            onClick={() => setError(null)}
-            className="text-neutral-600 hover:text-white ml-4"
-          >
-            dismiss
-          </button>
-        </div>
-      )}
 
       {/* Stats grid */}
       <section className="mb-16">
@@ -358,8 +349,8 @@ export default function NetworkPage() {
         ) : peerList.length === 0 ? (
           <EmptyState
             icon={<NetworkIllustration />}
-            title={error ? "Node offline" : "No peers connected"}
-            description={error ? "Start the Nous node to connect to the P2P mesh network." : "Enter a multiaddr above to connect to your first peer."}
+            title={apiOffline ? "Node offline" : "No peers connected"}
+            description={apiOffline ? "Start the Nous node to connect to the P2P mesh network." : "Enter a multiaddr above to connect to your first peer."}
           />
         ) : (
           <div className="overflow-x-auto">
