@@ -92,7 +92,7 @@ export default function IdentityPage() {
   // Loading skeleton
   if (loading) {
     return (
-      <div className="p-8 max-w-4xl">
+      <div className="p-4 sm:p-8 max-w-4xl">
         <PageHeader title="Identity" subtitle="Self-sovereign. Your keys, your identity." />
 
         <section className="mb-16">
@@ -147,7 +147,7 @@ export default function IdentityPage() {
   // No identity yet — show creation form
   if (!currentIdentity) {
     return (
-      <div className="p-8 max-w-4xl">
+      <div className="p-4 sm:p-8 max-w-4xl">
         <PageHeader title="Identity" subtitle="Self-sovereign. Your keys, your identity." />
 
         <div className="flex flex-col items-center py-12">
@@ -194,7 +194,7 @@ export default function IdentityPage() {
     : [];
 
   return (
-    <div className="p-8 max-w-4xl">
+    <div className="p-4 sm:p-8 max-w-4xl">
       <PageHeader title="Identity" subtitle="Self-sovereign. Your keys, your identity." />
 
       <div className="space-y-16 stagger-in">
@@ -298,7 +298,7 @@ export default function IdentityPage() {
               </span>
             </div>
             {categories.length > 0 && (
-              <div className="grid grid-cols-3 gap-px bg-white/[0.03]">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-white/[0.03]">
                 {categories.map(([cat, score]) => (
                   <div key={cat} className="bg-black p-4">
                     <p className="text-[10px] font-mono uppercase tracking-wider text-neutral-600 mb-2">
