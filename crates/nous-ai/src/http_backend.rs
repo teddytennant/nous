@@ -55,20 +55,12 @@ impl HttpInferenceBackend {
 
     /// Create a backend for OpenAI's API with just an API key and model.
     pub fn openai(api_key: impl Into<String>, model: impl Into<String>) -> Self {
-        Self::new(
-            "https://api.openai.com/v1/chat/completions",
-            api_key,
-            model,
-        )
+        Self::new("https://api.openai.com/v1/chat/completions", api_key, model)
     }
 
     /// Create a backend for a local ollama instance.
     pub fn ollama(model: impl Into<String>) -> Self {
-        Self::new(
-            "http://localhost:11434/v1/chat/completions",
-            "",
-            model,
-        )
+        Self::new("http://localhost:11434/v1/chat/completions", "", model)
     }
 }
 
