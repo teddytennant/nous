@@ -12,6 +12,7 @@ import {
   type AIMessage,
 } from "@/lib/api";
 import { EmptyState, AIIllustration, ChatIllustration, ConversationsIllustration } from "@/components/empty-state";
+import { PageHeader } from "@/components/page-header";
 
 type ViewMode = "chat" | "agents" | "conversations";
 
@@ -172,14 +173,7 @@ export default function AIPage() {
 
   return (
     <div className="p-8 max-w-4xl">
-      <header className="mb-16">
-        <h1 className="text-3xl font-extralight tracking-[-0.03em] mb-2">
-          AI
-        </h1>
-        <p className="text-sm text-neutral-500 font-light">
-          Local-first inference. Your agents, your data, your sovereignty.
-        </p>
-      </header>
+      <PageHeader title="AI" subtitle="Local-first inference. Your agents, your data, your sovereignty." />
 
       {/* Navigation tabs */}
       <div className="flex items-center gap-6 mb-10">
