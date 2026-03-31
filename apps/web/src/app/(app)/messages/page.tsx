@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, startTransition } from "react";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 import { messaging, type ChannelResponse, type MessageResponse } from "@/lib/api";
 import { useRealtime } from "@/lib/use-realtime";
 import { useToast } from "@/components/toast";
@@ -33,6 +34,7 @@ export default function MessagesPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [messages, setMessages] = useState<MessageResponse[]>([]);
   const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [createMode, setCreateMode] = useState<CreateMode>(null);
   const [newDmDid, setNewDmDid] = useState("");
@@ -45,13 +47,15 @@ export default function MessagesPage() {
   const userDid = typeof window !== "undefined" ? localStorage.getItem("nous_did") || "" : "";
 
   const fetchChannels = useCallback(async () => {
-    if (!userDid) return;
+    if (!userDid) { setLoading(false); return; }
     try {
       const chs = await messaging.listChannels(userDid);
       setChannels(chs);
       setError(null);
     } catch {
       setError("API offline");
+    } finally {
+      setLoading(false);
     }
   }, [userDid]);
 
@@ -249,9 +253,21 @@ export default function MessagesPage() {
 
         {/* Channel list */}
         <div className="flex-1 overflow-y-auto">
-          {channels.length === 0 && (
+          {loading ? (
+            <div>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="px-6 py-4 border-b border-white/[0.03]">
+                  <div className="flex justify-between items-baseline mb-1.5">
+                    <Skeleton className="h-3 w-28" />
+                    <Skeleton className="h-2.5 w-8" />
+                  </div>
+                  <Skeleton className="h-2.5 w-16" />
+                </div>
+              ))}
+            </div>
+          ) : channels.length === 0 ? (
             <p className="px-6 text-xs text-neutral-700 font-light">No conversations yet</p>
-          )}
+          ) : null}
           {channels.map((ch) => (
             <button
               key={ch.id}
