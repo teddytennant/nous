@@ -18,7 +18,6 @@ export default function SocialPage() {
   const [replyTo, setReplyTo] = useState<{ id: string; author: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"timeline" | "following">("timeline");
   const [following, setFollowing] = useState<Set<string>>(new Set());
 
@@ -29,9 +28,8 @@ export default function SocialPage() {
     try {
       const data = await social.feed({ limit: 100 });
       setPosts(data.events);
-      setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load feed");
+      toast({ title: "Failed to load feed", description: e instanceof Error ? e.message : undefined, variant: "error" });
     } finally {
       setLoading(false);
     }
@@ -72,7 +70,7 @@ export default function SocialPage() {
       await loadFeed();
       toast({ title: "Post published", variant: "success" });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to post");
+      toast({ title: "Failed to post", description: e instanceof Error ? e.message : undefined, variant: "error" });
     } finally {
       setPosting(false);
     }
@@ -84,7 +82,7 @@ export default function SocialPage() {
       await loadFeed();
       toast({ title: "Post deleted" });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to delete");
+      toast({ title: "Failed to delete", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
   }
 
@@ -103,7 +101,7 @@ export default function SocialPage() {
         setFollowing((prev) => new Set(prev).add(targetDid));
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to update follow");
+      toast({ title: "Failed to update follow", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
   }
 
@@ -181,18 +179,6 @@ export default function SocialPage() {
           )}
         </div>
       </section>
-
-      {error && (
-        <div className="text-xs text-red-500/70 font-mono mb-6 px-1 flex items-center justify-between">
-          <span>{error}</span>
-          <button
-            onClick={() => setError(null)}
-            className="text-neutral-600 hover:text-white ml-4"
-          >
-            dismiss
-          </button>
-        </div>
-      )}
 
       {/* Tabs + Refresh */}
       <div className="flex items-center justify-between mb-8">
