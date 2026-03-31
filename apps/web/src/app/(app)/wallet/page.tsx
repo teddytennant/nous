@@ -14,6 +14,7 @@ import {
 } from "@/lib/api";
 import { EmptyState, WalletIllustration, TransactionsIllustration, InvoiceIllustration, EscrowIllustration } from "@/components/empty-state";
 import { useToast } from "@/components/toast";
+import { PageHeader } from "@/components/page-header";
 
 type WalletTab = "balances" | "invoices" | "escrow";
 
@@ -282,21 +283,7 @@ export default function WalletPage() {
 
   return (
     <div className="p-8 max-w-4xl">
-      <header className="mb-16">
-        <h1 className="text-3xl font-extralight tracking-[-0.03em] mb-2">
-          Wallet
-        </h1>
-        <div className="flex items-center gap-3">
-          <p className="text-sm text-neutral-500 font-light">
-            Multi-chain. Escrow-backed. Trustless.
-          </p>
-          <span
-            className={`inline-block w-1.5 h-1.5 rounded-full ${
-              online ? "bg-emerald-500" : "bg-red-500"
-            }`}
-          />
-        </div>
-      </header>
+      <PageHeader title="Wallet" subtitle="Multi-chain. Escrow-backed. Trustless." status={online ? "online" : "offline"} />
 
       {error && (
         <div className="mb-8 px-4 py-3 text-xs font-mono text-red-400 border border-red-900/30 bg-red-950/20 flex items-center justify-between">
