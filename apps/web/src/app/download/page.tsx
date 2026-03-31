@@ -14,7 +14,6 @@ import {
   Shield,
   Cpu,
   HardDrive,
-  Apple,
 } from "lucide-react";
 
 // ── Platform detection ───────────────────────────────────────────────────
@@ -32,19 +31,9 @@ function detectPlatform(): Platform {
   return "unknown";
 }
 
-function detectArch(): "arm64" | "x64" | "unknown" {
-  if (typeof navigator === "undefined") return "unknown";
-  const ua = navigator.userAgent.toLowerCase();
-  if (ua.includes("arm64") || ua.includes("aarch64")) return "arm64";
-  return "x64";
-}
-
 const noop = () => () => {};
 function usePlatform(): Platform {
   return useSyncExternalStore(noop, detectPlatform, () => "unknown" as Platform);
-}
-function useArch(): "arm64" | "x64" | "unknown" {
-  return useSyncExternalStore(noop, detectArch, () => "unknown" as const);
 }
 
 // ── Constants ────────────────────────────────────────────────────────────
@@ -251,7 +240,7 @@ const platforms: Record<string, PlatformConfig> = {
 };
 
 // Map detected platform to highlighted platform key
-function getPrimaryPlatform(platform: Platform, arch: string): string {
+function getPrimaryPlatform(platform: Platform): string {
   if (platform === "macos") return "macos";
   if (platform === "linux") return "linux";
   if (platform === "windows") return "windows";
@@ -387,10 +376,9 @@ function PlatformCard({
 
 export default function DownloadPage() {
   const platform = usePlatform();
-  const arch = useArch();
   const [copied, setCopied] = useState(false);
 
-  const primaryPlatform = getPrimaryPlatform(platform, arch);
+  const primaryPlatform = getPrimaryPlatform(platform);
   const installCmd = "curl -fsSL https://nous.sh/install | sh";
 
   function handleCopy() {
