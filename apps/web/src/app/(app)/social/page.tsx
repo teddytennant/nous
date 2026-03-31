@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { social, type FeedEvent } from "@/lib/api";
 import { useRealtime } from "@/lib/use-realtime";
 import { useToast } from "@/components/toast";
+import { EmptyState, SocialIllustration, FollowingIllustration } from "@/components/empty-state";
 
 const MAX_POST_LENGTH = 500;
 
@@ -249,13 +250,27 @@ export default function SocialPage() {
             ))}
           </div>
         ) : displayPosts.length === 0 ? (
-          <div className="py-16 text-center">
-            <p className="text-sm text-neutral-600 font-light">
-              {activeTab === "following"
-                ? "Follow someone to see their posts here"
-                : "No posts yet. Be the first."}
-            </p>
-          </div>
+          activeTab === "following" ? (
+            <EmptyState
+              icon={<FollowingIllustration />}
+              title="No followed posts yet"
+              description="Follow other users to see their posts appear in this feed. Discover people in the timeline tab."
+            />
+          ) : (
+            <EmptyState
+              icon={<SocialIllustration />}
+              title="No posts yet"
+              description="Be the first to post something. Your words live on the protocol — decentralized and permanent."
+              action={
+                <button
+                  onClick={() => document.querySelector("textarea")?.focus()}
+                  className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150"
+                >
+                  Write a post
+                </button>
+              }
+            />
+          )
         ) : (
           <div className="space-y-px">
             {displayPosts.map((post) => {
