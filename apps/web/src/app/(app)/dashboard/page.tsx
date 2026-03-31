@@ -133,7 +133,7 @@ function QuickActionCard({
   return (
     <Link
       href={action.href}
-      className="group flex items-center gap-4 p-4 border border-white/[0.06] rounded-sm hover:border-[#d4af37]/20 hover:bg-[#d4af37]/[0.02] transition-all duration-200"
+      className="group flex items-center gap-4 p-4 border border-white/[0.06] rounded-sm hover:border-[#d4af37]/20 hover:bg-[#d4af37]/[0.02] transition-all duration-200 card-lift"
     >
       <div className="w-10 h-10 rounded-md bg-white/[0.04] border border-white/[0.06] flex items-center justify-center group-hover:border-[#d4af37]/20 group-hover:bg-[#d4af37]/[0.04] transition-colors duration-200 shrink-0">
         <Icon className="w-4 h-4 text-neutral-500 group-hover:text-[#d4af37] transition-colors duration-200" />
@@ -379,7 +379,7 @@ export default function DashboardPage() {
         <h2 className="text-xs font-mono uppercase tracking-[0.2em] text-neutral-500 mb-6">
           Quick Actions
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 stagger-in">
           {quickActions.map((action) => (
             <QuickActionCard key={action.name} action={action} />
           ))}
