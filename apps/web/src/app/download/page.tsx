@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useState, useCallback, useRef, useSyncExternalStore } from "react";
 import Link from "next/link";
 import {
   Monitor,
@@ -14,6 +14,8 @@ import {
   Shield,
   Cpu,
   HardDrive,
+  Upload,
+  Loader2,
 } from "lucide-react";
 
 // ── Platform detection ───────────────────────────────────────────────────
@@ -372,6 +374,195 @@ function PlatformCard({
   );
 }
 
+// ── File Verification Widget ──────────────────────────────────────────────
+
+function VerifyDownload() {
+  const [hash, setHash] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [hashing, setHashing] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [matchResult, setMatchResult] = useState<"match" | "mismatch" | "unknown" | null>(null);
+  const [checksums, setChecksums] = useState<Record<string, string>>({});
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch checksums once
+  const fetchChecksums = useCallback(async () => {
+    if (Object.keys(checksums).length > 0) return checksums;
+    try {
+      const urls = [
+        `${RELEASE_BASE}/SHA256SUMS.txt`,
+        `${RELEASE_BASE}/DESKTOP-SHA256SUMS.txt`,
+      ];
+      const results = await Promise.allSettled(urls.map((u) => fetch(u).then((r) => r.ok ? r.text() : "")));
+      const map: Record<string, string> = {};
+      for (const r of results) {
+        if (r.status !== "fulfilled" || !r.value) continue;
+        for (const line of r.value.trim().split("\n")) {
+          const parts = line.trim().split(/\s+/);
+          if (parts.length >= 2) {
+            const h = parts[0];
+            const f = parts[parts.length - 1].replace(/^\*/, "");
+            map[f] = h;
+          }
+        }
+      }
+      setChecksums(map);
+      return map;
+    } catch {
+      return {};
+    }
+  }, [checksums]);
+
+  const hashFile = useCallback(async (file: File) => {
+    setHashing(true);
+    setHash(null);
+    setMatchResult(null);
+    setFileName(file.name);
+
+    const buffer = await file.arrayBuffer();
+    const digest = await crypto.subtle.digest("SHA-256", buffer);
+    const arr = Array.from(new Uint8Array(digest));
+    const hex = arr.map((b) => b.toString(16).padStart(2, "0")).join("");
+    setHash(hex);
+
+    const sums = await fetchChecksums();
+    const match = Object.values(sums).some((h) => h === hex);
+    setMatchResult(match ? "match" : Object.keys(sums).length === 0 ? "unknown" : "mismatch");
+    setHashing(false);
+  }, [fetchChecksums]);
+
+  const onDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file) hashFile(file);
+  }, [hashFile]);
+
+  const onFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) hashFile(file);
+  }, [hashFile]);
+
+  return (
+    <div
+      className={`relative border rounded-md transition-all duration-200 ${
+        dragOver
+          ? "border-[#d4af37]/40 bg-[#d4af37]/[0.02]"
+          : "border-white/[0.06] hover:border-white/10"
+      }`}
+      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={onDrop}
+    >
+      <input
+        ref={inputRef}
+        type="file"
+        onChange={onFileSelect}
+        className="hidden"
+      />
+
+      <div className="p-8">
+        <div className="flex items-start gap-4 mb-6">
+          <div className="w-12 h-12 rounded-md bg-white/[0.04] border border-white/[0.06] flex items-center justify-center">
+            <Shield className="w-5 h-5 text-neutral-400" />
+          </div>
+          <div>
+            <h3 className="text-lg font-medium tracking-wide mb-1">
+              Verify Your Download
+            </h3>
+            <p className="text-sm text-neutral-500 font-light leading-relaxed">
+              Drop a downloaded file here to compute its SHA-256 hash and verify it against the official release checksums.
+            </p>
+          </div>
+        </div>
+
+        {!hash && !hashing && (
+          <button
+            onClick={() => inputRef.current?.click()}
+            className="w-full py-8 border border-dashed border-white/[0.08] rounded-sm hover:border-white/[0.15] hover:bg-white/[0.01] transition-all duration-200 flex flex-col items-center gap-3 cursor-pointer"
+          >
+            <Upload className="w-6 h-6 text-neutral-600" />
+            <span className="text-xs text-neutral-500 font-light">
+              Drop file here or click to browse
+            </span>
+          </button>
+        )}
+
+        {hashing && (
+          <div className="flex items-center justify-center gap-3 py-8">
+            <Loader2 className="w-5 h-5 text-[#d4af37] animate-spin" />
+            <span className="text-sm text-neutral-400 font-light">
+              Computing SHA-256...
+            </span>
+          </div>
+        )}
+
+        {hash && !hashing && (
+          <div className="space-y-4">
+            <div>
+              <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-600 mb-2">
+                File
+              </p>
+              <p className="text-sm font-light text-neutral-300">
+                {fileName}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-600 mb-2">
+                SHA-256
+              </p>
+              <code className="block text-xs font-mono text-neutral-400 break-all bg-white/[0.02] px-3 py-2 rounded-sm border border-white/[0.04]">
+                {hash}
+              </code>
+            </div>
+
+            <div className={`flex items-center gap-2 px-4 py-3 rounded-sm border ${
+              matchResult === "match"
+                ? "border-emerald-500/20 bg-emerald-500/[0.04]"
+                : matchResult === "mismatch"
+                  ? "border-red-500/20 bg-red-500/[0.04]"
+                  : "border-white/[0.06] bg-white/[0.02]"
+            }`}>
+              {matchResult === "match" && (
+                <>
+                  <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <span className="text-sm text-emerald-400 font-light">
+                    Verified — hash matches official release
+                  </span>
+                </>
+              )}
+              {matchResult === "mismatch" && (
+                <>
+                  <Shield className="w-4 h-4 text-red-400 shrink-0" />
+                  <span className="text-sm text-red-400 font-light">
+                    Hash does not match any official release — verify you downloaded from the correct source
+                  </span>
+                </>
+              )}
+              {matchResult === "unknown" && (
+                <>
+                  <Shield className="w-4 h-4 text-neutral-500 shrink-0" />
+                  <span className="text-sm text-neutral-400 font-light">
+                    Could not fetch checksums to compare — verify manually against SHA256SUMS.txt
+                  </span>
+                </>
+              )}
+            </div>
+
+            <button
+              onClick={() => { setHash(null); setFileName(null); setMatchResult(null); }}
+              className="text-[10px] font-mono uppercase tracking-wider text-neutral-600 hover:text-white transition-colors duration-150"
+            >
+              Verify another file
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────
 
 export default function DownloadPage() {
@@ -502,6 +693,11 @@ export default function DownloadPage() {
             />
           ))}
         </div>
+      </section>
+
+      {/* Verify download */}
+      <section className="px-6 pb-16 max-w-6xl mx-auto w-full">
+        <VerifyDownload />
       </section>
 
       {/* Divider */}
