@@ -8,8 +8,8 @@ use aes_gcm::aead::{Aead, KeyInit};
 use aes_gcm::{Aes256Gcm, Nonce};
 use ed25519_dalek::Signer as DalekSigner;
 use hkdf::Hkdf;
-use rand::rngs::OsRng;
 use rand::RngCore;
+use rand::rngs::OsRng;
 use sha2::Sha256;
 use wasm_bindgen::prelude::*;
 use zeroize::Zeroize;
@@ -35,8 +35,7 @@ fn aes_encrypt(key: &[u8; 32], plaintext: &[u8]) -> (Vec<u8>, [u8; 12]) {
 
 /// AES-256-GCM decrypt with a given key.
 fn aes_decrypt(key: &[u8; 32], nonce: &[u8; 12], ciphertext: &[u8]) -> Result<Vec<u8>, String> {
-    let cipher =
-        Aes256Gcm::new_from_slice(key).map_err(|e| format!("cipher init failed: {e}"))?;
+    let cipher = Aes256Gcm::new_from_slice(key).map_err(|e| format!("cipher init failed: {e}"))?;
     let n = Nonce::from_slice(nonce);
     cipher
         .decrypt(n, ciphertext)
@@ -237,9 +236,7 @@ impl WasmEnvelope {
             .try_into()
             .map_err(|_| JsError::new("invalid signature length"))?;
         let sig = ed25519_dalek::Signature::from_bytes(&sig_bytes);
-        Ok(verifying_key
-            .verify_strict(&sign_input, &sig)
-            .is_ok())
+        Ok(verifying_key.verify_strict(&sign_input, &sig).is_ok())
     }
 
     /// Decrypt the sealed payload using the recipient's X25519 secret key.
@@ -290,10 +287,8 @@ impl WasmEnvelope {
             &base64::engine::general_purpose::STANDARD,
             &self.sealed_payload,
         );
-        let sig_b64 = base64::Engine::encode(
-            &base64::engine::general_purpose::STANDARD,
-            &self.signature,
-        );
+        let sig_b64 =
+            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &self.signature);
         serde_json::json!({
             "sender_did": self.sender_did,
             "recipient_did": self.recipient_did,
