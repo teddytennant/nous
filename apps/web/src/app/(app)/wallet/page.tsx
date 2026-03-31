@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, startTransition } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   node,
   payments,
@@ -339,21 +340,34 @@ export default function WalletPage() {
             <h2 className="text-xs font-mono uppercase tracking-[0.2em] text-neutral-500 mb-8">
               Balances
             </h2>
-            <div className="grid grid-cols-3 gap-px bg-white/[0.03]">
-              {displayBalances.map((b) => (
-                <Card
-                  key={b.token}
-                  className="bg-black border-0 rounded-none p-6"
-                >
-                  <CardContent className="p-0">
-                    <p className="text-xs font-mono uppercase tracking-[0.15em] text-neutral-600 mb-3">
-                      {b.token}
-                    </p>
-                    <p className="text-2xl font-extralight mb-1">{b.amount}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            {loading ? (
+              <div className="grid grid-cols-3 gap-px bg-white/[0.03]">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Card key={i} className="bg-black border-0 rounded-none p-6">
+                    <CardContent className="p-0">
+                      <Skeleton className="h-2.5 w-12 mb-3" />
+                      <Skeleton className="h-7 w-16 mb-1" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-px bg-white/[0.03]">
+                {displayBalances.map((b) => (
+                  <Card
+                    key={b.token}
+                    className="bg-black border-0 rounded-none p-6"
+                  >
+                    <CardContent className="p-0">
+                      <p className="text-xs font-mono uppercase tracking-[0.15em] text-neutral-600 mb-3">
+                        {b.token}
+                      </p>
+                      <p className="text-2xl font-extralight mb-1">{b.amount}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </section>
 
           <section className="mb-16">
