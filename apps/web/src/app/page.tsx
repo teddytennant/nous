@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useCallback, useSyncExternalStore } from "react";
 import Link from "next/link";
 import {
   Shield,
@@ -19,6 +19,8 @@ import {
   ExternalLink,
   Copy,
   Check,
+  Menu,
+  X,
 } from "lucide-react";
 
 function GithubIcon({ className }: { className?: string }) {
@@ -181,6 +183,7 @@ export default function Home() {
   const platform = usePlatform();
   const [copied, setCopied] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     function onScroll() {
@@ -189,6 +192,31 @@ export default function Home() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  // Close mobile menu on Escape
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape" && mobileMenuOpen) {
+        setMobileMenuOpen(false);
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [mobileMenuOpen]);
+
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileMenuOpen]);
+
+  const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), []);
 
   const primaryDownload = platformDownloads[platform];
   const installCmd = "curl -fsSL https://nous.sh/install | sh";
@@ -204,7 +232,7 @@ export default function Home() {
       {/* Floating nav */}
       <nav
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled
+          scrolled || mobileMenuOpen
             ? "bg-black/80 backdrop-blur-xl border-b border-white/[0.06]"
             : "bg-transparent"
         }`}
@@ -230,20 +258,89 @@ export default function Home() {
               href={`https://github.com/${GITHUB_REPO}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-neutral-500 hover:text-white transition-colors duration-200 flex items-center gap-1.5"
+              className="text-xs text-neutral-500 hover:text-white transition-colors duration-200 hidden sm:flex items-center gap-1.5"
             >
               <GithubIcon className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">GitHub</span>
+              GitHub
             </a>
             <Link
               href="/dashboard"
-              className="text-xs font-medium bg-white text-black px-4 py-1.5 rounded-md hover:bg-neutral-200 transition-colors duration-200"
+              className="text-xs font-medium bg-white text-black px-4 py-1.5 rounded-md hover:bg-neutral-200 transition-colors duration-200 hidden sm:block"
             >
               Open App
             </Link>
+            {/* Mobile hamburger */}
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen((v) => !v)}
+              className="sm:hidden p-2 -mr-2 rounded-sm hover:bg-white/[0.04] transition-colors duration-150"
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileMenuOpen}
+            >
+              {mobileMenuOpen ? (
+                <X className="w-5 h-5 text-neutral-400" />
+              ) : (
+                <Menu className="w-5 h-5 text-neutral-400" />
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile menu overlay */}
+        <div
+          className={`sm:hidden overflow-hidden transition-all duration-200 ease-out ${
+            mobileMenuOpen ? "max-h-80 opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
+          <div className="bg-black/95 backdrop-blur-xl border-t border-white/[0.06] px-6 py-6 space-y-1">
+            <a
+              href="#features"
+              onClick={closeMobileMenu}
+              className="flex items-center gap-3 px-3 py-3 text-sm font-light text-neutral-400 hover:text-white hover:bg-white/[0.02] rounded-sm transition-colors duration-150"
+            >
+              <Shield className="w-4 h-4 text-neutral-600" />
+              Features
+            </a>
+            <Link
+              href="/download"
+              onClick={closeMobileMenu}
+              className="flex items-center gap-3 px-3 py-3 text-sm font-light text-neutral-400 hover:text-white hover:bg-white/[0.02] rounded-sm transition-colors duration-150"
+            >
+              <Download className="w-4 h-4 text-neutral-600" />
+              Download
+            </Link>
+            <a
+              href={`https://github.com/${GITHUB_REPO}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={closeMobileMenu}
+              className="flex items-center gap-3 px-3 py-3 text-sm font-light text-neutral-400 hover:text-white hover:bg-white/[0.02] rounded-sm transition-colors duration-150"
+            >
+              <GithubIcon className="w-4 h-4 text-neutral-600" />
+              GitHub
+            </a>
+            <div className="pt-3 border-t border-white/[0.06]">
+              <Link
+                href="/dashboard"
+                onClick={closeMobileMenu}
+                className="flex items-center justify-center gap-2 bg-[#d4af37] text-black px-6 py-2.5 rounded-md text-sm font-medium hover:bg-[#c4a030] transition-colors duration-200"
+              >
+                Open App
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
           </div>
         </div>
       </nav>
+
+      {/* Mobile menu backdrop */}
+      {mobileMenuOpen && (
+        <div
+          className="sm:hidden fixed inset-0 z-40 bg-black/40"
+          onClick={closeMobileMenu}
+          aria-hidden="true"
+        />
+      )}
 
       {/* Hero */}
       <section className="relative flex flex-col items-center justify-center px-6 pt-40 pb-32 overflow-hidden">
