@@ -15,6 +15,7 @@ import {
 import { EmptyState, WalletIllustration, TransactionsIllustration, InvoiceIllustration, EscrowIllustration } from "@/components/empty-state";
 import { useToast } from "@/components/toast";
 import { PageHeader } from "@/components/page-header";
+import { usePageShortcuts } from "@/components/keyboard-shortcuts";
 
 type WalletTab = "balances" | "invoices" | "escrow";
 
@@ -59,6 +60,10 @@ export default function WalletPage() {
     typeof window !== "undefined"
       ? localStorage.getItem("nous_did") || ""
       : "";
+
+  usePageShortcuts({
+    s: () => setSendModal(true),
+  });
 
   const loadWallet = useCallback(async () => {
     if (!userDid) {
