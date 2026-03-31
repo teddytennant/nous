@@ -411,7 +411,7 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-white/[0.04] rounded-sm overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-white/[0.04] rounded-sm overflow-hidden stagger-in">
           {features.map((feature) => {
             const Icon = feature.icon;
             return (
@@ -538,7 +538,7 @@ export default function Home() {
             </div>
             <Link
               href="/download"
-              className="flex items-center gap-2 mt-4 px-4 py-2 text-xs text-neutral-500 hover:text-[#d4af37] transition-colors duration-200"
+              className="flex items-center gap-2 mt-4 px-4 py-2 text-xs text-neutral-500 hover:text-[#d4af37] transition-colors duration-200 link-underline"
             >
               View all platforms, install guides & verification
               <ArrowRight className="w-3 h-3" />
