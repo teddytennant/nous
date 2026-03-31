@@ -64,20 +64,25 @@ function formatUptime(ms: number): string {
 // ── Count-Up Animation ──────────────────────────────────────────────────
 
 function useCountUp(target: number, duration = 800): string {
-  const [display, setDisplay] = useState("0");
-  const prevTarget = useRef(0);
+  const prevTarget = useRef(target);
+  const [display, setDisplay] = useState(() =>
+    target === 0
+      ? "0"
+      : target.toFixed(target % 1 === 0 ? 0 : String(target).split(".")[1]?.length ?? 2)
+  );
 
   useEffect(() => {
     if (target === 0) {
-      setDisplay("0");
       prevTarget.current = 0;
       return;
     }
 
     const start = prevTarget.current;
     const diff = target - start;
+    if (diff === 0) return;
     const startTime = performance.now();
 
+    let raf: number;
     function tick(now: number) {
       const elapsed = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
@@ -90,19 +95,20 @@ function useCountUp(target: number, duration = 800): string {
       setDisplay(current.toFixed(decimals));
 
       if (progress < 1) {
-        requestAnimationFrame(tick);
+        raf = requestAnimationFrame(tick);
       } else {
         prevTarget.current = target;
       }
     }
 
-    requestAnimationFrame(tick);
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
   }, [target, duration]);
 
   return display;
 }
 
-function CountUpBalance({ amount, token }: { amount: string; token: string }) {
+function CountUpBalance({ amount }: { amount: string }) {
   const numericValue = parseFloat(amount) || 0;
   const animated = useCountUp(numericValue);
   return (
@@ -388,7 +394,7 @@ export default function DashboardPage() {
                   <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-600">
                     {b.token}
                   </span>
-                  <CountUpBalance amount={b.amount} token={b.token} />
+                  <CountUpBalance amount={b.amount} />
                 </div>
               ))}
               <div className="px-4 py-3 flex items-center">
