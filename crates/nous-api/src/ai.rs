@@ -188,9 +188,11 @@ pub async fn delete_agent(
     Ok(Json(serde_json::json!({"deleted": true})))
 }
 
-/// Send a message and get a response (without a backend, this echoes the
-/// agent's system prompt as a placeholder — a real backend would be plugged
-/// in via the InferenceBackend trait).
+/// Send a message and get an AI response.
+///
+/// Requires an [`InferenceBackend`] to be configured on [`AppState`] via
+/// [`AppState::set_inference_backend`]. Returns 503 Service Unavailable if
+/// no backend is configured.
 pub async fn chat(
     State(state): State<Arc<AppState>>,
     Json(req): Json<ChatRequest>,
@@ -235,15 +237,9 @@ pub async fn chat(
             }
         }
     } else {
-        // No backend configured — return a clear placeholder.
-        let text = format!(
-            "[no inference backend configured] I'm {}, your AI assistant. \
-             Configure an InferenceBackend on AppState to enable real responses.",
-            agent.name
-        );
-        drop(agents);
-        conv.add_message(Message::assistant(&text));
-        text
+        return Err(ApiError::service_unavailable(
+            "no inference backend configured — call AppState::set_inference_backend first",
+        ));
     };
 
     // Persist conversation to SQLite
@@ -473,7 +469,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn chat_flow() {
+    async fn chat_without_backend_returns_503() {
         let app = app();
 
         // Create agent first
@@ -492,7 +488,56 @@ mod tests {
         let body = body_json(res).await;
         let agent_id = body["id"].as_str().unwrap().to_string();
 
-        // Send chat
+        // Send chat — no backend configured, expect 503
+        let res = app
+            .oneshot(json_request(
+                "POST",
+                "/chat",
+                serde_json::json!({
+                    "agent_id": agent_id,
+                    "message": "Hello!"
+                }),
+            ))
+            .await
+            .unwrap();
+        assert_eq!(res.status(), 503);
+        let body = body_json(res).await;
+        assert!(body["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("no inference backend configured"));
+    }
+
+    #[tokio::test]
+    async fn chat_with_echo_backend() {
+        let state = AppState::new(ApiConfig::default());
+        state
+            .set_inference_backend(Arc::new(nous_ai::EchoBackend::new()))
+            .await;
+
+        let app = Router::new()
+            .route("/agents", post(create_agent))
+            .route("/chat", post(chat))
+            .route("/conversations/{conversation_id}", get(get_conversation))
+            .with_state(state);
+
+        // Create agent
+        let res = app
+            .clone()
+            .oneshot(json_request(
+                "POST",
+                "/agents",
+                serde_json::json!({
+                    "name": "Echo Bot",
+                    "system_prompt": "You are helpful."
+                }),
+            ))
+            .await
+            .unwrap();
+        let body = body_json(res).await;
+        let agent_id = body["id"].as_str().unwrap().to_string();
+
+        // Send chat — echo backend returns the user message
         let res = app
             .clone()
             .oneshot(json_request(
@@ -507,7 +552,7 @@ mod tests {
             .unwrap();
         assert_eq!(res.status(), 200);
         let body = body_json(res).await;
-        assert!(body["response"].as_str().unwrap().contains("Chat Bot"));
+        assert_eq!(body["response"].as_str().unwrap(), "Hello!");
         let conv_id = body["conversation_id"].as_str().unwrap().to_string();
 
         // Get conversation history
@@ -582,7 +627,19 @@ mod tests {
 
     #[tokio::test]
     async fn remove_conversation() {
-        let app = app();
+        let state = AppState::new(ApiConfig::default());
+        state
+            .set_inference_backend(Arc::new(nous_ai::EchoBackend::new()))
+            .await;
+
+        let app = Router::new()
+            .route("/agents", post(create_agent))
+            .route("/chat", post(chat))
+            .route(
+                "/conversations/{conversation_id}",
+                delete(delete_conversation),
+            )
+            .with_state(state);
 
         // Create agent + conversation
         let res = app
@@ -609,6 +666,7 @@ mod tests {
             ))
             .await
             .unwrap();
+        assert_eq!(res.status(), 200);
         let body = body_json(res).await;
         let conv_id = body["conversation_id"].as_str().unwrap().to_string();
 

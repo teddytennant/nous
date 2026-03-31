@@ -53,6 +53,7 @@ x25519-dalek = { version = "2", features = ["serde", "static_secrets"] }
 curve25519-dalek = { version = "4", features = ["rand_core"] }
 aes-gcm = "0.10"
 sha2 = "0.10"
+sha3 = "0.10"
 rand = "0.8"
 base64 = "0.22"
 bs58 = "0.5"

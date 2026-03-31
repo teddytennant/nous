@@ -36,6 +36,13 @@ impl ApiError {
             message: msg.into(),
         }
     }
+
+    pub fn service_unavailable(msg: impl Into<String>) -> Self {
+        Self {
+            status: 503,
+            message: msg.into(),
+        }
+    }
 }
 
 impl IntoResponse for ApiError {
@@ -86,5 +93,6 @@ mod tests {
         assert_eq!(ApiError::bad_request("x").status, 400);
         assert_eq!(ApiError::unauthorized("x").status, 401);
         assert_eq!(ApiError::internal("x").status, 500);
+        assert_eq!(ApiError::service_unavailable("x").status, 503);
     }
 }

@@ -4,6 +4,7 @@ pub mod conversation;
 pub mod embedding;
 pub mod executor;
 pub mod hnsw;
+pub mod http_backend;
 pub mod knowledge;
 pub mod pipeline;
 pub mod prompt;
@@ -16,6 +17,7 @@ pub use conversation::{Conversation, Message, Role};
 pub use embedding::{Embedding, EmbeddingIndex, SearchResult};
 pub use executor::{ExecutionConfig, ExecutionResult, ExecutionStep, StepKind, run_agent};
 pub use hnsw::{HnswConfig, HnswIndex, HnswResult};
+pub use http_backend::HttpInferenceBackend;
 pub use knowledge::{Document, DocumentChunk, KnowledgeBase, KnowledgeResult};
 pub use pipeline::{
     CompletionRequest, CompletionResponse, EchoBackend, InferenceBackend, Pipeline,
