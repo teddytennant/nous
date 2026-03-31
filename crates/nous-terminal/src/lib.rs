@@ -13,6 +13,7 @@ pub mod history;
 pub mod keybind;
 pub mod prompt;
 mod render;
+pub mod repl;
 mod vt;
 
 #[cfg(unix)]
