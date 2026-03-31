@@ -286,11 +286,11 @@ export default function WalletPage() {
   }
 
   return (
-    <div className="p-8 max-w-4xl">
+    <div className="p-4 sm:p-8 max-w-4xl">
       <PageHeader title="Wallet" subtitle="Multi-chain. Escrow-backed. Trustless." status={online ? "online" : "offline"} />
 
       {/* Tabs */}
-      <div className="flex gap-8 mb-12">
+      <div className="flex gap-4 sm:gap-8 mb-8 sm:mb-12">
         {(["balances", "invoices", "escrow"] as WalletTab[]).map((t) => (
           <button
             key={t}
@@ -332,7 +332,7 @@ export default function WalletPage() {
               Balances
             </h2>
             {loading ? (
-              <div className="grid grid-cols-3 gap-px bg-white/[0.03]">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-white/[0.03]">
                 {Array.from({ length: 3 }).map((_, i) => (
                   <Card key={i} className="bg-black border-0 rounded-none p-6">
                     <CardContent className="p-0">
@@ -343,7 +343,7 @@ export default function WalletPage() {
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-3 gap-px bg-white/[0.03] stagger-in">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-white/[0.03] stagger-in">
                 {displayBalances.map((b) => (
                   <Card
                     key={b.token}
