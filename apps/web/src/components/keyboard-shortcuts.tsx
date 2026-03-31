@@ -111,7 +111,9 @@ export type PageShortcutMap = Record<string, () => void>;
 
 export function usePageShortcuts(shortcuts: PageShortcutMap) {
   const shortcutsRef = useRef(shortcuts);
-  shortcutsRef.current = shortcuts;
+  useEffect(() => {
+    shortcutsRef.current = shortcuts;
+  });
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
