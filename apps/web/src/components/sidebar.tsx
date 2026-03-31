@@ -12,6 +12,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useConnection } from "@/components/connection-status";
+import { NotificationBell } from "@/components/notification-panel";
 import {
   LayoutDashboard,
   Users,
@@ -183,7 +184,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <>
-      <div className="px-6 pt-8 pb-8">
+      <div className="px-6 pt-8 pb-8 flex items-center justify-between">
         <Link
           href="/"
           onClick={onNavigate}
@@ -191,6 +192,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         >
           Nous
         </Link>
+        <NotificationBell />
       </div>
 
       <div className="px-3 mb-4">
@@ -330,21 +332,24 @@ export function MobileHeader() {
   const { toggle } = useMobileSidebar();
 
   return (
-    <header className="md:hidden fixed top-0 left-0 right-0 z-40 h-14 bg-black/80 backdrop-blur-xl border-b border-white/[0.06] flex items-center px-4">
-      <button
-        type="button"
-        onClick={toggle}
-        className="p-2 -ml-2 rounded-sm hover:bg-white/[0.04] transition-colors duration-150"
-        aria-label="Toggle navigation"
-      >
-        <Menu className="w-5 h-5 text-neutral-400" />
-      </button>
-      <Link
-        href="/"
-        className="ml-3 text-base font-extralight tracking-[-0.04em]"
-      >
-        Nous
-      </Link>
+    <header className="md:hidden fixed top-0 left-0 right-0 z-40 h-14 bg-black/80 backdrop-blur-xl border-b border-white/[0.06] flex items-center justify-between px-4">
+      <div className="flex items-center">
+        <button
+          type="button"
+          onClick={toggle}
+          className="p-2 -ml-2 rounded-sm hover:bg-white/[0.04] transition-colors duration-150"
+          aria-label="Toggle navigation"
+        >
+          <Menu className="w-5 h-5 text-neutral-400" />
+        </button>
+        <Link
+          href="/"
+          className="ml-3 text-base font-extralight tracking-[-0.04em]"
+        >
+          Nous
+        </Link>
+      </div>
+      <NotificationBell />
     </header>
   );
 }
