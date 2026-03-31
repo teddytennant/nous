@@ -394,6 +394,101 @@ export default function SettingsPage() {
         </Card>
       </section>
 
+      {/* Keyboard Shortcuts section */}
+      <section className="mb-16">
+        <h2 className="text-xs font-mono uppercase tracking-[0.2em] text-neutral-500 mb-8">Keyboard Shortcuts</h2>
+        <Card className="bg-white/[0.01] border-white/[0.06] rounded-none">
+          <CardContent className="p-6">
+            <p className="text-xs text-neutral-500 font-light mb-6">
+              Press <kbd className="inline-flex items-center justify-center min-w-[1.25rem] px-1 py-0.5 text-[10px] font-mono text-neutral-400 bg-white/[0.04] border border-white/[0.06] rounded mx-0.5">?</kbd> anywhere
+              in the app to see all shortcuts.
+            </p>
+
+            {/* General shortcuts */}
+            <div className="mb-6">
+              <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-600 mb-3">General</p>
+              <div className="space-y-0">
+                {[
+                  { keys: ["\u2318", "K"], label: "Command palette" },
+                  { keys: ["?"], label: "Keyboard shortcuts" },
+                  { keys: ["Esc"], label: "Close modal / dismiss" },
+                ].map((s) => (
+                  <div key={s.label} className="flex items-center justify-between py-2">
+                    <span className="text-xs text-neutral-400 font-light">{s.label}</span>
+                    <div className="flex items-center gap-1">
+                      {s.keys.map((key, ki) => (
+                        <span key={ki}>
+                          <kbd className="inline-flex items-center justify-center min-w-[1.5rem] px-1.5 py-0.5 text-[10px] font-mono text-neutral-400 bg-white/[0.04] border border-white/[0.06] rounded">
+                            {key}
+                          </kbd>
+                          {ki < s.keys.length - 1 && (
+                            <span className="text-neutral-700 text-[10px] mx-0.5">then</span>
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Navigation shortcuts */}
+            <div className="mb-6">
+              <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-600 mb-3">Navigation</p>
+              <div className="space-y-0">
+                {[
+                  { keys: ["G", "D"], label: "Dashboard" },
+                  { keys: ["G", "S"], label: "Social" },
+                  { keys: ["G", "M"], label: "Messages" },
+                  { keys: ["G", "W"], label: "Wallet" },
+                  { keys: ["G", "G"], label: "Governance" },
+                  { keys: ["G", "E"], label: "Settings" },
+                ].map((s) => (
+                  <div key={s.label} className="flex items-center justify-between py-2">
+                    <span className="text-xs text-neutral-400 font-light">{s.label}</span>
+                    <div className="flex items-center gap-1">
+                      {s.keys.map((key, ki) => (
+                        <span key={ki}>
+                          <kbd className="inline-flex items-center justify-center min-w-[1.5rem] px-1.5 py-0.5 text-[10px] font-mono text-neutral-400 bg-white/[0.04] border border-white/[0.06] rounded">
+                            {key}
+                          </kbd>
+                          {ki < s.keys.length - 1 && (
+                            <span className="text-neutral-700 text-[10px] mx-0.5">then</span>
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* List navigation */}
+            <div>
+              <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-600 mb-3">Lists</p>
+              <div className="space-y-0">
+                {[
+                  { keys: ["J"], label: "Next item" },
+                  { keys: ["K"], label: "Previous item" },
+                  { keys: ["\u21B5"], label: "Activate selected item" },
+                ].map((s) => (
+                  <div key={s.label} className="flex items-center justify-between py-2">
+                    <span className="text-xs text-neutral-400 font-light">{s.label}</span>
+                    <div className="flex items-center gap-1">
+                      {s.keys.map((key, ki) => (
+                        <kbd key={ki} className="inline-flex items-center justify-center min-w-[1.5rem] px-1.5 py-0.5 text-[10px] font-mono text-neutral-400 bg-white/[0.04] border border-white/[0.06] rounded">
+                          {key}
+                        </kbd>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
       {/* Network section */}
       <section className="mb-16">
         <h2 className="text-xs font-mono uppercase tracking-[0.2em] text-neutral-500 mb-8">Network</h2>
