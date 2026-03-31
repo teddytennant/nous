@@ -18,6 +18,7 @@ import {
 } from "@/lib/api";
 import { GovernanceAnalytics } from "@/components/governance-analytics";
 import { EmptyState, GovernanceIllustration, DelegationIllustration } from "@/components/empty-state";
+import { PageHeader } from "@/components/page-header";
 
 type Tab = "analytics" | "proposals" | "daos" | "delegation";
 
@@ -241,14 +242,7 @@ export default function GovernancePage() {
 
   return (
     <div className="p-8 max-w-4xl">
-      <header className="mb-12">
-        <h1 className="text-3xl font-extralight tracking-[-0.03em] mb-2">
-          Governance
-        </h1>
-        <p className="text-sm text-neutral-500 font-light">
-          Quadratic voting. Every voice weighted fairly.
-        </p>
-      </header>
+      <PageHeader title="Governance" subtitle="Quadratic voting. Every voice weighted fairly." />
 
       {error && (
         <div className="text-xs text-red-500/70 font-mono mb-6 px-1">
