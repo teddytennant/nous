@@ -14,6 +14,7 @@ import {
   type OfferResponse,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { EmptyState, MarketplaceIllustration, OrdersIllustration, DisputeIllustration, OffersIllustration } from "@/components/empty-state";
 
 type Tab = "listings" | "orders" | "disputes" | "offers";
 
@@ -295,11 +296,19 @@ function ListingsTab() {
             ))}
           </div>
         ) : listingsList.length === 0 ? (
-          <div className="py-16 text-center">
-            <p className="text-sm text-neutral-700 font-light">
-              No listings found
-            </p>
-          </div>
+          <EmptyState
+            icon={<MarketplaceIllustration />}
+            title="No listings found"
+            description="Be the first to list something on the decentralized marketplace. Escrow-backed, reputation-gated."
+            action={
+              <button
+                onClick={() => setCreating(true)}
+                className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150"
+              >
+                Create Listing
+              </button>
+            }
+          />
         ) : (
           <div className="grid grid-cols-2 gap-px bg-white/[0.03]">
             {listingsList.map((listing) => (
@@ -404,12 +413,11 @@ function OrdersTab() {
           ))}
         </div>
       ) : ordersList.length === 0 ? (
-        <div className="py-16 text-center">
-          <p className="text-sm text-neutral-700 font-light">No orders yet</p>
-          <p className="text-[10px] font-mono text-neutral-800 mt-2">
-            Purchase a listing to create an order
-          </p>
-        </div>
+        <EmptyState
+          icon={<OrdersIllustration />}
+          title="No orders yet"
+          description="Purchase a listing to create your first order. All transactions are escrow-backed for safety."
+        />
       ) : (
         <div className="space-y-px">
           {ordersList.map((order) => (
@@ -530,14 +538,11 @@ function DisputesTab() {
           ))}
         </div>
       ) : disputesList.length === 0 ? (
-        <div className="py-16 text-center">
-          <p className="text-sm text-neutral-700 font-light">
-            No disputes
-          </p>
-          <p className="text-[10px] font-mono text-neutral-800 mt-2">
-            Disputes appear when an order is contested
-          </p>
-        </div>
+        <EmptyState
+          icon={<DisputeIllustration />}
+          title="No disputes"
+          description="Disputes appear when an order is contested. An arbiter reviews evidence and resolves the case."
+        />
       ) : (
         <div className="space-y-px">
           {disputesList.map((dispute) => (
@@ -669,12 +674,11 @@ function OffersTab() {
           ))}
         </div>
       ) : offersList.length === 0 ? (
-        <div className="py-16 text-center">
-          <p className="text-sm text-neutral-700 font-light">No offers yet</p>
-          <p className="text-[10px] font-mono text-neutral-800 mt-2">
-            Make an offer on a listing to negotiate price
-          </p>
-        </div>
+        <EmptyState
+          icon={<OffersIllustration />}
+          title="No offers yet"
+          description="Make an offer on a listing to negotiate a better price. Sellers can accept, reject, or counter."
+        />
       ) : (
         <div className="space-y-px">
           {offersList.map((offer) => (
