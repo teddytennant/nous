@@ -9,7 +9,8 @@ import { useRealtime } from "@/lib/use-realtime";
 import { useToast } from "@/components/toast";
 import { EmptyState, SocialIllustration, FollowingIllustration } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
-import { usePageShortcuts } from "@/components/keyboard-shortcuts";
+import { usePageShortcuts, useListNavigation } from "@/components/keyboard-shortcuts";
+import { cn } from "@/lib/utils";
 
 const MAX_POST_LENGTH = 500;
 
@@ -134,6 +135,17 @@ export default function SocialPage() {
       ? posts.filter((p) => following.has(p.pubkey))
       : posts;
 
+  const { selectedIndex, setSelectedIndex, containerRef } = useListNavigation({
+    itemCount: displayPosts.length,
+    onActivate: (index) => {
+      const post = displayPosts[index];
+      if (post) {
+        setReplyTo({ id: post.id, author: post.pubkey });
+        document.querySelector<HTMLTextAreaElement>("textarea")?.focus();
+      }
+    },
+  });
+
   return (
     <div className="p-8 max-w-3xl">
       <PageHeader title="Social" subtitle="Decentralized feed. Your posts, your protocol." />
@@ -194,7 +206,7 @@ export default function SocialPage() {
           {(["timeline", "following"] as const).map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => { setActiveTab(tab); setSelectedIndex(-1); }}
               className={`text-xs font-mono uppercase tracking-[0.2em] pb-2 transition-colors duration-150 ${
                 activeTab === tab
                   ? "text-[#d4af37] border-b border-[#d4af37]"
@@ -260,15 +272,23 @@ export default function SocialPage() {
             />
           )
         ) : (
-          <div className="space-y-px stagger-in">
-            {displayPosts.map((post) => {
+          <div ref={containerRef} className="space-y-px stagger-in">
+            {displayPosts.map((post, i) => {
               const isOwn = post.pubkey === userDid;
               const isFollowing = following.has(post.pubkey);
+              const isSelected = i === selectedIndex;
               return (
                 <Card
                   key={post.id}
-                  className="bg-transparent border-0 rounded-none border-b border-white/[0.04] pb-6 mb-6"
+                  data-list-item
+                  className={cn(
+                    "relative bg-transparent border-0 rounded-none border-b border-white/[0.04] pb-6 mb-6 transition-colors duration-150",
+                    isSelected && "bg-[#d4af37]/[0.015]"
+                  )}
                 >
+                  {isSelected && (
+                    <div className="absolute left-0 top-0 bottom-6 w-0.5 bg-[#d4af37] rounded-full" />
+                  )}
                   <CardContent className="p-0">
                     {/* Author row */}
                     <div className="flex items-center justify-between mb-3">
