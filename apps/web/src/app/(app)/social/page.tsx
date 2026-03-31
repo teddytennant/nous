@@ -266,7 +266,7 @@ export default function SocialPage() {
             />
           )
         ) : (
-          <div className="space-y-px">
+          <div className="space-y-px stagger-in">
             {displayPosts.map((post) => {
               const isOwn = post.pubkey === userDid;
               const isFollowing = following.has(post.pubkey);
