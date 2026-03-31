@@ -11,6 +11,7 @@ import { EmptyState, SocialIllustration, FollowingIllustration } from "@/compone
 import { PageHeader } from "@/components/page-header";
 import { usePageShortcuts, useListNavigation } from "@/components/keyboard-shortcuts";
 import { cn } from "@/lib/utils";
+import { Avatar } from "@/components/avatar";
 
 const MAX_POST_LENGTH = 500;
 
@@ -232,8 +233,9 @@ export default function SocialPage() {
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="border-b border-white/[0.04] pb-6 mb-6">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-baseline gap-3">
-                    <Skeleton className="h-3 w-36" />
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-7 w-7 rounded-full shrink-0" />
+                    <Skeleton className="h-3 w-28" />
                     <Skeleton className="h-2.5 w-8" />
                   </div>
                   <Skeleton className="h-2.5 w-14" />
@@ -292,7 +294,8 @@ export default function SocialPage() {
                   <CardContent className="p-0">
                     {/* Author row */}
                     <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-baseline gap-3">
+                      <div className="flex items-center gap-3">
+                        <Avatar did={post.pubkey} size="sm" />
                         <span className="text-xs font-mono text-neutral-500 truncate max-w-[200px]">
                           {truncateDid(post.pubkey)}
                         </span>
