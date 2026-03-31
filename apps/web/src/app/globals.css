@@ -242,6 +242,17 @@ html {
   background-color: #b39028;
 }
 
+/* Sidebar collapsible sections — smooth height via grid */
+.sidebar-section-collapse {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sidebar-section-collapse[data-collapsed="true"] {
+  grid-template-rows: 0fr;
+}
+
 /* Onboarding step entrance */
 @keyframes onboarding-step-enter {
   from {
