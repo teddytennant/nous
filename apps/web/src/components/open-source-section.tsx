@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useCallback } from "react";
+
 function GithubIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
@@ -10,13 +12,15 @@ function GithubIcon({ className }: { className?: string }) {
 
 const GITHUB_REPO = "teddytennant/nous";
 
-// Deterministic PRNG for consistent heatmap across renders
+// ── Deterministic PRNG ──────────────────────────────────────────────────
+
 function hash(n: number): number {
   const x = Math.sin(n * 127.1 + 311.7) * 43758.5453;
   return x - Math.floor(x);
 }
 
-// Generate 52 weeks x 7 days of activity intensities
+// ── Activity data (52 weeks x 7 days) ───────────────────────────────────
+
 function generateActivity(): number[] {
   const cells: number[] = [];
   for (let w = 0; w < 52; w++) {
@@ -51,22 +55,71 @@ function cellColor(v: number): string {
   return "rgba(212,175,55,0.6)";
 }
 
+// ── Dates + commit counts ───────────────────────────────────────────────
+
+function generateDates(): Date[] {
+  // Anchor: March 31, 2026 (Tuesday, day index 2)
+  // Most recent Sunday: March 29, 2026
+  const currentSunday = new Date(2026, 2, 29);
+  // Start 51 weeks before that to get 52 total weeks
+  const start = new Date(currentSunday);
+  start.setDate(start.getDate() - 51 * 7);
+
+  const dates: Date[] = [];
+  for (let i = 0; i < 52 * 7; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    dates.push(d);
+  }
+  return dates;
+}
+
+function toCommits(v: number): number {
+  if (v === 0) return 0;
+  return Math.max(1, Math.round(v * 14));
+}
+
+// Precompute all static data at module level
 const activity = generateActivity();
+const dates = generateDates();
+const commits = activity.map(toCommits);
+const totalContributions = commits.reduce((a, b) => a + b, 0);
+const activeDays = commits.filter((c) => c > 0).length;
+
+function computeStreaks(arr: number[]): { longest: number; current: number } {
+  let longest = 0;
+  let cur = 0;
+  for (const c of arr) {
+    if (c > 0) {
+      cur++;
+      if (cur > longest) longest = cur;
+    } else {
+      cur = 0;
+    }
+  }
+  // Current streak: count backwards from last cell
+  let current = 0;
+  for (let i = arr.length - 1; i >= 0; i--) {
+    if (arr[i] > 0) current++;
+    else break;
+  }
+  return { longest, current };
+}
+
+const streaks = computeStreaks(commits);
+
+// ── Constants ───────────────────────────────────────────────────────────
+
+const CELL_SIZE = 10;
+const CELL_GAP = 3;
+const CELL_STEP = CELL_SIZE + CELL_GAP; // 13px
 
 const months = [
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-  "Jan",
-  "Feb",
-  "Mar",
+  "Apr", "May", "Jun", "Jul", "Aug", "Sep",
+  "Oct", "Nov", "Dec", "Jan", "Feb", "Mar",
 ];
+
+const legendLevels = [0, 0.1, 0.3, 0.5, 0.7, 0.9];
 
 const techStack = [
   { name: "Rust", detail: "Backend + CLI" },
@@ -79,7 +132,35 @@ const techStack = [
   { name: "Swift", detail: "iOS" },
 ];
 
+// ── Component ───────────────────────────────────────────────────────────
+
 export function OpenSourceSection() {
+  const [hovered, setHovered] = useState<number | null>(null);
+
+  const handleMouseOver = useCallback((e: React.MouseEvent) => {
+    const idx = (e.target as HTMLElement).dataset.idx;
+    if (idx != null) {
+      setHovered(Number(idx));
+    } else {
+      setHovered(null);
+    }
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setHovered(null);
+  }, []);
+
+  // Tooltip data derived from hovered index
+  const tip =
+    hovered !== null
+      ? {
+          week: Math.floor(hovered / 7),
+          day: hovered % 7,
+          date: dates[hovered],
+          count: commits[hovered],
+        }
+      : null;
+
   return (
     <section className="px-6 py-28 max-w-6xl mx-auto w-full">
       <div className="mb-20">
@@ -93,37 +174,121 @@ export function OpenSourceSection() {
 
       {/* Activity heatmap */}
       <div className="mb-16">
-        <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-700 mb-4">
-          Development Velocity
-        </p>
+        <div className="flex items-baseline justify-between mb-4">
+          <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-700">
+            Development Velocity
+          </p>
+          <p className="text-[10px] font-mono text-neutral-600">
+            {totalContributions.toLocaleString()} contributions in the past year
+          </p>
+        </div>
+
         <div className="overflow-x-auto pb-2 -mx-1 px-1">
-          <div
-            className="inline-grid gap-[3px]"
-            style={{
-              gridTemplateRows: "repeat(7, 10px)",
-              gridAutoFlow: "column",
-              gridAutoColumns: "10px",
-            }}
-          >
-            {activity.map((v, i) => (
+          {/* Grid + tooltip wrapper */}
+          <div className="relative inline-block">
+            <div
+              className="inline-grid gap-[3px]"
+              style={{
+                gridTemplateRows: `repeat(7, ${CELL_SIZE}px)`,
+                gridAutoFlow: "column",
+                gridAutoColumns: `${CELL_SIZE}px`,
+              }}
+              onMouseOver={handleMouseOver}
+              onMouseLeave={handleMouseLeave}
+            >
+              {activity.map((v, i) => (
+                <div
+                  key={i}
+                  data-idx={i}
+                  className="rounded-[2px] activity-cell"
+                  style={{ backgroundColor: cellColor(v) }}
+                />
+              ))}
+            </div>
+
+            {/* Tooltip */}
+            {tip && (
               <div
-                key={i}
-                className="rounded-[2px] activity-cell"
-                style={{ backgroundColor: cellColor(v) }}
-              />
-            ))}
+                className="absolute z-10 pointer-events-none"
+                style={{
+                  left: tip.week * CELL_STEP + CELL_SIZE / 2,
+                  top: tip.day * CELL_STEP - 8,
+                  transform: "translate(-50%, -100%)",
+                }}
+              >
+                <div className="heatmap-tooltip bg-[#1a1a1a] border border-white/10 rounded-sm px-3 py-2 text-center whitespace-nowrap shadow-lg">
+                  <p className="text-[11px] font-medium text-white">
+                    {tip.count === 0
+                      ? "No contributions"
+                      : `${tip.count} contribution${tip.count !== 1 ? "s" : ""}`}
+                  </p>
+                  <p className="text-[10px] text-neutral-500 font-mono mt-0.5">
+                    {tip.date.toLocaleDateString("en-US", {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </p>
+                </div>
+                {/* Arrow pointing down */}
+                <div className="flex justify-center">
+                  <div className="w-1.5 h-1.5 bg-[#1a1a1a] border-r border-b border-white/10 rotate-45 -mt-[4px]" />
+                </div>
+              </div>
+            )}
           </div>
+
           {/* Month labels */}
-          <div className="flex mt-2" style={{ width: `${52 * 13}px` }}>
+          <div className="flex mt-2" style={{ width: `${52 * CELL_STEP}px` }}>
             {months.map((m) => (
               <span
                 key={m}
                 className="text-[9px] font-mono text-neutral-800"
-                style={{ width: `${(52 * 13) / 12}px` }}
+                style={{ width: `${(52 * CELL_STEP) / 12}px` }}
               >
                 {m}
               </span>
             ))}
+          </div>
+
+          {/* Legend + stats row */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mt-4">
+            {/* Legend */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] font-mono text-neutral-700 mr-0.5">
+                Less
+              </span>
+              {legendLevels.map((v, i) => (
+                <div
+                  key={i}
+                  className="w-[10px] h-[10px] rounded-[2px]"
+                  style={{ backgroundColor: cellColor(v) }}
+                />
+              ))}
+              <span className="text-[9px] font-mono text-neutral-700 ml-0.5">
+                More
+              </span>
+            </div>
+
+            {/* Stats */}
+            <div className="flex items-center gap-4">
+              <span className="text-[9px] font-mono text-neutral-600">
+                {activeDays} active days
+              </span>
+              <span className="text-neutral-800">·</span>
+              <span className="text-[9px] font-mono text-neutral-600">
+                {streaks.longest}-day best streak
+              </span>
+              {streaks.current > 0 && (
+                <>
+                  <span className="text-neutral-800">·</span>
+                  <span className="text-[9px] font-mono text-[#d4af37]/60">
+                    {streaks.current}-day current streak
+                  </span>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
