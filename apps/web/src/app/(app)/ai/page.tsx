@@ -13,6 +13,7 @@ import {
 } from "@/lib/api";
 import { EmptyState, AIIllustration, ChatIllustration, ConversationsIllustration } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
+import { useToast } from "@/components/toast";
 
 type ViewMode = "chat" | "agents" | "conversations";
 
@@ -29,7 +30,7 @@ export default function AIPage() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
 
   // Agent creation
@@ -47,11 +48,11 @@ export default function AIPage() {
         setSelectedAgent(data.agents[0]);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load agents");
+      toast({ title: "Failed to load agents", description: e instanceof Error ? e.message : undefined, variant: "error" });
     } finally {
       setLoading(false);
     }
-  }, [selectedAgent]);
+  }, [selectedAgent, toast]);
 
   const loadConversations = useCallback(async () => {
     try {
@@ -67,9 +68,9 @@ export default function AIPage() {
       const data = await ai.getConversation(convId);
       setMessages(data);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load messages");
+      toast({ title: "Failed to load messages", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     loadAgents();
@@ -83,7 +84,6 @@ export default function AIPage() {
   async function handleSend() {
     if (!input.trim() || sending || !selectedAgent) return;
     setSending(true);
-    setError(null);
 
     // Optimistically add user message.
     const userMsg: AIMessage = {
@@ -117,7 +117,7 @@ export default function AIPage() {
       setMessages((prev) => [...prev, asstMsg]);
       loadConversations();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to send message");
+      toast({ title: "Failed to send message", description: e instanceof Error ? e.message : undefined, variant: "error" });
     } finally {
       setSending(false);
     }
@@ -136,7 +136,7 @@ export default function AIPage() {
       setNewPrompt("");
       setShowCreate(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to create agent");
+      toast({ title: "Failed to create agent", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
   }
 
@@ -148,7 +148,7 @@ export default function AIPage() {
         setSelectedAgent(agents.find((a) => a.id !== agentId) ?? null);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to delete agent");
+      toast({ title: "Failed to delete agent", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
   }
 
@@ -191,18 +191,6 @@ export default function AIPage() {
           </button>
         ))}
       </div>
-
-      {error && (
-        <div className="text-xs text-red-500/70 font-mono mb-6 px-1 flex items-center justify-between">
-          <span>{error}</span>
-          <button
-            onClick={() => setError(null)}
-            className="text-neutral-600 hover:text-white ml-4"
-          >
-            dismiss
-          </button>
-        </div>
-      )}
 
       {/* ── Chat View ─────────────────────────────────────── */}
       {mode === "chat" && (
