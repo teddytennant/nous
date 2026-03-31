@@ -61,7 +61,7 @@ export default function MessagesPage() {
     } finally {
       setLoading(false);
     }
-  }, [userDid]);
+  }, [userDid, toast]);
 
   const fetchMessages = useCallback(async (channelId: string) => {
     try {
