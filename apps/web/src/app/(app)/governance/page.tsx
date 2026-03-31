@@ -24,6 +24,22 @@ import { useToast } from "@/components/toast";
 import { usePageShortcuts, useListNavigation } from "@/components/keyboard-shortcuts";
 
 type Tab = "analytics" | "proposals" | "daos" | "delegation";
+type StatusFilter = "all" | "active" | "passed" | "rejected";
+type SortKey = "newest" | "deadline" | "most-votes" | "title";
+
+const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "active", label: "Active" },
+  { key: "passed", label: "Passed" },
+  { key: "rejected", label: "Rejected" },
+];
+
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: "newest", label: "Newest" },
+  { key: "deadline", label: "Deadline" },
+  { key: "most-votes", label: "Most Votes" },
+  { key: "title", label: "Title A–Z" },
+];
 
 export default function GovernancePage() {
   const [tab, setTab] = useState<Tab>("analytics");
@@ -37,6 +53,8 @@ export default function GovernancePage() {
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [sortKey, setSortKey] = useState<SortKey>("newest");
   const { toast } = useToast();
   const [userDid, setUserDid] = useState<string | null>(null);
 
@@ -62,11 +80,48 @@ export default function GovernancePage() {
     d: () => setShowDaoForm(true),
   });
 
+  // Filter + sort proposals
+  const filteredProposals = (() => {
+    let list = proposals;
+
+    // Status filter
+    if (statusFilter !== "all") {
+      list = list.filter((p) => {
+        const s = p.status.toLowerCase();
+        if (statusFilter === "active") return s === "active";
+        if (statusFilter === "passed") return s === "passed" || s === "executed";
+        if (statusFilter === "rejected") return s === "rejected" || s === "cancelled";
+        return true;
+      });
+    }
+
+    // Sort
+    list = [...list].sort((a, b) => {
+      switch (sortKey) {
+        case "newest":
+          return new Date(b.voting_ends).getTime() - new Date(a.voting_ends).getTime();
+        case "deadline":
+          return new Date(a.voting_ends).getTime() - new Date(b.voting_ends).getTime();
+        case "most-votes": {
+          const totalA = (tallies[a.id]?.votes_for || 0) + (tallies[a.id]?.votes_against || 0);
+          const totalB = (tallies[b.id]?.votes_for || 0) + (tallies[b.id]?.votes_against || 0);
+          return totalB - totalA;
+        }
+        case "title":
+          return a.title.localeCompare(b.title);
+        default:
+          return 0;
+      }
+    });
+
+    return list;
+  })();
+
   const { selectedIndex: proposalNavIndex, setSelectedIndex: setProposalNavIndex, containerRef: proposalsContainerRef } = useListNavigation({
-    itemCount: proposals.length,
+    itemCount: filteredProposals.length,
     enabled: tab === "proposals" && !showProposalForm,
     onActivate: (index) => {
-      const p = proposals[index];
+      const p = filteredProposals[index];
       if (p) setSelectedId(selectedId === p.id ? null : p.id);
     },
   });
@@ -299,9 +354,14 @@ export default function GovernancePage() {
       {/* ── Proposals Tab ── */}
       {tab === "proposals" && (
         <section>
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-6">
             <h2 className="text-xs font-mono uppercase tracking-[0.2em] text-neutral-500">
-              {proposals.length} Proposal{proposals.length !== 1 ? "s" : ""}
+              {filteredProposals.length}
+              {statusFilter !== "all" ? ` ${statusFilter}` : ""}{" "}
+              Proposal{filteredProposals.length !== 1 ? "s" : ""}
+              {statusFilter !== "all" && proposals.length !== filteredProposals.length && (
+                <span className="text-neutral-700 ml-1">of {proposals.length}</span>
+              )}
             </h2>
             <Button
               variant="outline"
@@ -315,6 +375,63 @@ export default function GovernancePage() {
               {showProposalForm ? "Cancel" : "New Proposal"}
             </Button>
           </div>
+
+          {/* Filter + Sort controls */}
+          {proposals.length > 0 && !showProposalForm && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
+              {/* Status filters */}
+              <div className="flex items-center gap-1">
+                {STATUS_FILTERS.map((f) => {
+                  const count =
+                    f.key === "all"
+                      ? proposals.length
+                      : proposals.filter((p) => {
+                          const s = p.status.toLowerCase();
+                          if (f.key === "active") return s === "active";
+                          if (f.key === "passed") return s === "passed" || s === "executed";
+                          if (f.key === "rejected") return s === "rejected" || s === "cancelled";
+                          return false;
+                        }).length;
+                  return (
+                    <button
+                      key={f.key}
+                      onClick={() => { setStatusFilter(f.key); setProposalNavIndex(-1); }}
+                      className={cn(
+                        "text-[10px] font-mono uppercase tracking-wider px-3 py-1.5 rounded-sm transition-all duration-150",
+                        statusFilter === f.key
+                          ? "bg-[#d4af37]/10 text-[#d4af37] border border-[#d4af37]/20"
+                          : "text-neutral-600 hover:text-neutral-400 border border-transparent hover:border-white/[0.06]"
+                      )}
+                    >
+                      {f.label}
+                      <span className="ml-1.5 text-neutral-700">{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Sort selector */}
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-neutral-700">Sort</span>
+                <div className="flex items-center gap-1">
+                  {SORT_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.key}
+                      onClick={() => { setSortKey(opt.key); setProposalNavIndex(-1); }}
+                      className={cn(
+                        "text-[10px] font-mono tracking-wider px-2.5 py-1 rounded-sm transition-all duration-150",
+                        sortKey === opt.key
+                          ? "bg-white/[0.06] text-white"
+                          : "text-neutral-600 hover:text-neutral-400"
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* New Proposal Form */}
           {showProposalForm && (
@@ -415,9 +532,21 @@ export default function GovernancePage() {
                 </button>
               }
             />
+          ) : filteredProposals.length === 0 ? (
+            <div className="py-16 text-center">
+              <p className="text-sm text-neutral-600 font-light mb-2">
+                No {statusFilter} proposals
+              </p>
+              <button
+                onClick={() => setStatusFilter("all")}
+                className="text-[10px] font-mono uppercase tracking-wider text-neutral-600 hover:text-[#d4af37] transition-colors"
+              >
+                Show all proposals
+              </button>
+            </div>
           ) : (
             <div ref={proposalsContainerRef} className="space-y-px stagger-in">
-              {proposals.map((p, i) => {
+              {filteredProposals.map((p, i) => {
                 const tally = tallies[p.id];
                 const votesFor = tally?.votes_for || 0;
                 const votesAgainst = tally?.votes_against || 0;
