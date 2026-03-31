@@ -1,0 +1,89 @@
+name: iOS Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-ios:
+    name: Build iOS App
+    runs-on: macos-14
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build iOS app
+        working-directory: apps/ios
+        run: |
+          xcodebuild build \
+            -scheme Nous \
+            -destination 'generic/platform=iOS Simulator' \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Run tests
+        working-directory: apps/ios
+        run: |
+          xcodebuild test \
+            -scheme Nous \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -derivedDataPath build
+
+      - name: Package simulator app
+        working-directory: apps/ios
+        shell: bash
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+          app=$(find build/Build/Products -name "Nous.app" -path "*/Release-iphonesimulator/*" | head -1)
+          if [ -n "$app" ]; then
+            cd "$(dirname "$app")"
+            zip -r "${GITHUB_WORKSPACE}/nous-${tag}-ios-simulator.zip" Nous.app
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-app
+          path: nous-*-ios-simulator.zip
+          if-no-files-found: warn
+
+  # Uncomment when Apple Developer signing is configured in GitHub Secrets:
+  # APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD, APPLE_PROVISIONING_PROFILE, APPLE_TEAM_ID
+  #
+  # build-ipa:
+  #   name: Build Signed IPA
+  #   runs-on: macos-14
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Install signing certificate
+  #       uses: apple-actions/import-codesign-certs@v2
+  #       with:
+  #         p12-file-base64: ${{ secrets.APPLE_CERTIFICATE }}
+  #         p12-password: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+  #     - name: Build archive
+  #       working-directory: apps/ios
+  #       run: |
+  #         xcodebuild archive \
+  #           -scheme Nous \
+  #           -archivePath build/Nous.xcarchive \
+  #           -destination 'generic/platform=iOS'
+  #     - name: Export IPA
+  #       run: |
+  #         xcodebuild -exportArchive \
+  #           -archivePath apps/ios/build/Nous.xcarchive \
+  #           -exportPath export \
+  #           -exportOptionsPlist apps/ios/ExportOptions.plist
+  #     - name: Rename IPA
+  #       run: |
+  #         tag="${GITHUB_REF#refs/tags/}"
+  #         mv export/Nous.ipa "nous-${tag}-ios.ipa"
+  #     - name: Upload artifact
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: ios-ipa
+  #         path: nous-*-ios.ipa
