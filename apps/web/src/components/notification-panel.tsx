@@ -6,6 +6,7 @@ import {
   useCallback,
   useRef,
   useSyncExternalStore,
+  startTransition,
 } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -16,7 +17,6 @@ import {
   Wallet,
   Store,
   MessageSquare,
-  Check,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -231,7 +231,9 @@ export function NotificationBell() {
 
   // Initial fetch + polling
   useEffect(() => {
-    fetchNotifications();
+    startTransition(() => {
+      fetchNotifications();
+    });
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
   }, [fetchNotifications]);
