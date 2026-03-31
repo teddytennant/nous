@@ -414,7 +414,7 @@ export default function AIPage() {
               }
             />
           ) : (
-            <div className="space-y-px">
+            <div className="space-y-px stagger-in">
               {agents.map((agent) => (
                 <Card
                   key={agent.id}
@@ -497,7 +497,7 @@ export default function AIPage() {
               description="Start chatting with an agent in the Chat tab. Your conversation history will appear here."
             />
           ) : (
-            <div className="space-y-px">
+            <div className="space-y-px stagger-in">
               {conversations.map((conv) => {
                 const agentName =
                   agents.find((a) => a.id === conv.agent_id)?.name ??
