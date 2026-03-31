@@ -299,6 +299,57 @@ export default function DashboardPage() {
         </div>
       </section>
 
+      {/* Wallet Balance Strip */}
+      <section className="mb-12">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xs font-mono uppercase tracking-[0.2em] text-neutral-500">
+            Wallet
+          </h2>
+          <Link
+            href="/wallet"
+            className="text-[10px] font-mono text-neutral-700 hover:text-[#d4af37] transition-colors duration-200 flex items-center gap-1"
+          >
+            Manage
+            <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
+        {(() => {
+          const balances =
+            wallet && wallet.balances.length > 0
+              ? wallet.balances.slice(0, 4)
+              : [
+                  { token: "ETH", amount: "0" },
+                  { token: "NOUS", amount: "0" },
+                  { token: "USDC", amount: "0" },
+                ];
+          return (
+            <Link
+              href="/wallet"
+              className="group flex items-center gap-0 border border-white/[0.06] rounded-sm overflow-hidden hover:border-white/10 transition-colors duration-200"
+            >
+              {balances.map((b, i) => (
+                <div
+                  key={b.token}
+                  className={`flex-1 flex items-baseline gap-2 px-4 sm:px-5 py-3 ${
+                    i > 0 ? "border-l border-white/[0.06]" : ""
+                  } group-hover:bg-white/[0.01] transition-colors duration-200`}
+                >
+                  <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-600">
+                    {b.token}
+                  </span>
+                  <span className="text-sm font-extralight tabular-nums text-neutral-300">
+                    {b.amount}
+                  </span>
+                </div>
+              ))}
+              <div className="px-4 py-3 flex items-center">
+                <ArrowRight className="w-3.5 h-3.5 text-neutral-800 group-hover:text-[#d4af37] group-hover:translate-x-0.5 transition-all duration-200" />
+              </div>
+            </Link>
+          );
+        })()}
+      </section>
+
       {/* Quick Actions */}
       <section className="mb-12">
         <h2 className="text-xs font-mono uppercase tracking-[0.2em] text-neutral-500 mb-6">
@@ -342,39 +393,6 @@ export default function DashboardPage() {
           </div>
         </section>
       </div>
-
-      {/* Wallet Summary (if wallet exists) */}
-      {wallet && wallet.balances.length > 0 && (
-        <section className="mb-12">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xs font-mono uppercase tracking-[0.2em] text-neutral-500">
-              Wallet
-            </h2>
-            <Link
-              href="/wallet"
-              className="text-[10px] font-mono text-neutral-700 hover:text-[#d4af37] transition-colors duration-200 flex items-center gap-1"
-            >
-              Manage
-              <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {wallet.balances.slice(0, 4).map((b) => (
-              <div
-                key={b.token}
-                className="p-4 border border-white/[0.06] rounded-sm"
-              >
-                <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-600 mb-2">
-                  {b.token}
-                </p>
-                <p className="text-lg font-extralight tabular-nums">
-                  {b.amount}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
     </div>
   );
 }
