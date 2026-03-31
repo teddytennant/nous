@@ -19,6 +19,7 @@ import {
 import { GovernanceAnalytics } from "@/components/governance-analytics";
 import { EmptyState, GovernanceIllustration, DelegationIllustration } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
+import { useToast } from "@/components/toast";
 
 type Tab = "analytics" | "proposals" | "daos" | "delegation";
 
@@ -34,7 +35,7 @@ export default function GovernancePage() {
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
   const [userDid, setUserDid] = useState<string | null>(null);
 
   // Modal state
@@ -82,9 +83,8 @@ export default function GovernancePage() {
         }
       }
       setTallies(tallyResults);
-      setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load proposals");
+      toast({ title: "Failed to load proposals", description: e instanceof Error ? e.message : undefined, variant: "error" });
     } finally {
       setLoading(false);
     }
@@ -114,7 +114,7 @@ export default function GovernancePage() {
       setShowDaoForm(false);
       await loadDaos();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to create DAO");
+      toast({ title: "Failed to create DAO", description: e instanceof Error ? e.message : undefined, variant: "error" });
     } finally {
       setSubmitting(false);
     }
@@ -136,7 +136,7 @@ export default function GovernancePage() {
       setShowProposalForm(false);
       await loadProposals();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to create proposal");
+      toast({ title: "Failed to create proposal", description: e instanceof Error ? e.message : undefined, variant: "error" });
     } finally {
       setSubmitting(false);
     }
@@ -154,7 +154,7 @@ export default function GovernancePage() {
       const tally = await governance.getTally(proposalId);
       setTallies((prev) => ({ ...prev, [proposalId]: tally }));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to cast vote");
+      toast({ title: "Failed to cast vote", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
   }
 
@@ -205,7 +205,7 @@ export default function GovernancePage() {
       await loadDelegations();
       await loadPower(delegateScope);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to delegate");
+      toast({ title: "Failed to delegate", description: e instanceof Error ? e.message : undefined, variant: "error" });
     } finally {
       setSubmitting(false);
     }
@@ -217,7 +217,7 @@ export default function GovernancePage() {
       await delegationApi.revoke(delegationId, did);
       await loadDelegations();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to revoke");
+      toast({ title: "Failed to revoke", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
   }
 
@@ -243,18 +243,6 @@ export default function GovernancePage() {
   return (
     <div className="p-8 max-w-4xl">
       <PageHeader title="Governance" subtitle="Quadratic voting. Every voice weighted fairly." />
-
-      {error && (
-        <div className="text-xs text-red-500/70 font-mono mb-6 px-1">
-          {error}
-          <button
-            onClick={() => setError(null)}
-            className="ml-3 text-neutral-600 hover:text-neutral-400"
-          >
-            dismiss
-          </button>
-        </div>
-      )}
 
       {/* Tabs */}
       <div className="flex gap-6 mb-10 border-b border-white/[0.06] pb-3">
