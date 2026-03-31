@@ -20,6 +20,7 @@ import { useToast } from "@/components/toast";
 import { usePageShortcuts } from "@/components/keyboard-shortcuts";
 
 type Tab = "listings" | "orders" | "disputes" | "offers";
+type SortKey = "newest" | "price-low" | "price-high" | "title";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "listings", label: "Listings" },
@@ -36,6 +37,13 @@ const CATEGORIES = [
   "NFT",
   "Data",
   "Other",
+];
+
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: "newest", label: "Newest" },
+  { key: "price-low", label: "Price ↑" },
+  { key: "price-high", label: "Price ↓" },
+  { key: "title", label: "Title A–Z" },
 ];
 
 function formatPrice(amount: number, token: string): string {
@@ -84,6 +92,7 @@ function ListingsTab() {
   const [listingsList, setListings] = useState<ListingResponse[]>([]);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
+  const [sortKey, setSortKey] = useState<SortKey>("newest");
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const [creating, setCreating] = useState(false);
@@ -266,26 +275,60 @@ function ListingsTab() {
             className="flex-1 bg-white/[0.02] text-sm font-light px-4 py-3 outline-none placeholder:text-neutral-700"
           />
         </div>
-        <div className="flex gap-2">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setCategory(cat)}
-              className={cn(
-                "text-[10px] font-mono uppercase tracking-wider px-4 py-2 border transition-all duration-150",
-                category === cat
-                  ? "border-[#d4af37]/30 text-[#d4af37]"
-                  : "border-white/[0.06] text-neutral-600 hover:text-neutral-400"
-              )}
-            >
-              {cat}
-            </button>
-          ))}
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+          <div className="flex gap-2 flex-wrap">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setCategory(cat)}
+                className={cn(
+                  "text-[10px] font-mono uppercase tracking-wider px-4 py-2 border transition-all duration-150",
+                  category === cat
+                    ? "border-[#d4af37]/30 text-[#d4af37] bg-[#d4af37]/[0.06]"
+                    : "border-white/[0.06] text-neutral-600 hover:text-neutral-400"
+                )}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            {SORT_OPTIONS.map((opt) => (
+              <button
+                key={opt.key}
+                onClick={() => setSortKey(opt.key)}
+                className={cn(
+                  "text-[10px] font-mono uppercase tracking-wider px-3 py-2 transition-all duration-150",
+                  sortKey === opt.key
+                    ? "text-white bg-white/[0.06]"
+                    : "text-neutral-700 hover:text-neutral-400"
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
       </section>
 
       <section>
-        {loading ? (
+        {(() => {
+          const sortedListings = [...listingsList].sort((a, b) => {
+            switch (sortKey) {
+              case "newest":
+                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+              case "price-low":
+                return a.price_amount - b.price_amount;
+              case "price-high":
+                return b.price_amount - a.price_amount;
+              case "title":
+                return a.title.localeCompare(b.title);
+              default:
+                return 0;
+            }
+          });
+
+          return loading ? (
           <div className="grid grid-cols-2 gap-px bg-white/[0.03]">
             {Array.from({ length: 4 }).map((_, i) => (
               <Card key={i} className="bg-black border-0 rounded-none">
@@ -306,23 +349,39 @@ function ListingsTab() {
               </Card>
             ))}
           </div>
-        ) : listingsList.length === 0 ? (
-          <EmptyState
-            icon={<MarketplaceIllustration />}
-            title="No listings found"
-            description="Be the first to list something on the decentralized marketplace. Escrow-backed, reputation-gated."
-            action={
-              <button
-                onClick={() => setCreating(true)}
-                className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150"
-              >
-                Create Listing
-              </button>
-            }
-          />
+        ) : sortedListings.length === 0 ? (
+          listingsList.length > 0 ? (
+            <EmptyState
+              icon={<MarketplaceIllustration />}
+              title="No matching listings"
+              description={`No listings match the current${category !== "All" ? ` "${category}"` : ""} filter.`}
+              action={
+                <button
+                  onClick={() => { setCategory("All"); setSearch(""); }}
+                  className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-white/10 text-neutral-400 hover:text-white hover:border-white/20 transition-all duration-150"
+                >
+                  Show all
+                </button>
+              }
+            />
+          ) : (
+            <EmptyState
+              icon={<MarketplaceIllustration />}
+              title="No listings found"
+              description="Be the first to list something on the decentralized marketplace. Escrow-backed, reputation-gated."
+              action={
+                <button
+                  onClick={() => setCreating(true)}
+                  className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150"
+                >
+                  Create Listing
+                </button>
+              }
+            />
+          )
         ) : (
           <div className="grid grid-cols-2 gap-px bg-white/[0.03] stagger-in">
-            {listingsList.map((listing) => (
+            {sortedListings.map((listing) => (
               <Card
                 key={listing.id}
                 className="bg-black border-0 rounded-none card-lift"
@@ -369,7 +428,8 @@ function ListingsTab() {
               </Card>
             ))}
           </div>
-        )}
+        );
+        })()}
       </section>
     </>
   );
