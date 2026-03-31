@@ -4,16 +4,19 @@ import type { ReactNode } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { ConnectionProvider } from "@/components/connection-status";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { ToastProvider } from "@/components/toast";
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
     <ConnectionProvider>
-      <div className="flex min-h-screen">
-        <Sidebar />
-        <main className="flex-1 min-w-0">
-          <ErrorBoundary>{children}</ErrorBoundary>
-        </main>
-      </div>
+      <ToastProvider>
+        <div className="flex min-h-screen">
+          <Sidebar />
+          <main className="flex-1 min-w-0">
+            <ErrorBoundary>{children}</ErrorBoundary>
+          </main>
+        </div>
+      </ToastProvider>
     </ConnectionProvider>
   );
 }
