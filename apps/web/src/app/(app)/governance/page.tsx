@@ -94,7 +94,7 @@ export default function GovernancePage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     loadDaos();
