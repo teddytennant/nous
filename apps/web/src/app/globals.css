@@ -518,3 +518,35 @@ select:focus {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
 }
+
+/* Notification panel — slide down from bell */
+@keyframes notif-panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.notif-panel-enter {
+  animation: notif-panel-enter 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Notification badge — pop in */
+@keyframes notif-badge-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.notif-badge-enter {
+  animation: notif-badge-enter 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
