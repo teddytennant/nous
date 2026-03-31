@@ -12,6 +12,7 @@ import {
   type InvoiceResponse,
   type EscrowResponse,
 } from "@/lib/api";
+import { EmptyState, WalletIllustration, TransactionsIllustration, InvoiceIllustration, EscrowIllustration } from "@/components/empty-state";
 
 type WalletTab = "balances" | "invoices" | "escrow";
 
@@ -320,16 +321,20 @@ export default function WalletPage() {
       </div>
 
       {!wallet && !loading && tab === "balances" && (
-        <section className="mb-16 py-16 text-center">
-          <p className="text-sm text-neutral-600 font-light mb-6">
-            No wallet found for your identity
-          </p>
-          <button
-            onClick={handleCreateWallet}
-            className="text-xs font-mono uppercase tracking-wider px-6 py-3 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150"
-          >
-            Create Wallet
-          </button>
+        <section className="mb-16">
+          <EmptyState
+            icon={<WalletIllustration />}
+            title="No wallet found"
+            description="Create a wallet to send, receive, and manage multi-chain assets with escrow-backed transactions."
+            action={
+              <button
+                onClick={handleCreateWallet}
+                className="text-xs font-mono uppercase tracking-wider px-6 py-3 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150"
+              >
+                Create Wallet
+              </button>
+            }
+          />
         </section>
       )}
 
@@ -451,11 +456,11 @@ export default function WalletPage() {
               Transactions
             </h2>
             {transactions.length === 0 ? (
-              <div className="py-16 text-center">
-                <p className="text-sm text-neutral-700 font-light">
-                  No transactions yet
-                </p>
-              </div>
+              <EmptyState
+                icon={<TransactionsIllustration />}
+                title="No transactions yet"
+                description="Send or receive tokens to see your transaction history here."
+              />
             ) : (
               <div className="space-y-px">
                 {transactions.map((tx) => {
@@ -615,14 +620,19 @@ export default function WalletPage() {
           )}
 
           {invoices.length === 0 ? (
-            <div className="py-16 text-center">
-              <p className="text-sm text-neutral-700 font-light">
-                No invoices yet
-              </p>
-              <p className="text-[10px] font-mono text-neutral-800 mt-2">
-                Create an invoice to request payment
-              </p>
-            </div>
+            <EmptyState
+              icon={<InvoiceIllustration />}
+              title="No invoices yet"
+              description="Create an invoice to request payment from another user. Track line items, due dates, and payment status."
+              action={
+                <button
+                  onClick={() => setShowInvoiceForm(true)}
+                  className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150"
+                >
+                  Create Invoice
+                </button>
+              }
+            />
           ) : (
             <div className="space-y-px">
               {invoices.map((inv) => {
@@ -768,14 +778,19 @@ export default function WalletPage() {
           )}
 
           {escrows.length === 0 ? (
-            <div className="py-16 text-center">
-              <p className="text-sm text-neutral-700 font-light">
-                No active escrows
-              </p>
-              <p className="text-[10px] font-mono text-neutral-800 mt-2">
-                Create an escrow for trustless transactions
-              </p>
-            </div>
+            <EmptyState
+              icon={<EscrowIllustration />}
+              title="No active escrows"
+              description="Create an escrow to lock funds until conditions are met. Trustless transactions without intermediaries."
+              action={
+                <button
+                  onClick={() => setShowEscrowForm(true)}
+                  className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150"
+                >
+                  Create Escrow
+                </button>
+              }
+            />
           ) : (
             <div className="space-y-px">
               {escrows.map((esc) => {
