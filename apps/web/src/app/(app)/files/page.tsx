@@ -14,6 +14,7 @@ import {
 import { EmptyState, FilesIllustration } from "@/components/empty-state";
 import { useToast } from "@/components/toast";
 import { PageHeader } from "@/components/page-header";
+import { usePageShortcuts } from "@/components/keyboard-shortcuts";
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -49,6 +50,10 @@ export default function FilesPage() {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  usePageShortcuts({
+    u: () => fileInput.current?.click(),
+  });
 
   useEffect(() => {
     const stored = localStorage.getItem("nous_did");
