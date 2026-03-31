@@ -150,12 +150,12 @@ export default function FilesPage() {
   }
 
   return (
-    <div className="p-8 max-w-4xl">
+    <div className="p-4 sm:p-8 max-w-4xl">
       <PageHeader title="Files" subtitle="Content-addressed storage. Versioned. Deduplicated." />
 
       {/* Stats bar */}
       {stats && (
-        <div className="flex gap-8 mb-10 pb-4 border-b border-white/[0.06]">
+        <div className="grid grid-cols-2 sm:flex gap-4 sm:gap-8 mb-8 sm:mb-10 pb-4 border-b border-white/[0.06]">
           {[
             { label: "Files", value: String(stats.total_files) },
             { label: "Stored", value: formatBytes(stats.stored_bytes) },
