@@ -13,6 +13,7 @@ import {
 } from "@/lib/api";
 import { EmptyState, FilesIllustration } from "@/components/empty-state";
 import { useToast } from "@/components/toast";
+import { PageHeader } from "@/components/page-header";
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -147,14 +148,7 @@ export default function FilesPage() {
 
   return (
     <div className="p-8 max-w-4xl">
-      <header className="mb-12">
-        <h1 className="text-3xl font-extralight tracking-[-0.03em] mb-2">
-          Files
-        </h1>
-        <p className="text-sm text-neutral-500 font-light">
-          Content-addressed storage. Versioned. Deduplicated.
-        </p>
-      </header>
+      <PageHeader title="Files" subtitle="Content-addressed storage. Versioned. Deduplicated." />
 
       {error && (
         <div className="text-xs text-red-500/70 font-mono mb-6 px-1">
