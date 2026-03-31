@@ -28,9 +28,22 @@ export interface NodeInfo {
   features: string[];
 }
 
+export interface SubsystemStatus {
+  name: string;
+  status: "healthy" | "degraded" | "down";
+  active_count: number;
+  message: string | null;
+}
+
+export interface SubsystemsResponse {
+  subsystems: SubsystemStatus[];
+  overall: "healthy" | "degraded" | "down";
+}
+
 export const node = {
   health: () => request<HealthResponse>("/health"),
   info: () => request<NodeInfo>("/node"),
+  subsystems: () => request<SubsystemsResponse>("/node/subsystems"),
 };
 
 // ── Peers ─────────────────────────────────────────────────────────────────
