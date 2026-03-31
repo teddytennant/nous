@@ -14,6 +14,7 @@ import {
 import { EmptyState, AIIllustration, ChatIllustration, ConversationsIllustration } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { useToast } from "@/components/toast";
+import { usePageShortcuts } from "@/components/keyboard-shortcuts";
 
 type ViewMode = "chat" | "agents" | "conversations";
 
@@ -39,6 +40,10 @@ export default function AIPage() {
   const [newPrompt, setNewPrompt] = useState("");
 
   const messagesEnd = useRef<HTMLDivElement>(null);
+
+  usePageShortcuts({
+    n: () => setShowCreate(true),
+  });
 
   const loadAgents = useCallback(async () => {
     try {
