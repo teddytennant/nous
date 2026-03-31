@@ -16,6 +16,15 @@ import { useToast } from "@/components/toast";
 import { PageHeader } from "@/components/page-header";
 import { usePageShortcuts } from "@/components/keyboard-shortcuts";
 
+type FileSortKey = "name" | "newest" | "oldest" | "size" | "type";
+
+const FILE_SORT_OPTIONS: { key: FileSortKey; label: string }[] = [
+  { key: "newest", label: "Newest" },
+  { key: "name", label: "Name A–Z" },
+  { key: "size", label: "Size" },
+  { key: "type", label: "Type" },
+];
+
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
   const units = ["B", "KB", "MB", "GB"];
@@ -48,6 +57,8 @@ export default function FilesPage() {
   const [userDid, setUserDid] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState<FileSortKey>("newest");
   const fileInput = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -172,8 +183,8 @@ export default function FilesPage() {
         </div>
       )}
 
-      {/* Upload area */}
-      <div className="flex items-center justify-between mb-8">
+      {/* Upload + search + sort */}
+      <div className="flex items-center justify-between mb-6">
         <h2 className="text-xs font-mono uppercase tracking-[0.2em] text-neutral-500">
           {fileList.length} File{fileList.length !== 1 ? "s" : ""}
         </h2>
@@ -199,6 +210,33 @@ export default function FilesPage() {
           </Button>
         </div>
       </div>
+
+      {fileList.length > 0 && (
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between mb-8">
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Filter by name..."
+            className="flex-1 sm:max-w-xs bg-white/[0.02] text-sm font-light px-4 py-2.5 outline-none placeholder:text-neutral-700"
+          />
+          <div className="flex gap-2">
+            {FILE_SORT_OPTIONS.map((opt) => (
+              <button
+                key={opt.key}
+                onClick={() => setSortKey(opt.key)}
+                className={cn(
+                  "text-[10px] font-mono uppercase tracking-wider px-3 py-2 transition-all duration-150",
+                  sortKey === opt.key
+                    ? "text-white bg-white/[0.06]"
+                    : "text-neutral-700 hover:text-neutral-400"
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {!userDid ? (
         <div className="text-sm text-neutral-600 font-light">
@@ -246,9 +284,43 @@ export default function FilesPage() {
             </button>
           }
         />
-      ) : (
+      ) : (() => {
+        const filtered = fileList.filter((f) =>
+          !search || f.name.toLowerCase().includes(search.toLowerCase())
+        );
+        const sorted = [...filtered].sort((a, b) => {
+          switch (sortKey) {
+            case "name":
+              return a.name.localeCompare(b.name);
+            case "newest":
+              return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+            case "oldest":
+              return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+            case "size":
+              return b.total_size - a.total_size;
+            case "type":
+              return a.mime_type.localeCompare(b.mime_type);
+            default:
+              return 0;
+          }
+        });
+        return sorted.length === 0 ? (
+          <EmptyState
+            icon={<FilesIllustration />}
+            title="No matching files"
+            description={`No files match "${search}".`}
+            action={
+              <button
+                onClick={() => setSearch("")}
+                className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-white/10 text-neutral-400 hover:text-white hover:border-white/20 transition-all duration-150"
+              >
+                Clear filter
+              </button>
+            }
+          />
+        ) : (
         <div className="space-y-px stagger-in">
-          {fileList.map((f) => (
+          {sorted.map((f) => (
             <Card
               key={f.id["0"]}
               className={cn(
@@ -331,7 +403,8 @@ export default function FilesPage() {
             </Card>
           ))}
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
