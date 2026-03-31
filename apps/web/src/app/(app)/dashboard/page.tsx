@@ -2,27 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { node, type NodeInfo } from "@/lib/api";
 import { useConnection } from "@/components/connection-status";
-
-const features = [
-  { name: "X3DH", description: "Extended Triple Diffie-Hellman key agreement" },
-  { name: "Double Ratchet", description: "Forward-secret message encryption" },
-  {
-    name: "ZK Proofs",
-    description: "Schnorr proofs, Pedersen commitments, range proofs",
-  },
-  { name: "GraphQL", description: "Full query and mutation API" },
-  {
-    name: "Quadratic Voting",
-    description: "Sybil-resistant governance with ZK privacy",
-  },
-  { name: "CRDT Storage", description: "Conflict-free replicated data" },
-  { name: "REST API", description: "36 endpoints across 5 domains" },
-  { name: "gRPC", description: "Binary protocol for node communication" },
-  { name: "Nostr Relay", description: "NIP-01 WebSocket relay bridge" },
-  { name: "OpenAPI", description: "Auto-generated API documentation" },
-];
+import { SubsystemsWidget } from "@/components/subsystems";
 
 export default function DashboardPage() {
   const { status: apiStatus, health } = useConnection();
@@ -97,12 +80,21 @@ export default function DashboardPage() {
                 <p className="text-xs font-mono uppercase tracking-[0.15em] text-neutral-600 mb-3">
                   {stat.label}
                 </p>
-                <p className="text-2xl font-extralight mb-1">
-                  {stat.value}
-                </p>
-                <p className="text-xs text-neutral-600 font-light font-mono truncate">
-                  {stat.detail}
-                </p>
+                {stat.value === "—" || stat.value === "..." ? (
+                  <>
+                    <Skeleton className="h-7 w-16 mb-1" />
+                    <Skeleton className="h-3 w-24" />
+                  </>
+                ) : (
+                  <>
+                    <p className="text-2xl font-extralight mb-1">
+                      {stat.value}
+                    </p>
+                    <p className="text-xs text-neutral-600 font-light font-mono truncate">
+                      {stat.detail}
+                    </p>
+                  </>
+                )}
               </CardContent>
             </Card>
           ))}
@@ -111,38 +103,9 @@ export default function DashboardPage() {
 
       <section>
         <h2 className="text-xs font-mono uppercase tracking-[0.2em] text-neutral-500 mb-8">
-          Protocol Modules
+          Subsystems
         </h2>
-        <div className="space-y-px">
-          {features.map((f) => {
-            const isLive =
-              nodeInfo?.features.some(
-                (feat) =>
-                  feat.toLowerCase().includes(f.name.toLowerCase().split(" ")[0])
-              ) ?? false;
-
-            return (
-              <div
-                key={f.name}
-                className="flex items-center justify-between py-4 px-5 bg-white/[0.01] hover:bg-white/[0.02] transition-colors duration-150"
-              >
-                <div>
-                  <p className="text-sm font-light">{f.name}</p>
-                  <p className="text-xs text-neutral-600 font-light mt-0.5">
-                    {f.description}
-                  </p>
-                </div>
-                <span
-                  className={`text-[10px] font-mono uppercase tracking-wider ${
-                    isLive ? "text-[#d4af37]" : "text-neutral-700"
-                  }`}
-                >
-                  {isLive ? "live" : "ready"}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+        <SubsystemsWidget />
       </section>
     </div>
   );
