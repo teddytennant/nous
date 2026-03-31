@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use utoipa::ToSchema;
 
-use nous_governance::sybil::{self, NormalizationConfig, ScorerWeights, SybilScorer, TrustFactor};
+use nous_governance::sybil::{self, SybilScorer, TrustFactor};
 
 // ── Request / Response types ────────────────────────────────────────
 
