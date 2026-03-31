@@ -11,6 +11,7 @@ import {
   type NodeInfo,
   type PeerResponse,
 } from "@/lib/api";
+import { EmptyState, NetworkIllustration } from "@/components/empty-state";
 
 interface Subsystem {
   name: string;
@@ -361,11 +362,11 @@ export default function NetworkPage() {
             ))}
           </div>
         ) : peerList.length === 0 ? (
-          <p className="text-sm text-neutral-700 font-light">
-            {error
-              ? "Node offline \u2014 no peer data"
-              : "No peers connected. Add a peer to get started."}
-          </p>
+          <EmptyState
+            icon={<NetworkIllustration />}
+            title={error ? "Node offline" : "No peers connected"}
+            description={error ? "Start the Nous node to connect to the P2P mesh network." : "Enter a multiaddr above to connect to your first peer."}
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
