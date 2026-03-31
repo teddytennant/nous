@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, startTransition } from "react
 import { cn } from "@/lib/utils";
 import { messaging, type ChannelResponse, type MessageResponse } from "@/lib/api";
 import { useRealtime } from "@/lib/use-realtime";
+import { useToast } from "@/components/toast";
 
 type CreateMode = "dm" | "group" | null;
 
@@ -40,6 +41,7 @@ export default function MessagesPage() {
   const [replyTo, setReplyTo] = useState<MessageResponse | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const { toast } = useToast();
   const userDid = typeof window !== "undefined" ? localStorage.getItem("nous_did") || "" : "";
 
   const fetchChannels = useCallback(async () => {
@@ -114,6 +116,7 @@ export default function MessagesPage() {
       setSelected(ch.id);
       setNewDmDid("");
       setCreateMode(null);
+      toast({ title: "Conversation created", variant: "success" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to create channel");
     }
@@ -134,6 +137,7 @@ export default function MessagesPage() {
       setNewGroupName("");
       setNewGroupMembers("");
       setCreateMode(null);
+      toast({ title: "Group created", variant: "success" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to create group");
     }
@@ -160,6 +164,7 @@ export default function MessagesPage() {
     try {
       await messaging.deleteMessage(messageId);
       setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      toast({ title: "Message deleted" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to delete");
     }
