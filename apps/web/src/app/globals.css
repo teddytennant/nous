@@ -137,8 +137,30 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
-/* Toast animations */
-@keyframes toast-enter {
+/* Toast animations — slide up on mobile, slide from right on desktop */
+@keyframes toast-enter-mobile {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toast-exit-mobile {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+}
+
+@keyframes toast-enter-desktop {
   from {
     opacity: 0;
     transform: translateX(100%);
@@ -149,7 +171,7 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
-@keyframes toast-exit {
+@keyframes toast-exit-desktop {
   from {
     opacity: 1;
     transform: translateX(0);
@@ -161,11 +183,20 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .toast-enter {
-  animation: toast-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: toast-enter-mobile 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .toast-exit {
-  animation: toast-exit 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: toast-exit-mobile 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (min-width: 768px) {
+  .toast-enter {
+    animation: toast-enter-desktop 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .toast-exit {
+    animation: toast-exit-desktop 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
 }
 
 /* Command palette animations */
@@ -282,3 +313,100 @@ html {
 .onboarding-logo {
   animation: onboarding-logo-pulse 4s ease-in-out infinite;
 }
+
+/* ── Micro-interactions ──────────────────────────────────────────────── */
+
+/* Tactile button press — subtle scale on active */
+button:active:not(:disabled),
+[role="button"]:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Focus-visible ring — gold accent for keyboard navigation (WCAG AA) */
+:focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.5);
+  outline-offset: 2px;
+}
+
+/* Input focus glow — gold border shift on focus */
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: rgba(212, 175, 55, 0.3) !important;
+  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.08);
+}
+
+/* Interactive card — lift on hover */
+.card-lift {
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-lift:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.card-lift:active {
+  transform: translateY(0) scale(0.99);
+}
+
+/* Underline reveal — for text links */
+.link-underline {
+  position: relative;
+}
+
+.link-underline::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: #d4af37;
+  transition: width 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.link-underline:hover::after {
+  width: 100%;
+}
+
+/* Glow pulse — for status indicators and CTAs */
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 4px rgba(212, 175, 55, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(212, 175, 55, 0.4);
+  }
+}
+
+.glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+/* Staggered fade-in — for lists and grids */
+@keyframes stagger-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stagger-in > * {
+  opacity: 0;
+  animation: stagger-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.stagger-in > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-in > *:nth-child(2) { animation-delay: 50ms; }
+.stagger-in > *:nth-child(3) { animation-delay: 100ms; }
+.stagger-in > *:nth-child(4) { animation-delay: 150ms; }
+.stagger-in > *:nth-child(5) { animation-delay: 200ms; }
+.stagger-in > *:nth-child(6) { animation-delay: 250ms; }
+.stagger-in > *:nth-child(7) { animation-delay: 300ms; }
+.stagger-in > *:nth-child(8) { animation-delay: 350ms; }
