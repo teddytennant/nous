@@ -141,7 +141,7 @@ export default function NetworkPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     startTransition(() => {
