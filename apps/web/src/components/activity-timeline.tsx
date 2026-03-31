@@ -8,7 +8,6 @@ import {
   Wallet,
   Store,
   MessageSquare,
-  FolderOpen,
   ArrowRight,
   type LucideIcon,
 } from "lucide-react";
