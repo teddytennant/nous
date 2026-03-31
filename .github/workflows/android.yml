@@ -1,0 +1,66 @@
+name: Android Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/android
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build release APK
+        run: ./gradlew assembleRelease
+
+      - name: Rename APK
+        shell: bash
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+          apk=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
+          if [ -z "$apk" ]; then
+            echo "No release APK found, falling back to debug"
+            ./gradlew assembleDebug
+            apk=$(find app/build/outputs/apk/debug -name "*.apk" | head -1)
+          fi
+          cp "$apk" "../../nous-${tag}-android.apk"
+          echo "ASSET=nous-${tag}-android.apk" >> "$GITHUB_ENV"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: ${{ env.ASSET }}
+
+  release-android:
+    name: Upload Android to Release
+    needs: build-android
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: android-apk
+          path: artifacts
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
