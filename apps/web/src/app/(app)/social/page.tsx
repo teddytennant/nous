@@ -9,6 +9,7 @@ import { useRealtime } from "@/lib/use-realtime";
 import { useToast } from "@/components/toast";
 import { EmptyState, SocialIllustration, FollowingIllustration } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
+import { usePageShortcuts } from "@/components/keyboard-shortcuts";
 
 const MAX_POST_LENGTH = 500;
 
@@ -34,6 +35,11 @@ export default function SocialPage() {
       setLoading(false);
     }
   }, []);
+
+  usePageShortcuts({
+    n: () => document.querySelector<HTMLTextAreaElement>("textarea")?.focus(),
+    r: () => { loadFeed(); },
+  });
 
   useEffect(() => {
     loadFeed();
