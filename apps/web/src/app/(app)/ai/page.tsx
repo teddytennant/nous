@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   ai,
   type AgentResponse,
@@ -387,7 +388,24 @@ export default function AIPage() {
           )}
 
           {loading ? (
-            <p className="text-xs text-neutral-700 font-mono">Loading...</p>
+            <div className="space-y-px">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="border-b border-white/[0.04] pb-6 mb-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <Skeleton className="h-3.5 w-32 mb-2" />
+                      <Skeleton className="h-2.5 w-28 mb-3" />
+                      <Skeleton className="h-3 w-full" />
+                      <Skeleton className="h-3 w-4/5 mt-1" />
+                    </div>
+                    <div className="flex gap-4 ml-4">
+                      <Skeleton className="h-2.5 w-10" />
+                      <Skeleton className="h-2.5 w-12" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : agents.length === 0 ? (
             <div className="py-16 text-center">
               <p className="text-sm text-neutral-600 font-light">
