@@ -20,6 +20,7 @@ import { GovernanceAnalytics } from "@/components/governance-analytics";
 import { EmptyState, GovernanceIllustration, DelegationIllustration } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { useToast } from "@/components/toast";
+import { usePageShortcuts } from "@/components/keyboard-shortcuts";
 
 type Tab = "analytics" | "proposals" | "daos" | "delegation";
 
@@ -54,6 +55,11 @@ export default function GovernancePage() {
   const [delegateTo, setDelegateTo] = useState("");
   const [delegateScope, setDelegateScope] = useState("");
   const [powerMap, setPowerMap] = useState<PowerEntry[]>([]);
+
+  usePageShortcuts({
+    p: () => setShowProposalForm(true),
+    d: () => setShowDaoForm(true),
+  });
 
   useEffect(() => {
     const stored = localStorage.getItem("nous_did");
