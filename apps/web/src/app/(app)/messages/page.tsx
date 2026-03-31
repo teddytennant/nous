@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, startTransition } from "react";
+import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { messaging, type ChannelResponse, type MessageResponse } from "@/lib/api";
@@ -196,10 +197,13 @@ export default function MessagesPage() {
   const selectedChannel = channels.find((c) => c.id === selected);
 
   return (
-    <div className="flex h-screen">
-      {/* Channel list */}
-      <div className="w-72 border-r border-white/[0.06] flex flex-col">
-        <div className="p-6 pb-4">
+    <div className="flex h-[calc(100dvh-3.5rem)] md:h-screen">
+      {/* Channel list — full-width on mobile, fixed sidebar on desktop */}
+      <div className={cn(
+        "w-full md:w-72 border-r border-white/[0.06] flex flex-col shrink-0",
+        selected ? "hidden md:flex" : "flex"
+      )}>
+        <div className="p-4 sm:p-6 pb-4">
           <h1 className="text-lg font-extralight tracking-[-0.02em]">Messages</h1>
           <p className="text-[10px] font-mono text-neutral-600 mt-1 uppercase tracking-wider">
             E2E encrypted
@@ -207,7 +211,7 @@ export default function MessagesPage() {
         </div>
 
         {/* Create channel */}
-        <div className="px-6 pb-4">
+        <div className="px-4 sm:px-6 pb-4">
           {createMode === null ? (
             <div className="flex gap-2">
               <button
@@ -327,19 +331,31 @@ export default function MessagesPage() {
         </div>
       </div>
 
-      {/* Chat view */}
-      <div className="flex-1 flex flex-col">
+      {/* Chat view — hidden on mobile when no channel selected */}
+      <div className={cn(
+        "flex-1 flex flex-col min-w-0",
+        !selected ? "hidden md:flex" : "flex"
+      )}>
         {/* Header */}
-        <div className="px-8 py-5 border-b border-white/[0.06] flex items-center justify-between">
+        <div className="px-4 sm:px-8 py-4 sm:py-5 border-b border-white/[0.06] flex items-center justify-between">
           {selectedChannel ? (
-            <div>
-              <p className="text-sm font-light">
-                {channelDisplayName(selectedChannel, userDid)}
-              </p>
-              <p className="text-[10px] font-mono text-neutral-700 mt-0.5">
-                {selectedChannel.members.length} members
-                {selectedChannel.kind !== "direct" && ` \u00b7 ${selectedChannel.kind}`}
-              </p>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setSelected(null)}
+                className="md:hidden p-1 -ml-1 rounded-sm hover:bg-white/[0.04] transition-colors"
+                aria-label="Back to channels"
+              >
+                <ArrowLeft className="w-4 h-4 text-neutral-400" />
+              </button>
+              <div>
+                <p className="text-sm font-light">
+                  {channelDisplayName(selectedChannel, userDid)}
+                </p>
+                <p className="text-[10px] font-mono text-neutral-700 mt-0.5">
+                  {selectedChannel.members.length} members
+                  {selectedChannel.kind !== "direct" && ` \u00b7 ${selectedChannel.kind}`}
+                </p>
+              </div>
             </div>
           ) : (
             <p className="text-xs text-neutral-700 font-light">Select a conversation</p>
@@ -347,7 +363,7 @@ export default function MessagesPage() {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-8 py-6 space-y-4">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-4 sm:py-6 space-y-4">
           {!selected && (
             <div className="flex items-center justify-center h-full">
               <EmptyState
@@ -407,7 +423,7 @@ export default function MessagesPage() {
 
         {/* Input */}
         {selected && (
-          <div className="px-8 py-5 border-t border-white/[0.06]">
+          <div className="px-4 sm:px-8 py-4 sm:py-5 border-t border-white/[0.06]">
             {replyTo && (
               <div className="flex items-center justify-between mb-3 pb-3 border-b border-white/[0.04]">
                 <span className="text-[10px] font-mono text-neutral-600 truncate">
