@@ -174,10 +174,7 @@ impl EnsResolver {
             .map_err(|e| GatewayError::RequestFailed(format!("invalid RPC response: {e}")))?;
 
         if let Some(error) = json.get("error") {
-            return Err(GatewayError::RequestFailed(format!(
-                "RPC error: {}",
-                error
-            )));
+            return Err(GatewayError::RequestFailed(format!("RPC error: {}", error)));
         }
 
         json["result"]
@@ -231,18 +228,14 @@ fn keccak256(data: &[u8]) -> [u8; 32] {
 /// - IPNS (prefix `0xe5010172`): returns base36-encoded CIDv1
 fn decode_contenthash(bytes: &[u8]) -> Result<String, GatewayError> {
     if bytes.len() < 4 {
-        return Err(GatewayError::RequestFailed(
-            "content hash too short".into(),
-        ));
+        return Err(GatewayError::RequestFailed("content hash too short".into()));
     }
 
     // IPFS: e3 01 01 70 <multihash>
     if bytes.starts_with(&[0xe3, 0x01, 0x01, 0x70]) {
         let multihash = &bytes[4..];
         if multihash.len() < 2 {
-            return Err(GatewayError::RequestFailed(
-                "invalid IPFS multihash".into(),
-            ));
+            return Err(GatewayError::RequestFailed("invalid IPFS multihash".into()));
         }
         // Base58-encode the multihash to get CIDv0 (Qm...)
         Ok(bs58::encode(multihash).into_string())
@@ -318,10 +311,7 @@ mod tests {
 
         let cid = decode_contenthash(&bytes).unwrap();
         // Should be a base58-encoded CIDv0 starting with Qm
-        assert!(
-            cid.starts_with('Q'),
-            "expected base58 CIDv0, got: {cid}"
-        );
+        assert!(cid.starts_with('Q'), "expected base58 CIDv0, got: {cid}");
     }
 
     #[test]
