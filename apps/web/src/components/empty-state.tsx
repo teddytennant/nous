@@ -347,3 +347,46 @@ export function ConversationsIllustration() {
     </svg>
   );
 }
+
+export function CredentialIllustration() {
+  return (
+    <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Certificate body */}
+      <rect x="14" y="18" width="52" height="40" rx="2" stroke="currentColor" strokeWidth="1" opacity="0.3" />
+      {/* Seal / badge circle */}
+      <circle cx="40" cy="38" r="10" stroke="#d4af37" strokeWidth="1" opacity="0.4" />
+      <circle cx="40" cy="38" r="6" stroke="#d4af37" strokeWidth="0.5" opacity="0.25" />
+      {/* Checkmark inside seal */}
+      <path d="M36 38L39 41L45 35" stroke="#d4af37" strokeWidth="1.5" opacity="0.5" />
+      {/* Header line */}
+      <line x1="24" y1="24" x2="56" y2="24" stroke="currentColor" strokeWidth="1" opacity="0.15" />
+      {/* Footer lines — claim fields */}
+      <line x1="24" y1="52" x2="40" y2="52" stroke="currentColor" strokeWidth="0.5" opacity="0.1" />
+      <line x1="44" y1="52" x2="56" y2="52" stroke="#d4af37" strokeWidth="0.5" opacity="0.2" />
+      {/* Ribbon tails */}
+      <path d="M34 58V68L37 65L40 68V58" stroke="#d4af37" strokeWidth="1" opacity="0.3" />
+      <path d="M40 58V68L43 65L46 68V58" stroke="#d4af37" strokeWidth="1" opacity="0.25" />
+    </svg>
+  );
+}
+
+export function IdentityKeyIllustration() {
+  return (
+    <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Key head — circle */}
+      <circle cx="30" cy="32" r="12" stroke="#d4af37" strokeWidth="1" opacity="0.4" />
+      <circle cx="30" cy="32" r="6" stroke="#d4af37" strokeWidth="0.5" opacity="0.25" />
+      <circle cx="30" cy="32" r="2" fill="#d4af37" opacity="0.3" />
+      {/* Key shaft */}
+      <line x1="42" y1="32" x2="64" y2="32" stroke="currentColor" strokeWidth="1" opacity="0.3" />
+      {/* Key teeth */}
+      <line x1="56" y1="32" x2="56" y2="40" stroke="currentColor" strokeWidth="1" opacity="0.2" />
+      <line x1="62" y1="32" x2="62" y2="38" stroke="currentColor" strokeWidth="1" opacity="0.2" />
+      {/* Fingerprint arcs */}
+      <path d="M24 50C20 50 18 54 18 58C18 62 20 66 24 66" stroke="currentColor" strokeWidth="0.5" opacity="0.15" />
+      <path d="M30 50C26 50 24 54 24 58C24 62 26 66 30 66" stroke="currentColor" strokeWidth="0.5" opacity="0.2" />
+      <path d="M36 50C32 50 30 54 30 58C30 62 32 66 36 66" stroke="#d4af37" strokeWidth="0.5" opacity="0.3" />
+      <path d="M42 52C38 52 36 55 36 58C36 61 38 64 42 64" stroke="#d4af37" strokeWidth="0.5" opacity="0.2" />
+    </svg>
+  );
+}
