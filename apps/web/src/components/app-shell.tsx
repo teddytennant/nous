@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/sidebar";
 import { ConnectionProvider } from "@/components/connection-status";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { ToastProvider } from "@/components/toast";
+import { CommandPalette } from "@/components/command-palette";
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
@@ -16,6 +17,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <ErrorBoundary>{children}</ErrorBoundary>
           </main>
         </div>
+        <CommandPalette />
       </ToastProvider>
     </ConnectionProvider>
   );
