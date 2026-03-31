@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, startTransition } from "react";
 import { node, type SubsystemStatus, type SubsystemsResponse } from "@/lib/api";
 
 function statusColor(status: string): string {
@@ -93,7 +93,9 @@ export function SubsystemsWidget() {
   }, []);
 
   useEffect(() => {
-    fetchSubsystems();
+    startTransition(() => {
+      fetchSubsystems();
+    });
     const interval = setInterval(fetchSubsystems, 10000);
     return () => clearInterval(interval);
   }, [fetchSubsystems]);
