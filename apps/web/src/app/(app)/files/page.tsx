@@ -256,7 +256,7 @@ export default function FilesPage() {
           }
         />
       ) : (
-        <div className="space-y-px">
+        <div className="space-y-px stagger-in">
           {fileList.map((f) => (
             <Card
               key={f.id["0"]}
