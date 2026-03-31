@@ -10,6 +10,7 @@ pub mod command;
 pub mod completion;
 pub mod editor;
 pub mod history;
+pub mod keybind;
 pub mod prompt;
 mod render;
 mod vt;
