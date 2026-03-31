@@ -11,6 +11,7 @@ import {
   type FileManifestResponse,
   type FileStoreStats,
 } from "@/lib/api";
+import { EmptyState, FilesIllustration } from "@/components/empty-state";
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -243,9 +244,19 @@ export default function FilesPage() {
           ))}
         </div>
       ) : fileList.length === 0 ? (
-        <p className="text-sm text-neutral-600 font-light">
-          No files yet. Upload your first file.
-        </p>
+        <EmptyState
+          icon={<FilesIllustration />}
+          title="No files yet"
+          description="Upload your first file. Content is chunked, deduplicated, and addressed by hash."
+          action={
+            <button
+              onClick={() => fileInput.current?.click()}
+              className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150"
+            >
+              Upload File
+            </button>
+          }
+        />
       ) : (
         <div className="space-y-px">
           {fileList.map((f) => (
