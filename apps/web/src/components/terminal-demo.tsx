@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { Copy, Check } from "lucide-react";
 
 // ── Terminal demo data ─────────────────────────────────────────────────
 
@@ -137,6 +138,38 @@ function AnsiLine({ line }: { line: string }) {
           <span key={i}>{span.text}</span>
         )
       )}
+    </div>
+  );
+}
+
+// ── Prompt line with copy-on-hover ────────────────────────────────────
+
+function PromptLine({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  function handleCopy(e: React.MouseEvent) {
+    e.stopPropagation();
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
+
+  return (
+    <div className="group/prompt flex items-start gap-0 relative">
+      <span className="text-[#d4af37] select-none shrink-0">❯ </span>
+      <span className="text-white">{text}</span>
+      <button
+        type="button"
+        onClick={handleCopy}
+        className="absolute right-0 top-0 p-1 rounded opacity-0 group-hover/prompt:opacity-100 hover:bg-white/[0.06] transition-all duration-150"
+        aria-label="Copy command"
+      >
+        {copied ? (
+          <Check className="w-3 h-3 text-emerald-400" />
+        ) : (
+          <Copy className="w-3 h-3 text-neutral-600 hover:text-neutral-400" />
+        )}
+      </button>
     </div>
   );
 }
@@ -288,10 +321,7 @@ export function TerminalDemo() {
           {/* Rendered lines */}
           {lines.map((line, i) =>
             line.type === "prompt" ? (
-              <div key={i} className="flex items-start gap-0">
-                <span className="text-[#d4af37] select-none shrink-0">❯ </span>
-                <span className="text-white">{line.text}</span>
-              </div>
+              <PromptLine key={i} text={line.text} />
             ) : (
               <AnsiLine key={i} line={line.text} />
             )
