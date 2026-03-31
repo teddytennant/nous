@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { BalanceEntry, TransactionResponse } from "@/lib/api";
 
 // ── SVG Path Generation ──────────────────────────────────────────────────
@@ -9,10 +9,32 @@ const CHART_W = 600;
 const CHART_H = 120;
 const PAD = { top: 8, right: 8, bottom: 8, left: 8 };
 
-function buildPaths(
-  points: { x: number; y: number }[],
-): { line: string; area: string } {
-  if (points.length < 2) return { line: "", area: "" };
+interface ChartMeta {
+  line: string;
+  area: string;
+  scaled: { x: number; y: number }[];
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+  rangeX: number;
+  rangeY: number;
+}
+
+const EMPTY_META: ChartMeta = {
+  line: "",
+  area: "",
+  scaled: [],
+  minX: 0,
+  maxX: 0,
+  minY: 0,
+  maxY: 0,
+  rangeX: 1,
+  rangeY: 1,
+};
+
+function buildPaths(points: { x: number; y: number }[]): ChartMeta {
+  if (points.length < 2) return EMPTY_META;
 
   const xs = points.map((p) => p.x);
   const ys = points.map((p) => p.y);
@@ -31,7 +53,6 @@ function buildPaths(
     y: PAD.top + ch - ((p.y - minY) / rangeY) * ch,
   }));
 
-  // Smooth bezier path
   let line = `M ${scaled[0].x} ${scaled[0].y}`;
   for (let i = 1; i < scaled.length; i++) {
     const prev = scaled[i - 1];
@@ -43,7 +64,48 @@ function buildPaths(
   const baseY = PAD.top + ch;
   const area = `${line} L ${scaled[scaled.length - 1].x} ${baseY} L ${scaled[0].x} ${baseY} Z`;
 
-  return { line, area };
+  return { line, area, scaled, minX, maxX, minY, maxY, rangeX, rangeY };
+}
+
+// ── Hover Interpolation ─────────────────────────────────────────────────
+
+function interpolateAtX(
+  svgX: number,
+  points: { x: number; y: number }[],
+  meta: ChartMeta,
+): { dataX: number; dataY: number; svgY: number } | null {
+  if (points.length < 2) return null;
+
+  const cw = CHART_W - PAD.left - PAD.right;
+  const ch = CHART_H - PAD.top - PAD.bottom;
+
+  const dataX = meta.minX + ((svgX - PAD.left) / cw) * meta.rangeX;
+  if (dataX < meta.minX || dataX > meta.maxX) return null;
+
+  let i = 0;
+  while (i < points.length - 1 && points[i + 1].x < dataX) i++;
+
+  if (i >= points.length - 1) {
+    const last = points[points.length - 1];
+    const svgY = PAD.top + ch - ((last.y - meta.minY) / meta.rangeY) * ch;
+    return { dataX: last.x, dataY: last.y, svgY };
+  }
+
+  const p0 = points[i];
+  const p1 = points[i + 1];
+  const t = p1.x === p0.x ? 0 : (dataX - p0.x) / (p1.x - p0.x);
+  const dataY = p0.y + t * (p1.y - p0.y);
+  const svgY = PAD.top + ch - ((dataY - meta.minY) / meta.rangeY) * ch;
+
+  return { dataX, dataY, svgY };
+}
+
+function formatTooltipDate(ts: number): string {
+  return new Date(ts).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 // ── Token Colors ─────────────────────────────────────────────────────────
@@ -75,7 +137,12 @@ export function WalletChart({
 }: WalletChartProps) {
   const { chartPoints, totalIn, totalOut, txCount } = useMemo(() => {
     if (transactions.length === 0) {
-      return { chartPoints: [] as { x: number; y: number }[], totalIn: 0, totalOut: 0, txCount: 0 };
+      return {
+        chartPoints: [] as { x: number; y: number }[],
+        totalIn: 0,
+        totalOut: 0,
+        txCount: 0,
+      };
     }
 
     const sorted = [...transactions].sort(
@@ -89,7 +156,6 @@ export function WalletChart({
 
     const points: { x: number; y: number }[] = [];
 
-    // Starting zero point (one day before first tx)
     const firstTime = new Date(sorted[0].timestamp).getTime();
     points.push({ x: firstTime - 86_400_000, y: 0 });
 
@@ -108,7 +174,12 @@ export function WalletChart({
       points.push({ x: new Date(tx.timestamp).getTime(), y: cumulative });
     }
 
-    return { chartPoints: points, totalIn: inflow, totalOut: outflow, txCount: sorted.length };
+    return {
+      chartPoints: points,
+      totalIn: inflow,
+      totalOut: outflow,
+      txCount: sorted.length,
+    };
   }, [transactions, userDid]);
 
   const totalValue = useMemo(
@@ -119,7 +190,10 @@ export function WalletChart({
   const allocation = useMemo(() => {
     const total = balances.reduce((sum, b) => sum + Number(b.amount), 0);
     if (total === 0) {
-      return balances.map((b) => ({ token: b.token, pct: 100 / (balances.length || 1) }));
+      return balances.map((b) => ({
+        token: b.token,
+        pct: 100 / (balances.length || 1),
+      }));
     }
     return balances.map((b) => ({
       token: b.token,
@@ -127,12 +201,63 @@ export function WalletChart({
     }));
   }, [balances]);
 
-  const { line, area } = useMemo(
-    () => buildPaths(chartPoints),
-    [chartPoints],
+  const meta = useMemo(() => buildPaths(chartPoints), [chartPoints]);
+
+  const { line, area, scaled } = meta;
+  const hasChart = chartPoints.length > 1;
+
+  // ── Hover state ──────────────────────────────────────────────────
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [hover, setHover] = useState<{
+    pctX: number;
+    svgX: number;
+    svgY: number;
+    dataX: number;
+    dataY: number;
+  } | null>(null);
+
+  const updateHover = useCallback(
+    (clientX: number) => {
+      const svg = svgRef.current;
+      if (!svg || chartPoints.length < 2) return;
+
+      const rect = svg.getBoundingClientRect();
+      const pctX = (clientX - rect.left) / rect.width;
+      const svgX = pctX * CHART_W;
+
+      if (svgX < PAD.left || svgX > CHART_W - PAD.right) {
+        setHover(null);
+        return;
+      }
+
+      const result = interpolateAtX(svgX, chartPoints, meta);
+      if (result) {
+        setHover({
+          pctX,
+          svgX,
+          svgY: result.svgY,
+          dataX: result.dataX,
+          dataY: result.dataY,
+        });
+      }
+    },
+    [chartPoints, meta],
   );
 
-  const hasChart = chartPoints.length > 1;
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<SVGSVGElement>) => updateHover(e.clientX),
+    [updateHover],
+  );
+
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent<SVGSVGElement>) => {
+      const touch = e.touches[0];
+      if (touch) updateHover(touch.clientX);
+    },
+    [updateHover],
+  );
+
+  const clearHover = useCallback(() => setHover(null), []);
 
   return (
     <section className="mb-16">
@@ -173,75 +298,128 @@ export function WalletChart({
       </div>
 
       {/* ── Sparkline Chart ───────────────────────────────── */}
-      <div className="relative w-full mb-6 border border-white/[0.04] rounded-sm overflow-hidden">
-        {hasChart ? (
-          <svg
-            viewBox={`0 0 ${CHART_W} ${CHART_H}`}
-            preserveAspectRatio="none"
-            className="w-full h-[120px] block"
-          >
-            <defs>
-              <linearGradient id="wc-grad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#d4af37" stopOpacity="0.12" />
-                <stop offset="100%" stopColor="#d4af37" stopOpacity="0" />
-              </linearGradient>
-            </defs>
+      <div className="relative w-full mb-6">
+        <div className="border border-white/[0.04] rounded-sm overflow-hidden">
+          {hasChart ? (
+            <svg
+              ref={svgRef}
+              viewBox={`0 0 ${CHART_W} ${CHART_H}`}
+              preserveAspectRatio="none"
+              className="w-full h-[120px] block cursor-crosshair"
+              onMouseMove={handleMouseMove}
+              onMouseLeave={clearHover}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={clearHover}
+            >
+              <defs>
+                <linearGradient id="wc-grad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#d4af37" stopOpacity="0.12" />
+                  <stop offset="100%" stopColor="#d4af37" stopOpacity="0" />
+                </linearGradient>
+              </defs>
 
-            {/* Subtle grid lines */}
-            {[0.25, 0.5, 0.75].map((pct) => (
-              <line
-                key={pct}
-                x1={PAD.left}
-                y1={PAD.top + (CHART_H - PAD.top - PAD.bottom) * pct}
-                x2={CHART_W - PAD.right}
-                y2={PAD.top + (CHART_H - PAD.top - PAD.bottom) * pct}
-                stroke="white"
-                strokeOpacity="0.04"
-                strokeWidth="1"
+              {/* Subtle grid lines */}
+              {[0.25, 0.5, 0.75].map((pct) => (
+                <line
+                  key={pct}
+                  x1={PAD.left}
+                  y1={PAD.top + (CHART_H - PAD.top - PAD.bottom) * pct}
+                  x2={CHART_W - PAD.right}
+                  y2={PAD.top + (CHART_H - PAD.top - PAD.bottom) * pct}
+                  stroke="white"
+                  strokeOpacity="0.04"
+                  strokeWidth="1"
+                />
+              ))}
+
+              {/* Area fill */}
+              <path d={area} fill="url(#wc-grad)" />
+
+              {/* Line */}
+              <path
+                d={line}
+                fill="none"
+                stroke="#d4af37"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               />
-            ))}
 
-            {/* Area fill */}
-            <path d={area} fill="url(#wc-grad)" />
+              {/* End dot — hidden during hover */}
+              {scaled.length > 0 &&
+                !hover &&
+                (() => {
+                  const last = scaled[scaled.length - 1];
+                  return (
+                    <>
+                      <circle
+                        cx={last.x}
+                        cy={last.y}
+                        r="4"
+                        fill="#d4af37"
+                        opacity="0.2"
+                      />
+                      <circle cx={last.x} cy={last.y} r="2" fill="#d4af37" />
+                    </>
+                  );
+                })()}
 
-            {/* Line */}
-            <path
-              d={line}
-              fill="none"
-              stroke="#d4af37"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-
-            {/* End dot */}
-            {chartPoints.length > 0 && (() => {
-              const last = chartPoints[chartPoints.length - 1];
-              const xs = chartPoints.map((p) => p.x);
-              const ys = chartPoints.map((p) => p.y);
-              const minX = Math.min(...xs);
-              const maxX = Math.max(...xs);
-              const minY = Math.min(...ys, 0);
-              const maxY = Math.max(...ys, 1);
-              const rangeX = maxX - minX || 1;
-              const rangeY = maxY - minY || 1;
-              const cw = CHART_W - PAD.left - PAD.right;
-              const ch = CHART_H - PAD.top - PAD.bottom;
-              const cx = PAD.left + ((last.x - minX) / rangeX) * cw;
-              const cy = PAD.top + ch - ((last.y - minY) / rangeY) * ch;
-              return (
+              {/* Hover crosshair + dot */}
+              {hover && (
                 <>
-                  <circle cx={cx} cy={cy} r="4" fill="#d4af37" opacity="0.2" />
-                  <circle cx={cx} cy={cy} r="2" fill="#d4af37" />
+                  <line
+                    x1={hover.svgX}
+                    y1={PAD.top}
+                    x2={hover.svgX}
+                    y2={CHART_H - PAD.bottom}
+                    stroke="white"
+                    strokeOpacity="0.08"
+                    strokeWidth="1"
+                    strokeDasharray="2 2"
+                  />
+                  <circle
+                    cx={hover.svgX}
+                    cy={hover.svgY}
+                    r="5"
+                    fill="#d4af37"
+                    opacity="0.15"
+                  />
+                  <circle
+                    cx={hover.svgX}
+                    cy={hover.svgY}
+                    r="2.5"
+                    fill="#d4af37"
+                  />
                 </>
-              );
-            })()}
-          </svg>
-        ) : (
-          <div className="h-[120px] flex items-center justify-center">
-            <p className="text-xs text-neutral-700 font-light">
-              Transaction history will appear here
-            </p>
+              )}
+            </svg>
+          ) : (
+            <div className="h-[120px] flex items-center justify-center">
+              <p className="text-xs text-neutral-700 font-light">
+                Transaction history will appear here
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Hover tooltip */}
+        {hover && (
+          <div
+            className="absolute pointer-events-none z-10"
+            style={{
+              left: `${hover.pctX * 100}%`,
+              top: `${(hover.svgY / CHART_H) * 100}%`,
+              transform: "translate(-50%, calc(-100% - 12px))",
+            }}
+          >
+            <div className="bg-neutral-900 border border-white/[0.08] rounded-sm px-2.5 py-1.5 shadow-xl whitespace-nowrap">
+              <p className="text-xs font-light tabular-nums text-white">
+                {hover.dataY.toFixed(2)}
+              </p>
+              <p className="text-[10px] font-mono text-neutral-600 mt-0.5">
+                {formatTooltipDate(hover.dataX)}
+              </p>
+            </div>
           </div>
         )}
       </div>
