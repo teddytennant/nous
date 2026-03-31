@@ -26,7 +26,6 @@ export default function WalletPage() {
   const [invoices, setInvoices] = useState<InvoiceResponse[]>([]);
   const [escrows] = useState<EscrowResponse[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   // Send modal state
   const [sendModal, setSendModal] = useState(false);
@@ -100,23 +99,21 @@ export default function WalletPage() {
 
   const handleCreateWallet = async () => {
     if (!userDid) {
-      setError("Generate an identity first");
+      toast({ title: "Generate an identity first", variant: "error" });
       return;
     }
     try {
       const w = await payments.createWallet(userDid);
       setWallet(w);
-      setError(null);
       toast({ title: "Wallet created", variant: "success" });
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to create wallet");
+      toast({ title: "Failed to create wallet", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
   };
 
   const handleSend = async () => {
     if (!sendTo || !sendAmount || !userDid) return;
     setSending(true);
-    setError(null);
     try {
       await payments.transfer({
         from_did: userDid,
@@ -132,7 +129,7 @@ export default function WalletPage() {
       await loadWallet();
       toast({ title: "Transfer sent", description: `${sendAmount} ${sendToken} sent`, variant: "success" });
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Transfer failed");
+      toast({ title: "Transfer failed", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
     setSending(false);
   };
@@ -162,7 +159,7 @@ export default function WalletPage() {
       await loadInvoices();
       toast({ title: "Invoice created", variant: "success" });
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to create invoice");
+      toast({ title: "Failed to create invoice", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
   };
 
@@ -173,7 +170,7 @@ export default function WalletPage() {
       await loadWallet();
       toast({ title: "Invoice paid", variant: "success" });
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Payment failed");
+      toast({ title: "Payment failed", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
   };
 
@@ -183,7 +180,7 @@ export default function WalletPage() {
       await loadInvoices();
       toast({ title: "Invoice cancelled" });
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Cancel failed");
+      toast({ title: "Cancel failed", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
   };
 
@@ -209,7 +206,7 @@ export default function WalletPage() {
       setEscrowDesc("");
       setEscrowConditions("");
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Escrow creation failed");
+      toast({ title: "Escrow creation failed", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
   };
 
@@ -217,7 +214,7 @@ export default function WalletPage() {
     try {
       await payments.releaseEscrow(escrowId, userDid);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Release failed");
+      toast({ title: "Release failed", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
   };
 
@@ -284,18 +281,6 @@ export default function WalletPage() {
   return (
     <div className="p-8 max-w-4xl">
       <PageHeader title="Wallet" subtitle="Multi-chain. Escrow-backed. Trustless." status={online ? "online" : "offline"} />
-
-      {error && (
-        <div className="mb-8 px-4 py-3 text-xs font-mono text-red-400 border border-red-900/30 bg-red-950/20 flex items-center justify-between">
-          <span>{error}</span>
-          <button
-            onClick={() => setError(null)}
-            className="text-neutral-600 hover:text-white"
-          >
-            dismiss
-          </button>
-        </div>
-      )}
 
       {/* Tabs */}
       <div className="flex gap-8 mb-12">
