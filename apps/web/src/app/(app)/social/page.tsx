@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { social, type FeedEvent } from "@/lib/api";
 import { useRealtime } from "@/lib/use-realtime";
+import { useToast } from "@/components/toast";
 
 const MAX_POST_LENGTH = 500;
 
@@ -18,6 +19,7 @@ export default function SocialPage() {
   const [activeTab, setActiveTab] = useState<"timeline" | "following">("timeline");
   const [following, setFollowing] = useState<Set<string>>(new Set());
 
+  const { toast } = useToast();
   const userDid = typeof window !== "undefined" ? localStorage.getItem("nous_did") || "" : "";
 
   const loadFeed = useCallback(async () => {
@@ -65,6 +67,7 @@ export default function SocialPage() {
       setDraft("");
       setReplyTo(null);
       await loadFeed();
+      toast({ title: "Post published", variant: "success" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to post");
     } finally {
@@ -76,6 +79,7 @@ export default function SocialPage() {
     try {
       await social.deleteEvent(eventId);
       await loadFeed();
+      toast({ title: "Post deleted" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to delete");
     }
