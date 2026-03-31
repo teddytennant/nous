@@ -12,6 +12,7 @@ import {
   type FileStoreStats,
 } from "@/lib/api";
 import { EmptyState, FilesIllustration } from "@/components/empty-state";
+import { useToast } from "@/components/toast";
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -47,6 +48,7 @@ export default function FilesPage() {
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const stored = localStorage.getItem("nous_did");
@@ -103,6 +105,7 @@ export default function FilesPage() {
         data_base64: base64,
       });
       await loadFiles();
+      toast({ title: "File uploaded", description: file.name, variant: "success" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");
     } finally {
@@ -116,6 +119,7 @@ export default function FilesPage() {
       await files.delete(name, userDid);
       setSelectedFile(null);
       await loadFiles();
+      toast({ title: "File deleted", description: name });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Delete failed");
     }
