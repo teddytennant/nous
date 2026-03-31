@@ -20,7 +20,7 @@ import { GovernanceAnalytics } from "@/components/governance-analytics";
 import { EmptyState, GovernanceIllustration, DelegationIllustration } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { useToast } from "@/components/toast";
-import { usePageShortcuts } from "@/components/keyboard-shortcuts";
+import { usePageShortcuts, useListNavigation } from "@/components/keyboard-shortcuts";
 
 type Tab = "analytics" | "proposals" | "daos" | "delegation";
 
@@ -59,6 +59,15 @@ export default function GovernancePage() {
   usePageShortcuts({
     p: () => setShowProposalForm(true),
     d: () => setShowDaoForm(true),
+  });
+
+  const { selectedIndex: proposalNavIndex, setSelectedIndex: setProposalNavIndex, containerRef: proposalsContainerRef } = useListNavigation({
+    itemCount: proposals.length,
+    enabled: tab === "proposals" && !showProposalForm,
+    onActivate: (index) => {
+      const p = proposals[index];
+      if (p) setSelectedId(selectedId === p.id ? null : p.id);
+    },
   });
 
   useEffect(() => {
@@ -263,6 +272,7 @@ export default function GovernancePage() {
             onClick={() => {
               setTab(t);
               setSelectedDao(null);
+              setProposalNavIndex(-1);
             }}
             className={cn(
               "text-xs font-mono uppercase tracking-[0.2em] pb-1 transition-colors",
@@ -405,27 +415,33 @@ export default function GovernancePage() {
               }
             />
           ) : (
-            <div className="space-y-px stagger-in">
-              {proposals.map((p) => {
+            <div ref={proposalsContainerRef} className="space-y-px stagger-in">
+              {proposals.map((p, i) => {
                 const tally = tallies[p.id];
                 const votesFor = tally?.votes_for || 0;
                 const votesAgainst = tally?.votes_against || 0;
                 const total = votesFor + votesAgainst;
                 const forPct = total > 0 ? (votesFor / total) * 100 : 0;
+                const isNavSelected = i === proposalNavIndex;
 
                 return (
                   <Card
                     key={p.id}
+                    data-list-item
                     className={cn(
-                      "bg-transparent border-0 rounded-none cursor-pointer transition-colors duration-150",
+                      "relative bg-transparent border-0 rounded-none cursor-pointer transition-colors duration-150",
+                      isNavSelected && "bg-[#d4af37]/[0.015]",
                       selectedId === p.id
                         ? "bg-white/[0.02]"
-                        : "hover:bg-white/[0.01]"
+                        : !isNavSelected && "hover:bg-white/[0.01]"
                     )}
                     onClick={() =>
                       setSelectedId(selectedId === p.id ? null : p.id)
                     }
                   >
+                    {isNavSelected && (
+                      <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[#d4af37] rounded-full" />
+                    )}
                     <CardContent className="p-5">
                       <div className="flex items-start justify-between mb-3">
                         <div>
