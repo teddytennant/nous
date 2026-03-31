@@ -208,6 +208,22 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+/* Page transition — subtle fade + rise on navigation */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-enter {
+  animation: page-enter 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 /* Smooth scroll */
 html {
   scroll-behavior: smooth;
