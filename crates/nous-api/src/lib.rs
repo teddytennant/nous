@@ -15,6 +15,7 @@ pub mod payments;
 pub mod realtime;
 pub mod routes;
 pub mod state;
+pub mod sybil;
 
 pub use config::ApiConfig;
 pub use graphql::NousSchema;
@@ -115,6 +116,9 @@ pub fn router_with_state(state: std::sync::Arc<AppState>) -> Router {
             "/executions/{execution_id}/cancel",
             post(governance::cancel_execution),
         )
+        // Governance — Sybil Resistance
+        .route("/sybil/score", post(sybil::score_identity))
+        .route("/sybil/batch", post(sybil::score_batch))
         // Marketplace — Listings
         .route("/listings", post(marketplace::create_listing))
         .route("/listings", get(marketplace::search_listings))
