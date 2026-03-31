@@ -32,6 +32,7 @@ function GithubIcon({ className }: { className?: string }) {
 }
 import { Badge } from "@/components/ui/badge";
 import { ArchitectureDiagram } from "@/components/architecture-diagram";
+import { TerminalDemo } from "@/components/terminal-demo";
 
 const features = [
   {
@@ -442,6 +443,28 @@ export default function Home() {
             );
           })}
         </div>
+      </section>
+
+      {/* Divider */}
+      <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
+      {/* How It Works — Terminal Demo */}
+      <section className="px-6 py-28 max-w-6xl mx-auto w-full">
+        <div className="mb-16 text-center">
+          <h2 className="text-xs font-mono uppercase tracking-[0.25em] text-neutral-600 mb-4">
+            How It Works
+          </h2>
+          <p className="text-2xl sm:text-3xl font-extralight tracking-[-0.02em] text-neutral-300 max-w-xl mx-auto">
+            One CLI. <span className="text-white">Total sovereignty.</span>
+          </p>
+        </div>
+
+        <TerminalDemo />
+
+        <p className="text-center text-xs text-neutral-700 font-light mt-8 max-w-md mx-auto">
+          Every command runs locally. Your keys never leave your machine.
+          No accounts, no servers, no permission needed.
+        </p>
       </section>
 
       {/* Divider */}
