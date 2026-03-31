@@ -625,6 +625,45 @@ export default function Home() {
       {/* Divider */}
       <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
+      {/* By the Numbers */}
+      <section className="px-6 py-28 max-w-6xl mx-auto w-full">
+        <div className="mb-20">
+          <h2 className="text-xs font-mono uppercase tracking-[0.25em] text-neutral-600 mb-4">
+            By the Numbers
+          </h2>
+          <p className="text-2xl sm:text-3xl font-extralight tracking-[-0.02em] text-neutral-300 max-w-xl">
+            Engineered for <span className="text-white">real sovereignty.</span>
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-white/[0.04] rounded-sm overflow-hidden">
+          {[
+            { value: "20", label: "Crates", description: "Modular Rust workspace" },
+            { value: "8", label: "Subsystems", description: "Identity to AI, unified" },
+            { value: "0", label: "Servers", description: "Nothing to trust" },
+            { value: "5", label: "Platforms", description: "Ship everywhere" },
+          ].map((stat) => (
+            <div
+              key={stat.label}
+              className="bg-black p-8 sm:p-10 group hover:bg-white/[0.02] transition-colors duration-200"
+            >
+              <p className="text-4xl sm:text-5xl font-extralight tracking-[-0.03em] text-white group-hover:text-[#d4af37] transition-colors duration-300 mb-3 tabular-nums">
+                {stat.value}
+              </p>
+              <p className="text-xs font-mono uppercase tracking-[0.2em] text-neutral-500 mb-2">
+                {stat.label}
+              </p>
+              <p className="text-xs text-neutral-700 font-light">
+                {stat.description}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Divider */}
+      <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
       {/* CTA */}
       <section className="px-6 py-32 text-center">
         <p className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-[-0.03em] mb-4">
