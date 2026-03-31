@@ -628,3 +628,52 @@ select:focus {
 .connecting-pulse {
   animation: connecting-pulse 1.5s ease-in-out infinite;
 }
+
+/* ── Chart animations ──────────────────────────────────────────────────── */
+
+/* Donut/ring entrance — scale from center */
+@keyframes chart-donut-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.85) rotate(-10deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.chart-donut-enter {
+  animation: chart-donut-enter 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Arc segments grow in via strokeDashoffset */
+@keyframes chart-arc-enter {
+  from {
+    opacity: 0;
+    stroke-dashoffset: 999;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.chart-arc-enter {
+  animation: chart-arc-enter 700ms cubic-bezier(0.33, 1, 0.68, 1) forwards;
+}
+
+/* Horizontal bar grow from left */
+@keyframes chart-bar-enter {
+  from {
+    transform: scaleX(0);
+    transform-origin: left center;
+  }
+  to {
+    transform: scaleX(1);
+    transform-origin: left center;
+  }
+}
+
+.chart-bar-enter {
+  animation: chart-bar-enter 500ms cubic-bezier(0.33, 1, 0.68, 1) forwards;
+}
