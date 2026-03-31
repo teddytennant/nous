@@ -135,6 +135,7 @@ export default function AIPage() {
       setNewName("");
       setNewPrompt("");
       setShowCreate(false);
+      toast({ title: "Agent created", description: agent.name, variant: "success" });
     } catch (e) {
       toast({ title: "Failed to create agent", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
@@ -143,10 +144,12 @@ export default function AIPage() {
   async function handleDeleteAgent(agentId: string) {
     try {
       await ai.deleteAgent(agentId);
+      const deleted = agents.find((a) => a.id === agentId);
       setAgents((prev) => prev.filter((a) => a.id !== agentId));
       if (selectedAgent?.id === agentId) {
         setSelectedAgent(agents.find((a) => a.id !== agentId) ?? null);
       }
+      toast({ title: "Agent deleted", description: deleted?.name, variant: "success" });
     } catch (e) {
       toast({ title: "Failed to delete agent", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
