@@ -16,6 +16,27 @@ import { PageHeader } from "@/components/page-header";
 
 type Theme = "dark" | "light";
 
+const NOTIFICATION_CATEGORIES = [
+  { key: "social", label: "Social", description: "Posts, follows, reactions, and mentions" },
+  { key: "governance", label: "Governance", description: "Proposals, votes, and DAO activity" },
+  { key: "payments", label: "Payments", description: "Transfers, invoices, and escrow updates" },
+  { key: "marketplace", label: "Marketplace", description: "Listings, orders, and offers" },
+  { key: "messages", label: "Messages", description: "Direct messages and channel activity" },
+  { key: "system", label: "System", description: "Connection status, updates, and errors" },
+] as const;
+
+type NotifPrefs = Record<string, boolean>;
+
+function loadNotifPrefs(): NotifPrefs {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem("nous_notif_prefs");
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [online, setOnline] = useState(false);
@@ -28,6 +49,7 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [credentials, setCredentials] = useState<CredentialResponse[]>([]);
   const [reputation, setReputation] = useState<ReputationResponse | null>(null);
+  const [notifPrefs, setNotifPrefs] = useState<NotifPrefs>({});
   const { toast } = useToast();
 
   useEffect(() => {
@@ -35,11 +57,13 @@ export default function SettingsPage() {
     const storedName = localStorage.getItem("nous_display_name") || "";
     const storedTheme = (localStorage.getItem("nous_theme") as Theme) || "dark";
     const storedApi = localStorage.getItem("nous_api_url") || "http://localhost:8080/api/v1";
+    const storedNotifPrefs = loadNotifPrefs();
     startTransition(() => {
       setDid(storedDid);
       setDisplayName(storedName);
       setTheme(storedTheme);
       setApiUrl(storedApi);
+      setNotifPrefs(storedNotifPrefs);
     });
 
     const promises: Promise<void>[] = [];
@@ -65,9 +89,14 @@ export default function SettingsPage() {
     localStorage.setItem("nous_display_name", displayName);
     localStorage.setItem("nous_theme", theme);
     localStorage.setItem("nous_api_url", apiUrl);
+    localStorage.setItem("nous_notif_prefs", JSON.stringify(notifPrefs));
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
     toast({ title: "Settings saved", variant: "success" });
+  };
+
+  const toggleNotifCategory = (key: string) => {
+    setNotifPrefs((prev) => ({ ...prev, [key]: !(prev[key] ?? true) }));
   };
 
   const handleClearData = () => {
@@ -75,6 +104,7 @@ export default function SettingsPage() {
     localStorage.removeItem("nous_display_name");
     localStorage.removeItem("nous_theme");
     localStorage.removeItem("nous_api_url");
+    localStorage.removeItem("nous_notif_prefs");
     setDid("");
     setDisplayName("");
     setTheme("dark");
@@ -82,6 +112,7 @@ export default function SettingsPage() {
     setUserIdentity(null);
     setCredentials([]);
     setReputation(null);
+    setNotifPrefs({});
     setSaved(false);
     toast({ title: "Data cleared", description: "All local data has been removed" });
   };
@@ -307,6 +338,57 @@ export default function SettingsPage() {
                   </button>
                 ))}
               </div>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* Notifications section */}
+      <section className="mb-16">
+        <h2 className="text-xs font-mono uppercase tracking-[0.2em] text-neutral-500 mb-8">Notifications</h2>
+        <Card className="bg-white/[0.01] border-white/[0.06] rounded-none">
+          <CardContent className="p-6">
+            <p className="text-xs text-neutral-500 font-light mb-6">
+              Choose which notification categories appear in your notification panel.
+            </p>
+            <div className="space-y-0">
+              {NOTIFICATION_CATEGORIES.map((cat, i) => {
+                const enabled = notifPrefs[cat.key] ?? true;
+                return (
+                  <div
+                    key={cat.key}
+                    className={`flex items-center justify-between py-4 ${
+                      i > 0 ? "border-t border-white/[0.04]" : ""
+                    }`}
+                  >
+                    <div>
+                      <p className="text-sm font-light">{cat.label}</p>
+                      <p className="text-[10px] text-neutral-600 font-light mt-0.5">
+                        {cat.description}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => toggleNotifCategory(cat.key)}
+                      className={`relative w-9 h-5 rounded-full transition-colors duration-200 ${
+                        enabled
+                          ? "bg-[#d4af37]/30"
+                          : "bg-white/[0.06]"
+                      }`}
+                      role="switch"
+                      aria-checked={enabled}
+                      aria-label={`Toggle ${cat.label} notifications`}
+                    >
+                      <span
+                        className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full transition-all duration-200 ${
+                          enabled
+                            ? "translate-x-4 bg-[#d4af37]"
+                            : "translate-x-0 bg-neutral-500"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
