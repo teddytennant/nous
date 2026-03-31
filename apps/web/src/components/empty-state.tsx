@@ -370,6 +370,38 @@ export function CredentialIllustration() {
   );
 }
 
+export function BookmarkIllustration() {
+  return (
+    <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Bookmark shape */}
+      <path
+        d="M24 16H56V64L40 52L24 64V16Z"
+        stroke="#d4af37"
+        strokeWidth="1"
+        opacity="0.35"
+      />
+      {/* Inner fold line */}
+      <path
+        d="M24 16H56"
+        stroke="currentColor"
+        strokeWidth="0.5"
+        opacity="0.2"
+      />
+      {/* Star in center */}
+      <path
+        d="M40 28L42.5 34H48.5L43.5 38L45.5 44L40 40L34.5 44L36.5 38L31.5 34H37.5Z"
+        stroke="#d4af37"
+        strokeWidth="0.8"
+        opacity="0.3"
+        fill="none"
+      />
+      {/* Subtle page lines */}
+      <line x1="30" y1="24" x2="50" y2="24" stroke="currentColor" strokeWidth="0.5" opacity="0.08" />
+      <line x1="32" y1="48" x2="48" y2="48" stroke="currentColor" strokeWidth="0.5" opacity="0.08" />
+    </svg>
+  );
+}
+
 export function IdentityKeyIllustration() {
   return (
     <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
