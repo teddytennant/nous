@@ -180,7 +180,6 @@ export function TerminalDemo() {
   const [lines, setLines] = useState<Array<{ type: "prompt" | "output"; text: string }>>([]);
   const [typingText, setTypingText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [currentStep, setCurrentStep] = useState(0);
   const [showCursor, setShowCursor] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const hasStarted = useRef(false);
@@ -236,7 +235,6 @@ export function TerminalDemo() {
   const runDemo = useCallback(async () => {
     for (let s = 0; s < steps.length; s++) {
       const step = steps[s];
-      setCurrentStep(s);
 
       // Delay between commands
       if (s > 0) {
@@ -269,7 +267,6 @@ export function TerminalDemo() {
     await new Promise((r) => setTimeout(r, 4000));
     setLines([]);
     setTypingText("");
-    setCurrentStep(0);
     runDemo();
   }, [typeCommand, showOutput]);
 
