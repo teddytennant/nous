@@ -135,6 +135,7 @@ function ListingsTab() {
           : [],
       });
       setCreating(false);
+      const savedTitle = newListing.title;
       setNewListing({
         title: "",
         description: "",
@@ -144,6 +145,7 @@ function ListingsTab() {
         tags: "",
       });
       fetchListings();
+      toast({ title: "Listing published", description: savedTitle, variant: "success" });
     } catch (e) {
       toast({ title: "Failed to create listing", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
@@ -313,7 +315,7 @@ function ListingsTab() {
             {listingsList.map((listing) => (
               <Card
                 key={listing.id}
-                className="bg-black border-0 rounded-none"
+                className="bg-black border-0 rounded-none card-lift"
               >
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-3">
