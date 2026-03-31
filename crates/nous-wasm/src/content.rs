@@ -150,8 +150,8 @@ impl WasmCid {
     #[wasm_bindgen(js_name = fromString)]
     pub fn from_string(s: &str) -> Result<WasmCid, JsError> {
         if let Some(b32) = s.strip_prefix('b') {
-            let bytes = base32_decode(b32)
-                .ok_or_else(|| JsError::new("invalid base32 encoding"))?;
+            let bytes =
+                base32_decode(b32).ok_or_else(|| JsError::new("invalid base32 encoding"))?;
             Self::from_bytes(&bytes)
         } else if let Some(b58) = s.strip_prefix('z') {
             let bytes = bs58::decode(b58)
@@ -172,9 +172,7 @@ impl WasmCid {
         let (version, n1) =
             decode_varint(data).ok_or_else(|| JsError::new("invalid CID: bad version varint"))?;
         if version != CID_VERSION_1 {
-            return Err(JsError::new(&format!(
-                "unsupported CID version: {version}"
-            )));
+            return Err(JsError::new(&format!("unsupported CID version: {version}")));
         }
         // Decode codec
         let (codec, n2) = decode_varint(&data[n1..])
