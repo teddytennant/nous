@@ -9,12 +9,13 @@ import {
   BottomTabBar,
   MobileSidebarProvider,
 } from "@/components/sidebar";
-import { ConnectionProvider } from "@/components/connection-status";
+import { ConnectionProvider, useConnection } from "@/components/connection-status";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { ToastProvider } from "@/components/toast";
 import { CommandPalette } from "@/components/command-palette";
 import { KeyboardShortcutsProvider } from "@/components/keyboard-shortcuts";
 import { Onboarding } from "@/components/onboarding";
+import { OfflineState, ConnectingState } from "@/components/offline-state";
 
 function PageTransition({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -23,6 +24,20 @@ function PageTransition({ children }: { children: ReactNode }) {
       {children}
     </div>
   );
+}
+
+function ConnectionGate({ children }: { children: ReactNode }) {
+  const { status } = useConnection();
+
+  if (status === "offline") {
+    return <OfflineState />;
+  }
+
+  if (status === "connecting") {
+    return <ConnectingState />;
+  }
+
+  return <>{children}</>;
 }
 
 const emptySubscribe = () => () => {};
@@ -61,7 +76,9 @@ export function AppShell({ children }: { children: ReactNode }) {
               <MobileDrawer />
               <main className="flex-1 min-w-0 pt-14 md:pt-0 mobile-main-padding">
                 <ErrorBoundary>
-                  <PageTransition>{children}</PageTransition>
+                  <ConnectionGate>
+                    <PageTransition>{children}</PageTransition>
+                  </ConnectionGate>
                 </ErrorBoundary>
               </main>
               <BottomTabBar />
