@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { social, type FeedEvent } from "@/lib/api";
 import { useRealtime } from "@/lib/use-realtime";
 import { useToast } from "@/components/toast";
@@ -226,7 +227,27 @@ export default function SocialPage() {
       {/* Feed */}
       <section>
         {loading ? (
-          <p className="text-xs text-neutral-700 font-mono">Loading...</p>
+          <div className="space-y-px">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="border-b border-white/[0.04] pb-6 mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-baseline gap-3">
+                    <Skeleton className="h-3 w-36" />
+                    <Skeleton className="h-2.5 w-8" />
+                  </div>
+                  <Skeleton className="h-2.5 w-14" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-3.5 w-full" />
+                  <Skeleton className="h-3.5 w-4/5" />
+                  <Skeleton className="h-3.5 w-2/3" />
+                </div>
+                <div className="flex items-center gap-6 mt-4">
+                  <Skeleton className="h-2.5 w-10" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : displayPosts.length === 0 ? (
           <div className="py-16 text-center">
             <p className="text-sm text-neutral-600 font-light">
