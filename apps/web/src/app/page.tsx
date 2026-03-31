@@ -94,6 +94,50 @@ const features = [
   },
 ];
 
+const ownershipRows = [
+  {
+    question: "Who owns your data?",
+    legacy: "The corporation",
+    nous: "You — encrypted on your device",
+  },
+  {
+    question: "Who reads your messages?",
+    legacy: "Their servers process plaintext",
+    nous: "Nobody — end-to-end encrypted",
+  },
+  {
+    question: "Who can ban you?",
+    legacy: "Any moderator, any time",
+    nous: "Nobody — sovereign identity",
+  },
+  {
+    question: "Who controls your identity?",
+    legacy: "The platform grants and revokes",
+    nous: "You — DID:key generated locally",
+  },
+  {
+    question: "Company shuts down?",
+    legacy: "Data and connections — gone",
+    nous: "Nothing changes — you own it all",
+  },
+  {
+    question: "Who sees your finances?",
+    legacy: "Banks, processors, advertisers",
+    nous: "Nobody — peer-to-peer, on-chain",
+  },
+];
+
+const replacedApps = [
+  "WhatsApp",
+  "Signal",
+  "Venmo",
+  "Twitter / X",
+  "iCloud",
+  "ChatGPT",
+  "MetaMask",
+  "Snapshot",
+];
+
 const primitives = [
   ["Signing", "Ed25519"],
   ["Exchange", "X25519"],
@@ -443,6 +487,73 @@ export default function Home() {
               </div>
             );
           })}
+        </div>
+      </section>
+
+      {/* Divider */}
+      <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
+      {/* Ownership — Why Nous Matters */}
+      <section className="px-6 py-28 max-w-6xl mx-auto w-full">
+        <div className="mb-20">
+          <h2 className="text-xs font-mono uppercase tracking-[0.25em] text-neutral-600 mb-4">
+            Ownership
+          </h2>
+          <p className="text-2xl sm:text-3xl font-extralight tracking-[-0.02em] text-neutral-300 max-w-xl">
+            The question is simple.{" "}
+            <span className="text-white">Who&apos;s in control?</span>
+          </p>
+        </div>
+
+        <div className="overflow-x-auto -mx-2 px-2">
+          <table className="w-full min-w-[560px]">
+            <thead>
+              <tr>
+                <th className="text-left text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-700 pb-6 pr-6 w-[38%]" />
+                <th className="text-left text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-600 pb-6 pr-6 w-[31%]">
+                  Status Quo
+                </th>
+                <th className="text-left text-[10px] font-mono uppercase tracking-[0.15em] text-[#d4af37] pb-6 w-[31%]">
+                  Nous
+                </th>
+              </tr>
+            </thead>
+            <tbody className="stagger-in">
+              {ownershipRows.map((row) => (
+                <tr
+                  key={row.question}
+                  className="border-t border-white/[0.04] group hover:bg-white/[0.01] transition-colors duration-200"
+                >
+                  <td className="py-5 pr-6 text-sm font-light text-neutral-300">
+                    {row.question}
+                  </td>
+                  <td className="py-5 pr-6 text-sm font-light text-neutral-600">
+                    {row.legacy}
+                  </td>
+                  <td className="py-5 text-sm font-light text-neutral-300 group-hover:text-[#d4af37] transition-colors duration-200">
+                    {row.nous}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Nous replaces */}
+        <div className="mt-16 pt-12 border-t border-white/[0.04]">
+          <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-700 mb-5">
+            One app replaces
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {replacedApps.map((app) => (
+              <span
+                key={app}
+                className="text-xs font-light text-neutral-500 px-3 py-1.5 border border-white/[0.06] rounded-sm hover:border-white/10 hover:text-neutral-300 transition-colors duration-200"
+              >
+                {app}
+              </span>
+            ))}
+          </div>
         </div>
       </section>
 
