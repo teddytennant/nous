@@ -21,6 +21,9 @@ import { usePageShortcuts } from "@/components/keyboard-shortcuts";
 
 type Tab = "listings" | "orders" | "disputes" | "offers";
 type SortKey = "newest" | "price-low" | "price-high" | "title";
+type OrderSortKey = "newest" | "oldest" | "amount-high" | "amount-low" | "status";
+type DisputeSortKey = "newest" | "oldest" | "evidence" | "status";
+type OfferSortKey = "newest" | "oldest" | "amount-high" | "amount-low" | "expires";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "listings", label: "Listings" },
@@ -44,6 +47,29 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "price-low", label: "Price ↑" },
   { key: "price-high", label: "Price ↓" },
   { key: "title", label: "Title A–Z" },
+];
+
+const ORDER_SORT_OPTIONS: { key: OrderSortKey; label: string }[] = [
+  { key: "newest", label: "Newest" },
+  { key: "oldest", label: "Oldest" },
+  { key: "amount-high", label: "Amount ↓" },
+  { key: "amount-low", label: "Amount ↑" },
+  { key: "status", label: "Status" },
+];
+
+const DISPUTE_SORT_OPTIONS: { key: DisputeSortKey; label: string }[] = [
+  { key: "newest", label: "Newest" },
+  { key: "oldest", label: "Oldest" },
+  { key: "evidence", label: "Evidence" },
+  { key: "status", label: "Status" },
+];
+
+const OFFER_SORT_OPTIONS: { key: OfferSortKey; label: string }[] = [
+  { key: "newest", label: "Newest" },
+  { key: "oldest", label: "Oldest" },
+  { key: "amount-high", label: "Amount ↓" },
+  { key: "amount-low", label: "Amount ↑" },
+  { key: "expires", label: "Expires soon" },
 ];
 
 function formatPrice(amount: number, token: string): string {
@@ -435,11 +461,100 @@ function ListingsTab() {
   );
 }
 
+// ── Sort Bar (shared) ────────────────────────────────────────────────────
+
+function SortBar<K extends string>({
+  options,
+  active,
+  onChange,
+}: {
+  options: { key: K; label: string }[];
+  active: K;
+  onChange: (key: K) => void;
+}) {
+  return (
+    <div className="flex gap-2 mb-6 flex-wrap">
+      {options.map((opt) => (
+        <button
+          key={opt.key}
+          onClick={() => onChange(opt.key)}
+          className={cn(
+            "text-[10px] font-mono uppercase tracking-wider px-3 py-2 transition-all duration-150",
+            active === opt.key
+              ? "text-white bg-white/[0.06]"
+              : "text-neutral-700 hover:text-neutral-400",
+          )}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ── Sort helpers ─────────────────────────────────────────────────────────
+
+function sortOrders(list: OrderResponse[], key: OrderSortKey): OrderResponse[] {
+  return [...list].sort((a, b) => {
+    switch (key) {
+      case "newest":
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      case "oldest":
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      case "amount-high":
+        return b.amount - a.amount;
+      case "amount-low":
+        return a.amount - b.amount;
+      case "status":
+        return a.status.localeCompare(b.status);
+      default:
+        return 0;
+    }
+  });
+}
+
+function sortDisputes(list: DisputeResponse[], key: DisputeSortKey): DisputeResponse[] {
+  return [...list].sort((a, b) => {
+    switch (key) {
+      case "newest":
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      case "oldest":
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      case "evidence":
+        return b.evidence_count - a.evidence_count;
+      case "status":
+        return a.status.localeCompare(b.status);
+      default:
+        return 0;
+    }
+  });
+}
+
+function sortOffers(list: OfferResponse[], key: OfferSortKey): OfferResponse[] {
+  return [...list].sort((a, b) => {
+    switch (key) {
+      case "newest":
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      case "oldest":
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      case "amount-high":
+        return b.amount - a.amount;
+      case "amount-low":
+        return a.amount - b.amount;
+      case "expires":
+        return new Date(a.expires_at).getTime() - new Date(b.expires_at).getTime();
+      default:
+        return 0;
+    }
+  });
+}
+
 // ── Orders Tab ────────────────────────────────────────────────────────────
 
 function OrdersTab() {
   const [ordersList, setOrders] = useState<OrderResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sortKey, setSortKey] = useState<OrderSortKey>("newest");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -452,6 +567,8 @@ function OrdersTab() {
       })
       .finally(() => setLoading(false));
   }, [toast]);
+
+  const sorted = sortOrders(ordersList, sortKey);
 
   return (
     <>
@@ -488,8 +605,10 @@ function OrdersTab() {
           description="Purchase a listing to create your first order. All transactions are escrow-backed for safety."
         />
       ) : (
+        <>
+        <SortBar options={ORDER_SORT_OPTIONS} active={sortKey} onChange={setSortKey} />
         <div className="space-y-px">
-          {ordersList.map((order) => (
+          {sorted.map((order) => (
             <Card
               key={order.id}
               className="bg-white/[0.01] border-white/[0.06] rounded-none"
@@ -549,6 +668,7 @@ function OrdersTab() {
             </Card>
           ))}
         </div>
+        </>
       )}
     </>
   );
@@ -559,6 +679,7 @@ function OrdersTab() {
 function DisputesTab() {
   const [disputesList, setDisputes] = useState<DisputeResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sortKey, setSortKey] = useState<DisputeSortKey>("newest");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -611,8 +732,10 @@ function DisputesTab() {
           description="Disputes appear when an order is contested. An arbiter reviews evidence and resolves the case."
         />
       ) : (
+        <>
+        <SortBar options={DISPUTE_SORT_OPTIONS} active={sortKey} onChange={setSortKey} />
         <div className="space-y-px">
-          {disputesList.map((dispute) => (
+          {sortDisputes(disputesList, sortKey).map((dispute) => (
             <Card
               key={dispute.id}
               className="bg-white/[0.01] border-white/[0.06] rounded-none"
@@ -687,6 +810,7 @@ function DisputesTab() {
             </Card>
           ))}
         </div>
+        </>
       )}
     </>
   );
@@ -697,6 +821,7 @@ function DisputesTab() {
 function OffersTab() {
   const [offersList, setOffers] = useState<OfferResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sortKey, setSortKey] = useState<OfferSortKey>("newest");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -745,8 +870,10 @@ function OffersTab() {
           description="Make an offer on a listing to negotiate a better price. Sellers can accept, reject, or counter."
         />
       ) : (
+        <>
+        <SortBar options={OFFER_SORT_OPTIONS} active={sortKey} onChange={setSortKey} />
         <div className="space-y-px">
-          {offersList.map((offer) => (
+          {sortOffers(offersList, sortKey).map((offer) => (
             <Card
               key={offer.id}
               className="bg-white/[0.01] border-white/[0.06] rounded-none"
@@ -812,6 +939,7 @@ function OffersTab() {
             </Card>
           ))}
         </div>
+        </>
       )}
     </>
   );
