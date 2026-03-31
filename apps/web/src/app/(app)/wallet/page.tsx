@@ -205,6 +205,7 @@ export default function WalletPage() {
       setEscrowAmount("");
       setEscrowDesc("");
       setEscrowConditions("");
+      toast({ title: "Escrow created", description: `${escrowAmount} ${escrowToken} locked`, variant: "success" });
     } catch (e: unknown) {
       toast({ title: "Escrow creation failed", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
@@ -213,6 +214,7 @@ export default function WalletPage() {
   const handleReleaseEscrow = async (escrowId: string) => {
     try {
       await payments.releaseEscrow(escrowId, userDid);
+      toast({ title: "Escrow released", variant: "success" });
     } catch (e: unknown) {
       toast({ title: "Release failed", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
