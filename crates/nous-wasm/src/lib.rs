@@ -5,6 +5,7 @@
 
 pub mod content;
 pub mod crdt;
+pub mod messaging;
 
 use aes_gcm::aead::{Aead, KeyInit};
 use aes_gcm::{Aes256Gcm, Nonce};
