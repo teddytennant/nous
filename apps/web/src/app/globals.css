@@ -480,9 +480,25 @@ select:focus {
   animation-delay: 1.5s;
 }
 
+/* ── Reduced Motion (WCAG 2.1 Level AA) ─────────────────────────────── */
+
 @media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
   .arch-particles {
     display: none;
+  }
+
+  .hero-title {
+    animation: none;
+    background: none;
+    -webkit-text-fill-color: unset;
+    color: white;
   }
 }
 
