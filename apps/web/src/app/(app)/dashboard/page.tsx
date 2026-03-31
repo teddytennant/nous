@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useSyncExternalStore, startTransition } from "react";
+import { useState, useEffect, useRef, useSyncExternalStore, startTransition } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -59,6 +59,57 @@ function formatUptime(ms: number): string {
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
+
+// ── Count-Up Animation ──────────────────────────────────────────────────
+
+function useCountUp(target: number, duration = 800): string {
+  const [display, setDisplay] = useState("0");
+  const prevTarget = useRef(0);
+
+  useEffect(() => {
+    if (target === 0) {
+      setDisplay("0");
+      prevTarget.current = 0;
+      return;
+    }
+
+    const start = prevTarget.current;
+    const diff = target - start;
+    const startTime = performance.now();
+
+    function tick(now: number) {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = start + diff * eased;
+
+      // Format: preserve decimal places matching target
+      const decimals = target % 1 === 0 ? 0 : String(target).split(".")[1]?.length ?? 2;
+      setDisplay(current.toFixed(decimals));
+
+      if (progress < 1) {
+        requestAnimationFrame(tick);
+      } else {
+        prevTarget.current = target;
+      }
+    }
+
+    requestAnimationFrame(tick);
+  }, [target, duration]);
+
+  return display;
+}
+
+function CountUpBalance({ amount, token }: { amount: string; token: string }) {
+  const numericValue = parseFloat(amount) || 0;
+  const animated = useCountUp(numericValue);
+  return (
+    <span className="text-sm font-extralight tabular-nums text-neutral-300">
+      {animated}
+    </span>
+  );
 }
 
 // ── Quick Actions ────────────────────────────────────────────────────────
@@ -337,9 +388,7 @@ export default function DashboardPage() {
                   <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-600">
                     {b.token}
                   </span>
-                  <span className="text-sm font-extralight tabular-nums text-neutral-300">
-                    {b.amount}
-                  </span>
+                  <CountUpBalance amount={b.amount} token={b.token} />
                 </div>
               ))}
               <div className="px-4 py-3 flex items-center">
