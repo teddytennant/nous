@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, startTransition } from "react";
+import { useState, useEffect, useSyncExternalStore, startTransition } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,6 +29,8 @@ import {
   Clock,
   Shield,
 } from "lucide-react";
+
+const emptySubscribe = () => () => {};
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -195,12 +197,11 @@ export default function DashboardPage() {
   const [feed, setFeed] = useState<FeedEvent[] | null>(null);
   const [daoData, setDaoData] = useState<DaoListResponse | null>(null);
   const [wallet, setWallet] = useState<WalletResponse | null>(null);
-  const [displayName, setDisplayName] = useState<string | null>(null);
-
-  // Read user info from localStorage on mount
-  useEffect(() => {
-    setDisplayName(getDisplayName());
-  }, []);
+  const displayName = useSyncExternalStore(
+    emptySubscribe,
+    getDisplayName,
+    () => null,
+  );
 
   // Fetch node info
   useEffect(() => {
@@ -223,52 +224,55 @@ export default function DashboardPage() {
 
   // Fetch feed
   useEffect(() => {
-    let cancelled = false;
-    async function fetch() {
+    let active = true;
+    async function load() {
       try {
         const f = await social.feed({ limit: 5 });
-        if (!cancelled) setFeed(f.events);
+        if (active) setFeed(f.events);
       } catch {
         /* offline */
       }
     }
     startTransition(() => {
-      fetch();
+      load();
     });
+    return () => { active = false; };
   }, []);
 
   // Fetch DAOs
   useEffect(() => {
-    let cancelled = false;
-    async function fetch() {
+    let active = true;
+    async function load() {
       try {
         const d = await governance.listDaos();
-        if (!cancelled) setDaoData(d);
+        if (active) setDaoData(d);
       } catch {
         /* offline */
       }
     }
     startTransition(() => {
-      fetch();
+      load();
     });
+    return () => { active = false; };
   }, []);
 
   // Fetch wallet
   useEffect(() => {
     const did = getDid();
     if (!did) return;
-    let cancelled = false;
-    async function fetch() {
+    let active = true;
+    async function load() {
       try {
         const w = await payments.getWallet(did!);
-        if (!cancelled) setWallet(w);
+        if (active) setWallet(w);
       } catch {
         /* no wallet yet */
       }
     }
     startTransition(() => {
-      fetch();
+      load();
     });
+    return () => { active = false; };
   }, []);
 
   const stats = [
