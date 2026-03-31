@@ -178,12 +178,22 @@ function getDid(): string | null {
 
 // ── Notification Bell ──────────────────────────────────────────────────
 
+const FILTER_TABS: { key: NotifKind | "all"; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "social", label: "Social" },
+  { key: "governance", label: "Gov" },
+  { key: "payment", label: "Pay" },
+  { key: "marketplace", label: "Market" },
+  { key: "message", label: "Msg" },
+];
+
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[] | null>(
     null,
   );
   const [readIds, setReadIds] = useState<Set<string>>(() => getReadIds());
+  const [filter, setFilter] = useState<NotifKind | "all">("all");
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const userDid = useSyncExternalStore(emptySubscribe, getDid, () => null);
@@ -348,30 +358,77 @@ export function NotificationBell() {
             </div>
           </div>
 
+          {/* Filter tabs */}
+          <div className="flex items-center gap-0.5 px-3 py-2 border-b border-white/[0.04] overflow-x-auto">
+            {FILTER_TABS.map((tab) => {
+              const active = filter === tab.key;
+              const count =
+                tab.key === "all"
+                  ? notifications?.length ?? 0
+                  : notifications?.filter((n) => n.kind === tab.key).length ?? 0;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setFilter(tab.key)}
+                  className={cn(
+                    "text-[10px] font-mono tracking-wider px-2.5 py-1 rounded-sm transition-colors duration-150 whitespace-nowrap",
+                    active
+                      ? "text-[#d4af37] bg-[#d4af37]/[0.06]"
+                      : "text-neutral-600 hover:text-neutral-400 hover:bg-white/[0.03]",
+                  )}
+                >
+                  {tab.label}
+                  {count > 0 && (
+                    <span
+                      className={cn(
+                        "ml-1 text-[9px]",
+                        active ? "text-[#d4af37]/60" : "text-neutral-700",
+                      )}
+                    >
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
           {/* Body */}
           <div className="max-h-96 overflow-y-auto terminal-scroll">
             {notifications === null ? (
               <NotificationSkeleton />
-            ) : notifications.length === 0 ? (
-              <div className="py-12 px-4 text-center">
-                <Bell className="w-5 h-5 text-neutral-800 mx-auto mb-3" />
-                <p className="text-xs text-neutral-600 font-light">
-                  No notifications yet
-                </p>
-              </div>
-            ) : (
-              <div className="divide-y divide-white/[0.04]">
-                {notifications.map((notif) => (
-                  <NotificationRow
-                    key={notif.id}
-                    notification={notif}
-                    isRead={readIds.has(notif.id)}
-                    onRead={() => markAsRead(notif.id)}
-                    onClose={() => setOpen(false)}
-                  />
-                ))}
-              </div>
-            )}
+            ) : (() => {
+              const filtered =
+                filter === "all"
+                  ? notifications
+                  : notifications.filter((n) => n.kind === filter);
+              if (filtered.length === 0) {
+                return (
+                  <div className="py-12 px-4 text-center">
+                    <Bell className="w-5 h-5 text-neutral-800 mx-auto mb-3" />
+                    <p className="text-xs text-neutral-600 font-light">
+                      {filter === "all"
+                        ? "No notifications yet"
+                        : `No ${kindMeta[filter].label.toLowerCase()} notifications`}
+                    </p>
+                  </div>
+                );
+              }
+              return (
+                <div className="divide-y divide-white/[0.04]">
+                  {filtered.map((notif) => (
+                    <NotificationRow
+                      key={notif.id}
+                      notification={notif}
+                      isRead={readIds.has(notif.id)}
+                      onRead={() => markAsRead(notif.id)}
+                      onClose={() => setOpen(false)}
+                    />
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
