@@ -351,7 +351,7 @@ export default function WalletPage() {
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-3 gap-px bg-white/[0.03]">
+              <div className="grid grid-cols-3 gap-px bg-white/[0.03] stagger-in">
                 {displayBalances.map((b) => (
                   <Card
                     key={b.token}
@@ -456,7 +456,7 @@ export default function WalletPage() {
                 description="Send or receive tokens to see your transaction history here."
               />
             ) : (
-              <div className="space-y-px">
+              <div className="space-y-px stagger-in">
                 {transactions.map((tx) => {
                   const isSend = tx.from_did === userDid;
                   return (
