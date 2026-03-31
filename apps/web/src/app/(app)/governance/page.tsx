@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
   governance,
@@ -369,7 +370,29 @@ export default function GovernancePage() {
           )}
 
           {loading ? (
-            <p className="text-xs text-neutral-700 font-mono">Loading...</p>
+            <div className="space-y-px">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="p-5">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <div className="flex items-center gap-3 mb-1">
+                        <Skeleton className="h-2.5 w-24" />
+                        <Skeleton className="h-2.5 w-14" />
+                      </div>
+                      <Skeleton className="h-3.5 w-56 mt-1" />
+                    </div>
+                    <Skeleton className="h-2.5 w-8" />
+                  </div>
+                  <div className="mt-3">
+                    <div className="flex justify-between mb-1.5">
+                      <Skeleton className="h-2.5 w-12" />
+                      <Skeleton className="h-2.5 w-16" />
+                    </div>
+                    <Skeleton className="h-px w-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : proposals.length === 0 ? (
             <p className="text-sm text-neutral-600 font-light">
               No proposals yet. Create the first one.
