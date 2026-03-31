@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { messaging, type ChannelResponse, type MessageResponse } from "@/lib/api";
 import { useRealtime } from "@/lib/use-realtime";
 import { useToast } from "@/components/toast";
+import { EmptyState, MessagesIllustration } from "@/components/empty-state";
 
 type CreateMode = "dm" | "group" | null;
 
@@ -266,7 +267,11 @@ export default function MessagesPage() {
               ))}
             </div>
           ) : channels.length === 0 ? (
-            <p className="px-6 text-xs text-neutral-700 font-light">No conversations yet</p>
+            <div className="px-6 py-8 text-center">
+              <MessagesIllustration />
+              <p className="text-xs text-neutral-600 font-light mt-4">No conversations yet</p>
+              <p className="text-[10px] text-neutral-700 font-light mt-1">Start a DM or create a group above</p>
+            </div>
           ) : null}
           {channels.map((ch) => (
             <button
@@ -319,12 +324,11 @@ export default function MessagesPage() {
         <div className="flex-1 overflow-y-auto px-8 py-6 space-y-4">
           {!selected && (
             <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <p className="text-sm text-neutral-700 font-light">Select a conversation or create a new one</p>
-                {!userDid && (
-                  <p className="text-[10px] text-red-500/60 font-mono mt-2">Set your identity in Settings first</p>
-                )}
-              </div>
+              <EmptyState
+                icon={<MessagesIllustration />}
+                title="Select a conversation"
+                description={userDid ? "Choose a conversation from the sidebar or start a new one." : "Set your identity in Settings to start messaging."}
+              />
             </div>
           )}
           {messages.map((msg) => {
