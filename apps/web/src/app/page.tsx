@@ -138,6 +138,48 @@ const replacedApps = [
   "Snapshot",
 ];
 
+const personas = [
+  {
+    icon: Shield,
+    title: "Individuals",
+    hook: "Own your digital life",
+    description:
+      "Encrypted messaging, self-sovereign identity, and local-first storage. No platform can read your data, revoke your access, or monetize your attention.",
+    features: [
+      "End-to-end encrypted messaging",
+      "DID:key identity you control",
+      "Encrypted local storage",
+      "Multi-chain wallet",
+    ],
+  },
+  {
+    icon: Vote,
+    title: "Communities",
+    hook: "Self-govern without a platform",
+    description:
+      "DAOs with quadratic voting, delegation, and treasury management. Build communities that no corporation can shut down.",
+    features: [
+      "Quadratic & weighted voting",
+      "Proposal delegation",
+      "Trustless escrow payments",
+      "Decentralized social feeds",
+    ],
+  },
+  {
+    icon: Terminal,
+    title: "Developers",
+    hook: "Build on sovereign infrastructure",
+    description:
+      "20 composable Rust crates with identity, crypto, storage, and networking. Fork it, extend it, ship it your way.",
+    features: [
+      "20-crate Rust workspace",
+      "REST + GraphQL + gRPC APIs",
+      "CRDT-based local-first sync",
+      "libp2p networking stack",
+    ],
+  },
+];
+
 const primitives = [
   ["Signing", "Ed25519"],
   ["Exchange", "X25519"],
@@ -554,6 +596,58 @@ export default function Home() {
               </span>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Divider */}
+      <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
+      {/* Who Is This For */}
+      <section className="px-6 py-28 max-w-6xl mx-auto w-full">
+        <div className="mb-20">
+          <h2 className="text-xs font-mono uppercase tracking-[0.25em] text-neutral-600 mb-4">
+            Who Is This For
+          </h2>
+          <p className="text-2xl sm:text-3xl font-extralight tracking-[-0.02em] text-neutral-300 max-w-xl">
+            Built for people who{" "}
+            <span className="text-white">refuse to compromise.</span>
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-white/[0.04] rounded-sm overflow-hidden stagger-in">
+          {personas.map((persona) => {
+            const Icon = persona.icon;
+            return (
+              <div
+                key={persona.title}
+                className="bg-black p-8 sm:p-10 group hover:bg-white/[0.02] transition-colors duration-200"
+              >
+                <div className="w-10 h-10 rounded-md bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mb-6 group-hover:border-[#d4af37]/20 group-hover:bg-[#d4af37]/[0.04] transition-colors duration-300">
+                  <Icon className="w-4.5 h-4.5 text-neutral-500 group-hover:text-[#d4af37] transition-colors duration-300" />
+                </div>
+                <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-700 mb-2">
+                  {persona.title}
+                </p>
+                <h3 className="text-base font-medium tracking-wide mb-3">
+                  {persona.hook}
+                </h3>
+                <p className="text-sm text-neutral-500 font-light leading-relaxed mb-6">
+                  {persona.description}
+                </p>
+                <ul className="space-y-2">
+                  {persona.features.map((f) => (
+                    <li
+                      key={f}
+                      className="flex items-center gap-2 text-xs font-light text-neutral-600 group-hover:text-neutral-400 transition-colors duration-200"
+                    >
+                      <span className="w-1 h-1 rounded-full bg-[#d4af37]/40 shrink-0" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
         </div>
       </section>
 
