@@ -106,10 +106,21 @@ jobs:
         with:
           path: artifacts
 
-      - name: Generate checksums
+      - name: Flatten and create latest-named copies
         run: |
           cd artifacts
           find . -type f \( -name "*.tar.gz" -o -name "*.zip" \) -exec mv {} . \;
+          # Create nous-latest-* copies for stable download URLs
+          for f in *.tar.gz *.zip; do
+            [ -f "$f" ] || continue
+            # nous-v0.1.0-x86_64-unknown-linux-gnu.tar.gz -> nous-latest-x86_64-unknown-linux-gnu.tar.gz
+            latest=$(echo "$f" | sed 's/nous-v[^-]*/nous-latest/')
+            cp "$f" "$latest"
+          done
+
+      - name: Generate checksums
+        run: |
+          cd artifacts
           sha256sum *.tar.gz *.zip > SHA256SUMS.txt
 
       - name: Create GitHub Release
