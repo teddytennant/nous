@@ -34,7 +34,7 @@ export default function SocialPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [toast]);
 
   usePageShortcuts({
     n: () => document.querySelector<HTMLTextAreaElement>("textarea")?.focus(),
