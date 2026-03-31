@@ -85,6 +85,33 @@ export function ArchitectureDiagram() {
           className="arch-orbit"
         />
 
+        {/* Pulse rings — sonar waves emanating from core */}
+        {[0, 1.5, 3].map((delay, i) => (
+          <circle
+            key={`pulse-${i}`}
+            cx={CX}
+            cy={CY}
+            fill="none"
+            stroke="#d4af37"
+            strokeWidth={0.5}
+          >
+            <animate
+              attributeName="r"
+              values="10;120"
+              dur="4.5s"
+              begin={`${delay + 1.5}s`}
+              repeatCount="indefinite"
+            />
+            <animate
+              attributeName="opacity"
+              values="0.1;0"
+              dur="4.5s"
+              begin={`${delay + 1.5}s`}
+              repeatCount="indefinite"
+            />
+          </circle>
+        ))}
+
         {/* Secondary connections (faint arcs between related subsystems) */}
         {secondaryLinks.map(([a, b]) => {
           const pa = positions[a];
@@ -138,6 +165,68 @@ export function ArchitectureDiagram() {
             />
           );
         })}
+
+        {/* Data-flow particles — flowing along connection lines */}
+        <g className="arch-particles">
+          {/* Primary connection particles (center ↔ nodes) */}
+          {positions.map((pos, i) => {
+            const outPath = `M${CX},${CY} L${pos.x.toFixed(1)},${pos.y.toFixed(1)}`;
+            const inPath = `M${pos.x.toFixed(1)},${pos.y.toFixed(1)} L${CX},${CY}`;
+            return (
+              <g
+                key={`p-${i}`}
+                style={{
+                  opacity: hovered === null || hovered === i ? 1 : 0.15,
+                  transition: "opacity 0.3s ease",
+                }}
+              >
+                {/* Outward — gold */}
+                <circle r={2} fill="#d4af37" opacity={0.35}>
+                  <animateMotion
+                    path={outPath}
+                    dur={`${2.5 + i * 0.2}s`}
+                    repeatCount="indefinite"
+                  />
+                </circle>
+                {/* Inward — white */}
+                <circle r={1.5} fill="white" opacity={0.15}>
+                  <animateMotion
+                    path={inPath}
+                    dur={`${3.5 + i * 0.25}s`}
+                    repeatCount="indefinite"
+                  />
+                </circle>
+              </g>
+            );
+          })}
+
+          {/* Secondary connection particles */}
+          {secondaryLinks.map(([a, b], i) => {
+            const pa = positions[a];
+            const pb = positions[b];
+            const path = `M${pa.x.toFixed(1)},${pa.y.toFixed(1)} L${pb.x.toFixed(1)},${pb.y.toFixed(1)}`;
+            return (
+              <g
+                key={`sp-${i}`}
+                style={{
+                  opacity:
+                    hovered === null || hovered === a || hovered === b
+                      ? 1
+                      : 0.15,
+                  transition: "opacity 0.3s ease",
+                }}
+              >
+                <circle r={1.5} fill="#d4af37" opacity={0.12}>
+                  <animateMotion
+                    path={path}
+                    dur={`${5 + i * 0.5}s`}
+                    repeatCount="indefinite"
+                  />
+                </circle>
+              </g>
+            );
+          })}
+        </g>
 
         {/* Center node */}
         <circle
