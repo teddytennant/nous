@@ -148,7 +148,7 @@ export default function SocialPage() {
   });
 
   return (
-    <div className="p-8 max-w-3xl">
+    <div className="p-4 sm:p-8 max-w-3xl">
       <PageHeader title="Social" subtitle="Decentralized feed. Your posts, your protocol." />
 
       {/* Compose */}
