@@ -120,7 +120,7 @@ function ListingsTab() {
     } finally {
       setLoading(false);
     }
-  }, [search, category]);
+  }, [search, category, toast]);
 
   useEffect(() => {
     startTransition(() => {
@@ -391,7 +391,7 @@ function OrdersTab() {
         setOrders([]);
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [toast]);
 
   return (
     <>
@@ -510,7 +510,7 @@ function DisputesTab() {
         setDisputes([]);
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [toast]);
 
   return (
     <>
@@ -648,7 +648,7 @@ function OffersTab() {
         setOffers([]);
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [toast]);
 
   return (
     <>
