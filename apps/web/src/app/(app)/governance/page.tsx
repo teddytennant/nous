@@ -113,6 +113,7 @@ export default function GovernancePage() {
       setDaoDesc("");
       setShowDaoForm(false);
       await loadDaos();
+      toast({ title: "DAO created", description: daoName.trim(), variant: "success" });
     } catch (e) {
       toast({ title: "Failed to create DAO", description: e instanceof Error ? e.message : undefined, variant: "error" });
     } finally {
@@ -135,6 +136,7 @@ export default function GovernancePage() {
       setPropDaoId("");
       setShowProposalForm(false);
       await loadProposals();
+      toast({ title: "Proposal submitted", description: propTitle.trim(), variant: "success" });
     } catch (e) {
       toast({ title: "Failed to create proposal", description: e instanceof Error ? e.message : undefined, variant: "error" });
     } finally {
@@ -153,6 +155,7 @@ export default function GovernancePage() {
       // Refresh tally
       const tally = await governance.getTally(proposalId);
       setTallies((prev) => ({ ...prev, [proposalId]: tally }));
+      toast({ title: `Voted ${choice}`, variant: "success" });
     } catch (e) {
       toast({ title: "Failed to cast vote", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
@@ -204,6 +207,7 @@ export default function GovernancePage() {
       setShowDelegateForm(false);
       await loadDelegations();
       await loadPower(delegateScope);
+      toast({ title: "Delegation created", variant: "success" });
     } catch (e) {
       toast({ title: "Failed to delegate", description: e instanceof Error ? e.message : undefined, variant: "error" });
     } finally {
@@ -216,6 +220,7 @@ export default function GovernancePage() {
       const did = await ensureIdentity();
       await delegationApi.revoke(delegationId, did);
       await loadDelegations();
+      toast({ title: "Delegation revoked", variant: "success" });
     } catch (e) {
       toast({ title: "Failed to revoke", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
@@ -727,7 +732,7 @@ export default function GovernancePage() {
                 {delegations.map((d) => (
                   <Card
                     key={d.id}
-                    className="bg-white/[0.02] border-white/[0.06]"
+                    className="bg-white/[0.02] border-white/[0.06] card-lift"
                   >
                     <CardContent className="p-4 flex items-center justify-between">
                       <div className="space-y-1">
