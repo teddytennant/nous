@@ -58,6 +58,14 @@ jobs:
           name: android-apk
           path: artifacts
 
+      - name: Create latest-named copy for stable download URL
+        run: |
+          cd artifacts
+          for f in nous-v*.apk; do
+            [ -f "$f" ] || continue
+            cp "$f" "nous-latest-android.apk"
+          done
+
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
