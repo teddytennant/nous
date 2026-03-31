@@ -15,6 +15,7 @@ import {
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { EmptyState, MarketplaceIllustration, OrdersIllustration, DisputeIllustration, OffersIllustration } from "@/components/empty-state";
+import { PageHeader } from "@/components/page-header";
 
 type Tab = "listings" | "orders" | "disputes" | "offers";
 
@@ -759,14 +760,7 @@ export default function MarketplacePage() {
 
   return (
     <div className="p-8 max-w-5xl">
-      <header className="mb-16">
-        <h1 className="text-3xl font-extralight tracking-[-0.03em] mb-2">
-          Marketplace
-        </h1>
-        <p className="text-sm text-neutral-500 font-light">
-          P2P. Reputation-gated. Escrow-backed.
-        </p>
-      </header>
+      <PageHeader title="Marketplace" subtitle="P2P. Reputation-gated. Escrow-backed." />
 
       <nav className="flex gap-0 mb-12 border-b border-white/[0.06]">
         {TABS.map(({ key, label }) => (
