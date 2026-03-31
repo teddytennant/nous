@@ -108,13 +108,14 @@ jobs:
 
       - name: Flatten and create latest-named copies
         run: |
+          tag="${GITHUB_REF#refs/tags/}"
           cd artifacts
           find . -type f \( -name "*.tar.gz" -o -name "*.zip" \) -exec mv {} . \;
           # Create nous-latest-* copies for stable download URLs
           for f in *.tar.gz *.zip; do
             [ -f "$f" ] || continue
             # nous-v0.1.0-x86_64-unknown-linux-gnu.tar.gz -> nous-latest-x86_64-unknown-linux-gnu.tar.gz
-            latest=$(echo "$f" | sed 's/nous-v[^-]*/nous-latest/')
+            latest="${f/nous-${tag}/nous-latest}"
             cp "$f" "$latest"
           done
 
