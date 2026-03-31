@@ -176,6 +176,31 @@ function getDid(): string | null {
   return localStorage.getItem("nous_did");
 }
 
+// Map settings pref keys to notification kinds
+const PREF_TO_KIND: Record<string, NotifKind> = {
+  social: "social",
+  governance: "governance",
+  payments: "payment",
+  marketplace: "marketplace",
+  messages: "message",
+};
+
+function getMutedKinds(): Set<NotifKind> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = localStorage.getItem("nous_notif_prefs");
+    if (!raw) return new Set();
+    const prefs: Record<string, boolean> = JSON.parse(raw);
+    const muted = new Set<NotifKind>();
+    for (const [prefKey, kind] of Object.entries(PREF_TO_KIND)) {
+      if (prefs[prefKey] === false) muted.add(kind);
+    }
+    return muted;
+  } catch {
+    return new Set();
+  }
+}
+
 // ── Notification Bell ──────────────────────────────────────────────────
 
 const FILTER_TABS: { key: NotifKind | "all"; label: string }[] = [
@@ -236,7 +261,15 @@ export function NotificationBell() {
     }
 
     results.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-    setNotifications(results.slice(0, 12));
+
+    // Respect notification preferences from settings
+    const muted = getMutedKinds();
+    const visible =
+      muted.size > 0
+        ? results.filter((n) => !muted.has(n.kind))
+        : results;
+
+    setNotifications(visible.slice(0, 12));
   }, [userDid]);
 
   // Initial fetch + polling
