@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 // ── Shortcut definitions ─────────────────────────────────────────────────
 
@@ -42,6 +42,55 @@ const shortcutGroups: ShortcutGroup[] = [
   },
 ];
 
+// ── Page-specific shortcut definitions ──────────────────────────────────
+
+const pageShortcutGroups: Record<string, ShortcutGroup> = {
+  "/social": {
+    title: "Social",
+    shortcuts: [
+      { keys: ["N"], label: "New post (focus composer)" },
+      { keys: ["R"], label: "Refresh feed" },
+    ],
+  },
+  "/messages": {
+    title: "Messages",
+    shortcuts: [
+      { keys: ["N"], label: "New conversation" },
+    ],
+  },
+  "/wallet": {
+    title: "Wallet",
+    shortcuts: [
+      { keys: ["S"], label: "Send tokens" },
+    ],
+  },
+  "/governance": {
+    title: "Governance",
+    shortcuts: [
+      { keys: ["P"], label: "New proposal" },
+      { keys: ["D"], label: "New DAO" },
+    ],
+  },
+  "/ai": {
+    title: "AI",
+    shortcuts: [
+      { keys: ["N"], label: "New agent" },
+    ],
+  },
+  "/files": {
+    title: "Files",
+    shortcuts: [
+      { keys: ["U"], label: "Upload file" },
+    ],
+  },
+  "/marketplace": {
+    title: "Marketplace",
+    shortcuts: [
+      { keys: ["N"], label: "New listing" },
+    ],
+  },
+};
+
 const goToMap: Record<string, string> = {
   d: "/dashboard",
   s: "/social",
@@ -55,6 +104,38 @@ const goToMap: Record<string, string> = {
   i: "/identity",
   e: "/settings",
 };
+
+// ── Hook: Page-specific keyboard shortcuts ──────────────────────────────
+
+export type PageShortcutMap = Record<string, () => void>;
+
+export function usePageShortcuts(shortcuts: PageShortcutMap) {
+  const shortcutsRef = useRef(shortcuts);
+  shortcutsRef.current = shortcuts;
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      const target = e.target as HTMLElement;
+      const isInput =
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.tagName === "SELECT" ||
+        target.isContentEditable;
+
+      if (isInput) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+      const handler = shortcutsRef.current[e.key.toLowerCase()];
+      if (handler) {
+        e.preventDefault();
+        handler();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+}
 
 // ── Hook: Global keyboard shortcuts ──────────────────────────────────────
 
@@ -117,6 +198,30 @@ export function useKeyboardShortcuts(
 
 // ── Modal component ──────────────────────────────────────────────────────
 
+function ShortcutRow({ shortcut }: { shortcut: Shortcut }) {
+  return (
+    <div className="flex items-center justify-between py-2">
+      <span className="text-xs text-neutral-400 font-light">
+        {shortcut.label}
+      </span>
+      <div className="flex items-center gap-1">
+        {shortcut.keys.map((key, i) => (
+          <span key={i}>
+            <kbd className="inline-flex items-center justify-center min-w-[1.5rem] px-1.5 py-0.5 text-[10px] font-mono text-neutral-400 bg-white/[0.04] border border-white/[0.06] rounded">
+              {key}
+            </kbd>
+            {i < shortcut.keys.length - 1 && (
+              <span className="text-neutral-700 text-[10px] mx-0.5">
+                then
+              </span>
+            )}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function KeyboardShortcutsModal({
   open,
   onClose,
@@ -124,6 +229,8 @@ export function KeyboardShortcutsModal({
   open: boolean;
   onClose: () => void;
 }) {
+  const pathname = usePathname();
+
   useEffect(() => {
     if (!open) return;
     function handleKeyDown(e: KeyboardEvent) {
@@ -138,6 +245,8 @@ export function KeyboardShortcutsModal({
   }, [open, onClose]);
 
   if (!open) return null;
+
+  const pageGroup = pageShortcutGroups[pathname];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -160,6 +269,20 @@ export function KeyboardShortcutsModal({
 
           {/* Content */}
           <div className="max-h-[60vh] overflow-y-auto px-5 py-4 space-y-6">
+            {/* Page-specific shortcuts (shown first when on a page that has them) */}
+            {pageGroup && (
+              <div>
+                <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#d4af37] mb-3">
+                  {pageGroup.title} — This Page
+                </p>
+                <div className="space-y-0">
+                  {pageGroup.shortcuts.map((shortcut) => (
+                    <ShortcutRow key={shortcut.label} shortcut={shortcut} />
+                  ))}
+                </div>
+              </div>
+            )}
+
             {shortcutGroups.map((group) => (
               <div key={group.title}>
                 <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-600 mb-3">
@@ -167,28 +290,7 @@ export function KeyboardShortcutsModal({
                 </p>
                 <div className="space-y-0">
                   {group.shortcuts.map((shortcut) => (
-                    <div
-                      key={shortcut.label}
-                      className="flex items-center justify-between py-2"
-                    >
-                      <span className="text-xs text-neutral-400 font-light">
-                        {shortcut.label}
-                      </span>
-                      <div className="flex items-center gap-1">
-                        {shortcut.keys.map((key, i) => (
-                          <span key={i}>
-                            <kbd className="inline-flex items-center justify-center min-w-[1.5rem] px-1.5 py-0.5 text-[10px] font-mono text-neutral-400 bg-white/[0.04] border border-white/[0.06] rounded">
-                              {key}
-                            </kbd>
-                            {i < shortcut.keys.length - 1 && (
-                              <span className="text-neutral-700 text-[10px] mx-0.5">
-                                then
-                              </span>
-                            )}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
+                    <ShortcutRow key={shortcut.label} shortcut={shortcut} />
                   ))}
                 </div>
               </div>
