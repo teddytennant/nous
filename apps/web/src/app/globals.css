@@ -228,3 +228,16 @@ h1, h2, h3, h4, h5, h6 {
 html {
   scroll-behavior: smooth;
 }
+
+/* Nous gold accent button */
+.btn-gold {
+  background-color: #d4af37;
+  color: #000000;
+  font-weight: 500;
+}
+.btn-gold:hover {
+  background-color: #c4a030;
+}
+.btn-gold:active {
+  background-color: #b39028;
+}
