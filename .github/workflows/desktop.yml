@@ -1,0 +1,176 @@
+name: Desktop Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-desktop:
+    name: Desktop ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS (Apple Silicon)
+            os: macos-14
+            target: aarch64-apple-darwin
+            bundles: dmg
+            asset_pattern: "*.dmg"
+            rename_to: "nous-{tag}-macos-aarch64.dmg"
+          - name: macOS (Intel)
+            os: macos-13
+            target: x86_64-apple-darwin
+            bundles: dmg
+            asset_pattern: "*.dmg"
+            rename_to: "nous-{tag}-macos-x86_64.dmg"
+          - name: Linux (AppImage + deb)
+            os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            bundles: appimage,deb
+            asset_pattern_1: "*.AppImage"
+            asset_pattern_2: "*.deb"
+            rename_to_1: "nous-{tag}-linux-x86_64.AppImage"
+            rename_to_2: "nous-{tag}-linux-amd64.deb"
+          - name: Windows
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bundles: msi
+            asset_pattern: "*.msi"
+            rename_to: "nous-{tag}-windows-x86_64.msi"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: arduino/setup-protoc@v3
+        with:
+          version: "25.x"
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: desktop-${{ matrix.target }}
+
+      # Linux system dependencies for Tauri
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libfuse2
+
+      # Install Tauri CLI
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --version "^2" --locked
+
+      # Build Tauri app
+      - name: Build Tauri app
+        working-directory: apps/desktop
+        shell: bash
+        run: |
+          cargo tauri build \
+            --target ${{ matrix.target }} \
+            --bundles ${{ matrix.bundles }}
+
+      # Collect and rename artifacts — macOS
+      - name: Package macOS artifact
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+          name="${{ matrix.rename_to }}"
+          name="${name//\{tag\}/$tag}"
+          find apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle -name "${{ matrix.asset_pattern }}" -exec cp {} "$name" \;
+          echo "ASSET=$name" >> "$GITHUB_ENV"
+
+      # Collect and rename artifacts — Linux (two files)
+      - name: Package Linux artifacts
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+
+          name1="${{ matrix.rename_to_1 }}"
+          name1="${name1//\{tag\}/$tag}"
+          find apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle -name "${{ matrix.asset_pattern_1 }}" -exec cp {} "$name1" \;
+
+          name2="${{ matrix.rename_to_2 }}"
+          name2="${name2//\{tag\}/$tag}"
+          find apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle -name "${{ matrix.asset_pattern_2 }}" -exec cp {} "$name2" \;
+
+          echo "ASSET_1=$name1" >> "$GITHUB_ENV"
+          echo "ASSET_2=$name2" >> "$GITHUB_ENV"
+
+      # Collect and rename artifacts — Windows
+      - name: Package Windows artifact
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+          name="${{ matrix.rename_to }}"
+          name="${name//\{tag\}/$tag}"
+          find apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle -name "${{ matrix.asset_pattern }}" -exec cp {} "$name" \;
+          echo "ASSET=$name" >> "$GITHUB_ENV"
+
+      # Upload — single file (macOS, Windows)
+      - name: Upload artifact
+        if: runner.os != 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.target }}
+          path: ${{ env.ASSET }}
+
+      # Upload — Linux (two files)
+      - name: Upload Linux artifacts
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.target }}
+          path: |
+            ${{ env.ASSET_1 }}
+            ${{ env.ASSET_2 }}
+
+  release-desktop:
+    name: Upload Desktop to Release
+    needs: build-desktop
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: desktop-*
+          path: artifacts
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -la artifacts/
+
+      - name: Generate checksums
+        run: |
+          cd artifacts
+          sha256sum *.dmg *.AppImage *.deb *.msi 2>/dev/null > DESKTOP-SHA256SUMS.txt || true
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/*.dmg
+            artifacts/*.AppImage
+            artifacts/*.deb
+            artifacts/*.msi
+            artifacts/DESKTOP-SHA256SUMS.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
