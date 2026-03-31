@@ -406,7 +406,7 @@ export default function GovernancePage() {
               }
             />
           ) : (
-            <div className="space-y-px">
+            <div className="space-y-px stagger-in">
               {proposals.map((p) => {
                 const tally = tallies[p.id];
                 const votesFor = tally?.votes_for || 0;
@@ -586,7 +586,7 @@ export default function GovernancePage() {
               }
             />
           ) : (
-            <div className="space-y-px">
+            <div className="space-y-px stagger-in">
               {daos.map((d) => (
                 <Card
                   key={d.id}
@@ -735,7 +735,7 @@ export default function GovernancePage() {
                 description={userDid ? "Delegate your voting power to a trusted member of your DAO." : "Connect an identity in Settings to manage delegations."}
               />
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2 stagger-in">
                 {delegations.map((d) => (
                   <Card
                     key={d.id}
