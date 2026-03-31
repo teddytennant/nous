@@ -114,6 +114,38 @@ function statusLabel(status: string): string {
   }
 }
 
+type PeerSortKey = "peer_id" | "latency" | "sent" | "recv" | "connected";
+type SortDir = "asc" | "desc";
+
+function sortPeers(peers: PeerResponse[], key: PeerSortKey, dir: SortDir): PeerResponse[] {
+  return [...peers].sort((a, b) => {
+    let cmp = 0;
+    switch (key) {
+      case "peer_id":
+        cmp = a.peer_id.localeCompare(b.peer_id);
+        break;
+      case "latency":
+        cmp = (a.latency_ms ?? Infinity) - (b.latency_ms ?? Infinity);
+        break;
+      case "sent":
+        cmp = a.bytes_sent - b.bytes_sent;
+        break;
+      case "recv":
+        cmp = a.bytes_recv - b.bytes_recv;
+        break;
+      case "connected":
+        cmp = new Date(a.connected_at).getTime() - new Date(b.connected_at).getTime();
+        break;
+    }
+    return dir === "asc" ? cmp : -cmp;
+  });
+}
+
+function SortIndicator({ active, dir }: { active: boolean; dir: SortDir }) {
+  if (!active) return <span className="text-neutral-800 ml-1">↕</span>;
+  return <span className="text-[#d4af37] ml-1">{dir === "asc" ? "↑" : "↓"}</span>;
+}
+
 export default function NetworkPage() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [nodeInfo, setNodeInfo] = useState<NodeInfo | null>(null);
@@ -123,6 +155,8 @@ export default function NetworkPage() {
   const { toast } = useToast();
   const [connectAddr, setConnectAddr] = useState("");
   const [connecting, setConnecting] = useState(false);
+  const [sortKey, setSortKey] = useState<PeerSortKey>("connected");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   const fetchData = useCallback(async () => {
     try {
@@ -173,6 +207,17 @@ export default function NetworkPage() {
       toast({ title: "Disconnect failed", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
   }
+
+  function toggleSort(key: PeerSortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "latency" ? "asc" : "desc");
+    }
+  }
+
+  const sortedPeers = sortPeers(peerList, sortKey, sortDir);
 
   const overallStatus =
     health?.status === "ok"
@@ -357,29 +402,49 @@ export default function NetworkPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-white/[0.06]">
-                  <th className="text-left text-[10px] font-mono uppercase tracking-wider text-neutral-600 pb-3 pr-6">
+                  <th
+                    className="text-left text-[10px] font-mono uppercase tracking-wider text-neutral-600 pb-3 pr-6 cursor-pointer select-none hover:text-neutral-400 transition-colors duration-150"
+                    onClick={() => toggleSort("peer_id")}
+                  >
                     Peer ID
+                    <SortIndicator active={sortKey === "peer_id"} dir={sortDir} />
                   </th>
                   <th className="text-left text-[10px] font-mono uppercase tracking-wider text-neutral-600 pb-3 pr-6">
                     Address
                   </th>
-                  <th className="text-right text-[10px] font-mono uppercase tracking-wider text-neutral-600 pb-3 pr-6">
+                  <th
+                    className="text-right text-[10px] font-mono uppercase tracking-wider text-neutral-600 pb-3 pr-6 cursor-pointer select-none hover:text-neutral-400 transition-colors duration-150"
+                    onClick={() => toggleSort("latency")}
+                  >
                     Latency
+                    <SortIndicator active={sortKey === "latency"} dir={sortDir} />
                   </th>
-                  <th className="text-right text-[10px] font-mono uppercase tracking-wider text-neutral-600 pb-3 pr-6">
+                  <th
+                    className="text-right text-[10px] font-mono uppercase tracking-wider text-neutral-600 pb-3 pr-6 cursor-pointer select-none hover:text-neutral-400 transition-colors duration-150"
+                    onClick={() => toggleSort("sent")}
+                  >
                     Sent
+                    <SortIndicator active={sortKey === "sent"} dir={sortDir} />
                   </th>
-                  <th className="text-right text-[10px] font-mono uppercase tracking-wider text-neutral-600 pb-3 pr-6">
+                  <th
+                    className="text-right text-[10px] font-mono uppercase tracking-wider text-neutral-600 pb-3 pr-6 cursor-pointer select-none hover:text-neutral-400 transition-colors duration-150"
+                    onClick={() => toggleSort("recv")}
+                  >
                     Recv
+                    <SortIndicator active={sortKey === "recv"} dir={sortDir} />
                   </th>
-                  <th className="text-right text-[10px] font-mono uppercase tracking-wider text-neutral-600 pb-3 pr-6">
+                  <th
+                    className="text-right text-[10px] font-mono uppercase tracking-wider text-neutral-600 pb-3 pr-6 cursor-pointer select-none hover:text-neutral-400 transition-colors duration-150"
+                    onClick={() => toggleSort("connected")}
+                  >
                     Connected
+                    <SortIndicator active={sortKey === "connected"} dir={sortDir} />
                   </th>
                   <th className="text-right text-[10px] font-mono uppercase tracking-wider text-neutral-600 pb-3" />
                 </tr>
               </thead>
               <tbody>
-                {peerList.map((peer) => (
+                {sortedPeers.map((peer) => (
                   <tr
                     key={peer.peer_id}
                     className="border-b border-white/[0.03] hover:bg-white/[0.01] transition-colors duration-100 group"
