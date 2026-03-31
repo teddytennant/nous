@@ -222,7 +222,7 @@ export default function NetworkPage() {
   ];
 
   return (
-    <div className="p-8 max-w-6xl">
+    <div className="p-4 sm:p-8 max-w-6xl">
       <PageHeader title="Network" subtitle="P2P mesh status, connected peers, and subsystem health" />
 
       {/* Stats grid */}
@@ -318,7 +318,7 @@ export default function NetworkPage() {
               onChange={(e) => setConnectAddr(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleConnect()}
               placeholder="/ip4/.../tcp/9000"
-              className="bg-white/[0.02] text-[10px] font-mono px-3 py-1.5 outline-none placeholder:text-neutral-700 w-56"
+              className="bg-white/[0.02] text-[10px] font-mono px-3 py-1.5 outline-none placeholder:text-neutral-700 w-full sm:w-56"
             />
             <button
               onClick={handleConnect}
