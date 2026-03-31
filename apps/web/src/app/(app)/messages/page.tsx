@@ -9,6 +9,7 @@ import { useRealtime } from "@/lib/use-realtime";
 import { useToast } from "@/components/toast";
 import { EmptyState, MessagesIllustration } from "@/components/empty-state";
 import { usePageShortcuts, useListNavigation } from "@/components/keyboard-shortcuts";
+import { Avatar } from "@/components/avatar";
 
 type CreateMode = "dm" | "group" | null;
 
@@ -279,12 +280,17 @@ export default function MessagesPage() {
           {loading ? (
             <div>
               {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="px-6 py-4 border-b border-white/[0.03]">
-                  <div className="flex justify-between items-baseline mb-1.5">
-                    <Skeleton className="h-3 w-28" />
-                    <Skeleton className="h-2.5 w-8" />
+                <div key={i} className="px-4 sm:px-6 py-3.5 border-b border-white/[0.03]">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="w-7 h-7 rounded-full shrink-0" />
+                    <div className="flex-1">
+                      <div className="flex justify-between items-baseline mb-1">
+                        <Skeleton className="h-3 w-28" />
+                        <Skeleton className="h-2.5 w-8" />
+                      </div>
+                      <Skeleton className="h-2.5 w-16" />
+                    </div>
                   </div>
-                  <Skeleton className="h-2.5 w-16" />
                 </div>
               ))}
             </div>
@@ -297,13 +303,16 @@ export default function MessagesPage() {
           ) : null}
           {channels.map((ch, i) => {
             const isHighlighted = i === highlightedIndex;
+            const avatarDid = ch.kind === "direct"
+              ? (ch.members.find((m) => m !== userDid) || ch.id)
+              : ch.id;
             return (
             <button
               key={ch.id}
               data-list-item
               onClick={() => { setSelected(ch.id); setReplyTo(null); setHighlightedIndex(i); }}
               className={cn(
-                "relative w-full text-left px-6 py-4 transition-colors duration-150 border-b border-white/[0.03]",
+                "relative w-full text-left px-4 sm:px-6 py-3.5 transition-colors duration-150 border-b border-white/[0.03]",
                 selected === ch.id ? "bg-white/[0.02]" : "hover:bg-white/[0.01]",
                 isHighlighted && selected !== ch.id && "bg-[#d4af37]/[0.015]"
               )}
@@ -311,20 +320,25 @@ export default function MessagesPage() {
               {isHighlighted && (
                 <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[#d4af37] rounded-full" />
               )}
-              <div className="flex justify-between items-baseline mb-1.5">
-                <span className="text-xs font-mono text-neutral-500 truncate max-w-[140px]">
-                  {channelDisplayName(ch, userDid)}
-                </span>
-                <span className={cn(
-                  "text-[10px] font-mono uppercase tracking-wider",
-                  ch.kind === "direct" ? "text-neutral-700" : ch.kind === "group" ? "text-[#d4af37]/50" : "text-emerald-700"
-                )}>
-                  {ch.kind === "direct" ? "DM" : ch.kind === "group" ? "GRP" : "PUB"}
-                </span>
+              <div className="flex items-center gap-3">
+                <Avatar did={avatarDid} size="sm" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-baseline mb-0.5">
+                    <span className="text-xs font-mono text-neutral-500 truncate">
+                      {channelDisplayName(ch, userDid)}
+                    </span>
+                    <span className={cn(
+                      "text-[10px] font-mono uppercase tracking-wider shrink-0 ml-2",
+                      ch.kind === "direct" ? "text-neutral-700" : ch.kind === "group" ? "text-[#d4af37]/50" : "text-emerald-700"
+                    )}>
+                      {ch.kind === "direct" ? "DM" : ch.kind === "group" ? "GRP" : "PUB"}
+                    </span>
+                  </div>
+                  <p className="text-[10px] font-mono text-neutral-700">
+                    {ch.members.length} member{ch.members.length !== 1 ? "s" : ""}
+                  </p>
+                </div>
               </div>
-              <p className="text-[10px] font-mono text-neutral-700">
-                {ch.members.length} member{ch.members.length !== 1 ? "s" : ""}
-              </p>
             </button>
             );
           })}
@@ -377,43 +391,50 @@ export default function MessagesPage() {
             const isSelf = msg.sender === userDid;
             return (
               <div key={msg.id} className={cn("max-w-[70%] group", isSelf ? "ml-auto" : "")}>
-                {!isSelf && (
-                  <p className="text-[10px] font-mono text-neutral-700 mb-1">
-                    {truncateDid(msg.sender)}
-                  </p>
-                )}
                 {msg.reply_to && (
-                  <div className="text-[10px] font-mono text-neutral-700 mb-1 pl-3 border-l border-white/[0.06]">
+                  <div className={cn("text-[10px] font-mono text-neutral-700 mb-1 pl-3 border-l border-white/[0.06]", !isSelf && "ml-9")}>
                     Replying to message
                   </div>
                 )}
-                <div
-                  className={cn(
-                    "px-4 py-3 text-sm font-light",
-                    isSelf ? "bg-white/[0.04] text-white" : "bg-white/[0.02] text-neutral-300"
+                <div className={cn("flex gap-2", isSelf && "flex-row-reverse")}>
+                  {!isSelf && (
+                    <Avatar did={msg.sender} size="xs" className="mt-1" />
                   )}
-                >
-                  {msg.content}
-                </div>
-                <div className={cn(
-                  "flex items-center gap-3 mt-1",
-                  isSelf ? "justify-end" : ""
-                )}>
-                  <span className="text-[10px] text-neutral-700">{timeAgo(msg.timestamp)}</span>
-                  <button
-                    onClick={() => setReplyTo(msg)}
-                    className="text-[10px] font-mono text-neutral-800 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    reply
-                  </button>
-                  {isSelf && (
-                    <button
-                      onClick={() => deleteMessage(msg.id)}
-                      className="text-[10px] font-mono text-neutral-800 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                  <div className="flex-1 min-w-0">
+                    {!isSelf && (
+                      <p className="text-[10px] font-mono text-neutral-700 mb-1">
+                        {truncateDid(msg.sender)}
+                      </p>
+                    )}
+                    <div
+                      className={cn(
+                        "px-4 py-3 text-sm font-light rounded-sm",
+                        isSelf ? "bg-white/[0.04] text-white" : "bg-white/[0.02] text-neutral-300"
+                      )}
                     >
-                      delete
-                    </button>
-                  )}
+                      {msg.content}
+                    </div>
+                    <div className={cn(
+                      "flex items-center gap-3 mt-1",
+                      isSelf ? "justify-end" : ""
+                    )}>
+                      <span className="text-[10px] text-neutral-700">{timeAgo(msg.timestamp)}</span>
+                      <button
+                        onClick={() => setReplyTo(msg)}
+                        className="text-[10px] font-mono text-neutral-800 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        reply
+                      </button>
+                      {isSelf && (
+                        <button
+                          onClick={() => deleteMessage(msg.id)}
+                          className="text-[10px] font-mono text-neutral-800 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          delete
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             );
