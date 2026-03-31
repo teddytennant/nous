@@ -1,5 +1,7 @@
 "use client";
 
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -17,6 +19,8 @@ import {
   Fingerprint,
   Settings,
   Search,
+  Menu,
+  X,
 } from "lucide-react";
 
 const sections = [
@@ -58,15 +62,68 @@ const sections = [
   },
 ];
 
-export function Sidebar() {
+// Bottom tab bar items — the 5 most important nav destinations
+const bottomTabs = [
+  { name: "Home", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Social", href: "/social", icon: Users },
+  { name: "Messages", href: "/messages", icon: MessageSquare },
+  { name: "Wallet", href: "/wallet", icon: Wallet },
+  { name: "AI", href: "/ai", icon: Brain },
+];
+
+// --- Mobile sidebar context ---
+
+type MobileSidebarContextValue = {
+  open: boolean;
+  setOpen: (open: boolean) => void;
+  toggle: () => void;
+};
+
+const MobileSidebarContext = createContext<MobileSidebarContextValue>({
+  open: false,
+  setOpen: () => {},
+  toggle: () => {},
+});
+
+export function MobileSidebarProvider({ children }: { children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const toggle = useCallback(() => setOpen((v) => !v), []);
+
+  // Lock body scroll when drawer is open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
+  return (
+    <MobileSidebarContext value={{ open, setOpen, toggle }}>
+      {children}
+    </MobileSidebarContext>
+  );
+}
+
+export function useMobileSidebar() {
+  return useContext(MobileSidebarContext);
+}
+
+// --- Sidebar navigation content (shared between desktop and mobile) ---
+
+function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const { status } = useConnection();
 
   return (
-    <aside className="w-56 shrink-0 border-r border-white/[0.06] flex flex-col h-screen sticky top-0">
+    <>
       <div className="px-6 pt-8 pb-8">
         <Link
           href="/"
+          onClick={onNavigate}
           className="text-2xl font-extralight tracking-[-0.04em] hover:text-[#d4af37] transition-colors duration-200"
         >
           Nous
@@ -76,11 +133,12 @@ export function Sidebar() {
       <div className="px-3 mb-4">
         <button
           type="button"
-          onClick={() =>
+          onClick={() => {
+            onNavigate?.();
             window.dispatchEvent(
               new KeyboardEvent("keydown", { key: "k", metaKey: true }),
-            )
-          }
+            );
+          }}
           className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-light text-neutral-600 hover:text-neutral-400 bg-white/[0.02] hover:bg-white/[0.04] border border-white/[0.06] rounded-sm transition-all duration-150 cursor-pointer"
         >
           <Search className="w-3.5 h-3.5" />
@@ -104,6 +162,7 @@ export function Sidebar() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={onNavigate}
                   className={cn(
                     "relative flex items-center gap-3 px-3 py-2 text-sm font-light tracking-wide transition-all duration-150 rounded-sm",
                     active
@@ -149,6 +208,134 @@ export function Sidebar() {
           </p>
         </div>
       </div>
+    </>
+  );
+}
+
+// --- Desktop sidebar (hidden on mobile) ---
+
+export function Sidebar() {
+  return (
+    <aside className="hidden md:flex w-56 shrink-0 border-r border-white/[0.06] flex-col h-screen sticky top-0">
+      <SidebarContent />
     </aside>
+  );
+}
+
+// --- Mobile header bar (visible on mobile only) ---
+
+export function MobileHeader() {
+  const { toggle } = useMobileSidebar();
+
+  return (
+    <header className="md:hidden fixed top-0 left-0 right-0 z-40 h-14 bg-black/80 backdrop-blur-xl border-b border-white/[0.06] flex items-center px-4">
+      <button
+        type="button"
+        onClick={toggle}
+        className="p-2 -ml-2 rounded-sm hover:bg-white/[0.04] transition-colors duration-150"
+        aria-label="Toggle navigation"
+      >
+        <Menu className="w-5 h-5 text-neutral-400" />
+      </button>
+      <Link
+        href="/"
+        className="ml-3 text-base font-extralight tracking-[-0.04em]"
+      >
+        Nous
+      </Link>
+    </header>
+  );
+}
+
+// --- Mobile drawer overlay ---
+
+export function MobileDrawer() {
+  const { open, setOpen } = useMobileSidebar();
+  const pathname = usePathname();
+
+  // Close drawer on route change
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname, setOpen]);
+
+  // Close on Escape
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape" && open) {
+        setOpen(false);
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, setOpen]);
+
+  return (
+    <div
+      className={cn("md:hidden fixed inset-0 z-50", !open && "pointer-events-none")}
+    >
+      {/* Backdrop */}
+      <div
+        className={cn(
+          "absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-200",
+          open ? "opacity-100" : "opacity-0",
+        )}
+        onClick={() => setOpen(false)}
+        aria-hidden="true"
+      />
+
+      {/* Drawer panel */}
+      <aside
+        className={cn(
+          "absolute top-0 left-0 bottom-0 w-64 bg-black border-r border-white/[0.06] flex flex-col transition-transform duration-200 ease-out",
+          open ? "translate-x-0" : "-translate-x-full",
+        )}
+      >
+        {/* Close button */}
+        <div className="absolute top-4 right-4">
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="p-1.5 rounded-sm hover:bg-white/[0.04] transition-colors duration-150"
+            aria-label="Close navigation"
+          >
+            <X className="w-4 h-4 text-neutral-500" />
+          </button>
+        </div>
+
+        <SidebarContent onNavigate={() => setOpen(false)} />
+      </aside>
+    </div>
+  );
+}
+
+// --- Mobile bottom tab bar ---
+
+export function BottomTabBar() {
+  const pathname = usePathname();
+
+  return (
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-black/80 backdrop-blur-xl border-t border-white/[0.06] flex items-center justify-around px-2" style={{ paddingBottom: "max(0.25rem, env(safe-area-inset-bottom))", height: "calc(4rem + env(safe-area-inset-bottom, 0px))" }}>
+      {bottomTabs.map((tab) => {
+        const active = pathname === tab.href;
+        const Icon = tab.icon;
+        return (
+          <Link
+            key={tab.href}
+            href={tab.href}
+            className={cn(
+              "flex flex-col items-center justify-center gap-1 px-3 py-1.5 rounded-sm transition-colors duration-150 min-w-[3.5rem]",
+              active
+                ? "text-[#d4af37]"
+                : "text-neutral-600 active:text-neutral-400",
+            )}
+          >
+            <Icon className="w-5 h-5" />
+            <span className="text-[10px] font-mono tracking-wide">
+              {tab.name}
+            </span>
+          </Link>
+        );
+      })}
+    </nav>
   );
 }
