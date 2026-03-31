@@ -26,6 +26,15 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      - name: Generate signing keystore
+        run: |
+          keytool -genkey -v \
+            -keystore "$HOME/.android/debug.keystore" \
+            -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass android -keypass android \
+            -dname "CN=Nous,O=Nous,C=US"
+
       - name: Build release APK
         run: ./gradlew assembleRelease
 
