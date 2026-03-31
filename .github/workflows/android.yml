@@ -60,10 +60,12 @@ jobs:
 
       - name: Create latest-named copy for stable download URL
         run: |
+          tag="${GITHUB_REF#refs/tags/}"
           cd artifacts
           for f in nous-v*.apk; do
             [ -f "$f" ] || continue
-            cp "$f" "nous-latest-android.apk"
+            latest="${f/nous-${tag}/nous-latest}"
+            cp "$f" "$latest"
           done
 
       - name: Upload to GitHub Release
