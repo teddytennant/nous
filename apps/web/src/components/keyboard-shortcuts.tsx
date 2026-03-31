@@ -25,6 +25,15 @@ const shortcutGroups: ShortcutGroup[] = [
     ],
   },
   {
+    title: "Lists",
+    shortcuts: [
+      { keys: ["J"], label: "Next item" },
+      { keys: ["K"], label: "Previous item" },
+      { keys: ["↵"], label: "Activate selected item" },
+      { keys: ["Esc"], label: "Clear selection" },
+    ],
+  },
+  {
     title: "Navigation",
     shortcuts: [
       { keys: ["G", "D"], label: "Go to Dashboard" },
@@ -137,6 +146,92 @@ export function usePageShortcuts(shortcuts: PageShortcutMap) {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
+}
+
+// ── Hook: List navigation (J/K/Enter) ─────────────────────────────────────
+
+export function useListNavigation({
+  itemCount,
+  onActivate,
+  enabled = true,
+}: {
+  itemCount: number;
+  onActivate?: (index: number) => void;
+  enabled?: boolean;
+}) {
+  const [rawSelected, setRawSelected] = useState(-1);
+  const selectedIndex =
+    itemCount === 0 ? -1 : Math.min(rawSelected, itemCount - 1);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const onActivateRef = useRef(onActivate);
+  const selectedRef = useRef(selectedIndex);
+
+  useEffect(() => {
+    onActivateRef.current = onActivate;
+    selectedRef.current = selectedIndex;
+  });
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    function handleKeyDown(e: KeyboardEvent) {
+      const target = e.target as HTMLElement;
+      const isInput =
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.tagName === "SELECT" ||
+        target.isContentEditable;
+      if (isInput) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (itemCount === 0) return;
+
+      const key = e.key.toLowerCase();
+
+      if (key === "j") {
+        e.preventDefault();
+        setRawSelected((prev) => {
+          const next = prev < itemCount - 1 ? prev + 1 : 0;
+          requestAnimationFrame(() => {
+            const items =
+              containerRef.current?.querySelectorAll("[data-list-item]");
+            items?.[next]?.scrollIntoView({
+              block: "nearest",
+              behavior: "smooth",
+            });
+          });
+          return next;
+        });
+      } else if (key === "k") {
+        e.preventDefault();
+        setRawSelected((prev) => {
+          const next = prev > 0 ? prev - 1 : itemCount - 1;
+          requestAnimationFrame(() => {
+            const items =
+              containerRef.current?.querySelectorAll("[data-list-item]");
+            items?.[next]?.scrollIntoView({
+              block: "nearest",
+              behavior: "smooth",
+            });
+          });
+          return next;
+        });
+      } else if (
+        key === "enter" &&
+        selectedRef.current >= 0 &&
+        onActivateRef.current
+      ) {
+        e.preventDefault();
+        onActivateRef.current(selectedRef.current);
+      } else if (key === "escape" && selectedRef.current >= 0) {
+        setRawSelected(-1);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [enabled, itemCount]);
+
+  return { selectedIndex, setSelectedIndex: setRawSelected, containerRef };
 }
 
 // ── Hook: Global keyboard shortcuts ──────────────────────────────────────
