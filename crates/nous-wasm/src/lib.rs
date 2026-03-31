@@ -1,7 +1,9 @@
-//! WebAssembly bindings for Nous cryptographic primitives.
+//! WebAssembly bindings for Nous primitives.
 //!
 //! Exposes identity generation, signing, verification, encryption,
-//! DID operations, and zero-knowledge proofs to JavaScript.
+//! DID operations, zero-knowledge proofs, and CRDTs to JavaScript.
+
+pub mod crdt;
 
 use aes_gcm::aead::{Aead, KeyInit};
 use aes_gcm::{Aes256Gcm, Nonce};
