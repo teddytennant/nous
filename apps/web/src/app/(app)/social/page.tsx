@@ -96,9 +96,11 @@ export default function SocialPage() {
           next.delete(targetDid);
           return next;
         });
+        toast({ title: "Unfollowed", variant: "success" });
       } else {
         await social.follow(userDid, targetDid);
         setFollowing((prev) => new Set(prev).add(targetDid));
+        toast({ title: "Followed", variant: "success" });
       }
     } catch (e) {
       toast({ title: "Failed to update follow", description: e instanceof Error ? e.message : undefined, variant: "error" });
