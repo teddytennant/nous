@@ -13,6 +13,7 @@ import { ConnectionProvider } from "@/components/connection-status";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { ToastProvider } from "@/components/toast";
 import { CommandPalette } from "@/components/command-palette";
+import { KeyboardShortcutsProvider } from "@/components/keyboard-shortcuts";
 import { Onboarding } from "@/components/onboarding";
 
 function PageTransition({ children }: { children: ReactNode }) {
@@ -66,6 +67,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <BottomTabBar />
             </div>
             <CommandPalette />
+            <KeyboardShortcutsProvider />
           </MobileSidebarProvider>
         </OnboardingGate>
       </ToastProvider>
