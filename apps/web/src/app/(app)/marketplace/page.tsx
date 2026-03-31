@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, startTransition } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   marketplace,
   orders,
@@ -79,6 +80,7 @@ function ListingsTab() {
   const [listingsList, setListings] = useState<ListingResponse[]>([]);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [newListing, setNewListing] = useState({
@@ -103,6 +105,8 @@ function ListingsTab() {
     } catch {
       setError("API offline");
       setListings([]);
+    } finally {
+      setLoading(false);
     }
   }, [search, category]);
 
@@ -269,7 +273,28 @@ function ListingsTab() {
       </section>
 
       <section>
-        {listingsList.length === 0 ? (
+        {loading ? (
+          <div className="grid grid-cols-2 gap-px bg-white/[0.03]">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i} className="bg-black border-0 rounded-none">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between mb-3">
+                    <Skeleton className="h-3.5 w-32" />
+                    <Skeleton className="h-2.5 w-14" />
+                  </div>
+                  <div className="space-y-1.5 mb-4">
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-3/4" />
+                  </div>
+                  <div className="flex items-baseline justify-between">
+                    <Skeleton className="h-5 w-20" />
+                    <Skeleton className="h-2.5 w-14" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : listingsList.length === 0 ? (
           <div className="py-16 text-center">
             <p className="text-sm text-neutral-700 font-light">
               No listings found
@@ -334,6 +359,7 @@ function ListingsTab() {
 
 function OrdersTab() {
   const [ordersList, setOrders] = useState<OrderResponse[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -343,14 +369,41 @@ function OrdersTab() {
       .catch(() => {
         setError("API offline");
         setOrders([]);
-      });
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   return (
     <>
       {error && <p className="text-xs text-red-500 mb-6">{error}</p>}
 
-      {ordersList.length === 0 ? (
+      {loading ? (
+        <div className="space-y-px">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i} className="bg-white/[0.01] border-white/[0.06] rounded-none">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <Skeleton className="h-2.5 w-32 mb-2" />
+                    <Skeleton className="h-3.5 w-24" />
+                  </div>
+                  <Skeleton className="h-2.5 w-16" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Skeleton className="h-2.5 w-10 mb-1.5" />
+                    <Skeleton className="h-3 w-36" />
+                  </div>
+                  <div>
+                    <Skeleton className="h-2.5 w-10 mb-1.5" />
+                    <Skeleton className="h-3 w-36" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : ordersList.length === 0 ? (
         <div className="py-16 text-center">
           <p className="text-sm text-neutral-700 font-light">No orders yet</p>
           <p className="text-[10px] font-mono text-neutral-800 mt-2">
@@ -428,6 +481,7 @@ function OrdersTab() {
 
 function DisputesTab() {
   const [disputesList, setDisputes] = useState<DisputeResponse[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -437,14 +491,45 @@ function DisputesTab() {
       .catch(() => {
         setError("API offline");
         setDisputes([]);
-      });
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   return (
     <>
       {error && <p className="text-xs text-red-500 mb-6">{error}</p>}
 
-      {disputesList.length === 0 ? (
+      {loading ? (
+        <div className="space-y-px">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <Card key={i} className="bg-white/[0.01] border-white/[0.06] rounded-none">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <Skeleton className="h-2.5 w-32 mb-2" />
+                    <Skeleton className="h-3.5 w-48" />
+                  </div>
+                  <Skeleton className="h-2.5 w-16" />
+                </div>
+                <div className="grid grid-cols-3 gap-4 mt-4">
+                  <div>
+                    <Skeleton className="h-2.5 w-12 mb-1.5" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                  <div>
+                    <Skeleton className="h-2.5 w-14 mb-1.5" />
+                    <Skeleton className="h-3 w-16" />
+                  </div>
+                  <div>
+                    <Skeleton className="h-2.5 w-12 mb-1.5" />
+                    <Skeleton className="h-3 w-28" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : disputesList.length === 0 ? (
         <div className="py-16 text-center">
           <p className="text-sm text-neutral-700 font-light">
             No disputes
@@ -539,6 +624,7 @@ function DisputesTab() {
 
 function OffersTab() {
   const [offersList, setOffers] = useState<OfferResponse[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -548,14 +634,41 @@ function OffersTab() {
       .catch(() => {
         setError("API offline");
         setOffers([]);
-      });
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   return (
     <>
       {error && <p className="text-xs text-red-500 mb-6">{error}</p>}
 
-      {offersList.length === 0 ? (
+      {loading ? (
+        <div className="space-y-px">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i} className="bg-white/[0.01] border-white/[0.06] rounded-none">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <Skeleton className="h-2.5 w-32 mb-2" />
+                    <Skeleton className="h-5 w-24" />
+                  </div>
+                  <Skeleton className="h-2.5 w-16" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Skeleton className="h-2.5 w-10 mb-1.5" />
+                    <Skeleton className="h-3 w-36" />
+                  </div>
+                  <div>
+                    <Skeleton className="h-2.5 w-12 mb-1.5" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : offersList.length === 0 ? (
         <div className="py-16 text-center">
           <p className="text-sm text-neutral-700 font-light">No offers yet</p>
           <p className="text-[10px] font-mono text-neutral-800 mt-2">
