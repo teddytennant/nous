@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useSyncExternalStore, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useSyncExternalStore, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import {
   Sidebar,
@@ -11,7 +11,7 @@ import {
 } from "@/components/sidebar";
 import { ConnectionProvider, useConnection } from "@/components/connection-status";
 import { ErrorBoundary } from "@/components/error-boundary";
-import { ToastProvider } from "@/components/toast";
+import { ToastProvider, useToast } from "@/components/toast";
 import { CommandPalette } from "@/components/command-palette";
 import { KeyboardShortcutsProvider } from "@/components/keyboard-shortcuts";
 import { Onboarding } from "@/components/onboarding";
@@ -38,6 +38,21 @@ function ConnectionGate({ children }: { children: ReactNode }) {
   }
 
   return <>{children}</>;
+}
+
+function ReconnectionToast() {
+  const { status } = useConnection();
+  const { toast } = useToast();
+  const prevStatus = useRef(status);
+
+  useEffect(() => {
+    if (prevStatus.current === "offline" && status === "online") {
+      toast({ title: "Back online", description: "Connection restored", variant: "success" });
+    }
+    prevStatus.current = status;
+  }, [status, toast]);
+
+  return null;
 }
 
 const emptySubscribe = () => () => {};
@@ -68,6 +83,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <ConnectionProvider>
       <ToastProvider>
+        <ReconnectionToast />
         <OnboardingGate>
           <MobileSidebarProvider>
             <div className="flex min-h-screen">
