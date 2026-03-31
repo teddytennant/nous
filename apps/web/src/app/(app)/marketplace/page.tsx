@@ -211,7 +211,7 @@ function ListingsTab() {
               rows={3}
               className="w-full bg-white/[0.02] text-sm font-light px-4 py-3 outline-none placeholder:text-neutral-700 mb-4 resize-none"
             />
-            <div className="grid grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
               <input
                 value={newListing.price_amount}
                 onChange={(e) =>
@@ -526,7 +526,7 @@ function DisputesTab() {
                   </div>
                   <Skeleton className="h-2.5 w-16" />
                 </div>
-                <div className="grid grid-cols-3 gap-4 mt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
                   <div>
                     <Skeleton className="h-2.5 w-12 mb-1.5" />
                     <Skeleton className="h-3 w-24" />
@@ -575,7 +575,7 @@ function DisputesTab() {
                   </span>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 text-xs mt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs mt-4">
                   <div>
                     <span className="text-neutral-700 font-mono text-[10px] uppercase tracking-wider">
                       Reason
@@ -773,7 +773,7 @@ export default function MarketplacePage() {
   });
 
   return (
-    <div className="p-8 max-w-5xl">
+    <div className="p-4 sm:p-8 max-w-5xl">
       <PageHeader title="Marketplace" subtitle="P2P. Reputation-gated. Escrow-backed." />
 
       <nav className="flex gap-0 mb-12 border-b border-white/[0.06]">
