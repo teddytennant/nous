@@ -158,6 +158,16 @@ jobs:
       - name: List artifacts
         run: ls -la artifacts/
 
+      - name: Create latest-named copies for stable download URLs
+        run: |
+          cd artifacts
+          for f in *.dmg *.AppImage *.deb *.msi; do
+            [ -f "$f" ] || continue
+            # nous-v0.1.0-macos-aarch64.dmg -> nous-latest-macos-aarch64.dmg
+            latest=$(echo "$f" | sed 's/nous-v[^-]*/nous-latest/')
+            cp "$f" "$latest"
+          done
+
       - name: Generate checksums
         run: |
           cd artifacts
