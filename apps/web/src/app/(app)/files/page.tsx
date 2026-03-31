@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
   files,
@@ -223,7 +224,24 @@ export default function FilesPage() {
           to start using file storage.
         </div>
       ) : loading ? (
-        <p className="text-xs text-neutral-700 font-mono">Loading...</p>
+        <div className="space-y-px">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="p-4">
+              <div className="flex items-center gap-4">
+                <Skeleton className="h-4 w-6" />
+                <div className="flex-1 min-w-0">
+                  <Skeleton className="h-3.5 w-48 mb-2" />
+                  <div className="flex gap-4">
+                    <Skeleton className="h-2.5 w-12" />
+                    <Skeleton className="h-2.5 w-8" />
+                    <Skeleton className="h-2.5 w-24" />
+                  </div>
+                </div>
+                <Skeleton className="h-2.5 w-24" />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : fileList.length === 0 ? (
         <p className="text-sm text-neutral-600 font-light">
           No files yet. Upload your first file.
