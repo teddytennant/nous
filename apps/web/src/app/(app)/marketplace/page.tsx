@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { EmptyState, MarketplaceIllustration, OrdersIllustration, DisputeIllustration, OffersIllustration } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { useToast } from "@/components/toast";
+import { usePageShortcuts } from "@/components/keyboard-shortcuts";
 
 type Tab = "listings" | "orders" | "disputes" | "offers";
 
@@ -94,6 +95,15 @@ function ListingsTab() {
     price_amount: "",
     tags: "",
   });
+
+  // Listen for shortcut-triggered create
+  useEffect(() => {
+    function onCreateListing() {
+      setCreating(true);
+    }
+    window.addEventListener("nous:create-listing", onCreateListing);
+    return () => window.removeEventListener("nous:create-listing", onCreateListing);
+  }, []);
 
   const fetchListings = useCallback(async () => {
     try {
@@ -751,6 +761,16 @@ function OffersTab() {
 
 export default function MarketplacePage() {
   const [tab, setTab] = useState<Tab>("listings");
+
+  usePageShortcuts({
+    n: () => {
+      setTab("listings");
+      // Small delay to let ListingsTab mount if switching tabs
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent("nous:create-listing"));
+      }, 50);
+    },
+  });
 
   return (
     <div className="p-8 max-w-5xl">
