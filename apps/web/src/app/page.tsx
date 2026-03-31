@@ -33,6 +33,7 @@ function GithubIcon({ className }: { className?: string }) {
 import { Badge } from "@/components/ui/badge";
 import { ArchitectureDiagram } from "@/components/architecture-diagram";
 import { TerminalDemo } from "@/components/terminal-demo";
+import { OpenSourceSection } from "@/components/open-source-section";
 
 const features = [
   {
@@ -660,6 +661,12 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      {/* Divider */}
+      <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
+      {/* Open Source */}
+      <OpenSourceSection />
 
       {/* Divider */}
       <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
