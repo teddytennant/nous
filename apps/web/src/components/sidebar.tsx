@@ -6,7 +6,6 @@ import {
   useContext,
   useEffect,
   useState,
-  useSyncExternalStore,
 } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
