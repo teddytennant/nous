@@ -1,7 +1,13 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Sidebar } from "@/components/sidebar";
+import {
+  Sidebar,
+  MobileHeader,
+  MobileDrawer,
+  BottomTabBar,
+  MobileSidebarProvider,
+} from "@/components/sidebar";
 import { ConnectionProvider } from "@/components/connection-status";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { ToastProvider } from "@/components/toast";
@@ -11,13 +17,18 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <ConnectionProvider>
       <ToastProvider>
-        <div className="flex min-h-screen">
-          <Sidebar />
-          <main className="flex-1 min-w-0">
-            <ErrorBoundary>{children}</ErrorBoundary>
-          </main>
-        </div>
-        <CommandPalette />
+        <MobileSidebarProvider>
+          <div className="flex min-h-screen">
+            <Sidebar />
+            <MobileHeader />
+            <MobileDrawer />
+            <main className="flex-1 min-w-0 pt-14 md:pt-0 mobile-main-padding">
+              <ErrorBoundary>{children}</ErrorBoundary>
+            </main>
+            <BottomTabBar />
+          </div>
+          <CommandPalette />
+        </MobileSidebarProvider>
       </ToastProvider>
     </ConnectionProvider>
   );
