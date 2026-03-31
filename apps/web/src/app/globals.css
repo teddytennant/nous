@@ -168,6 +168,35 @@ h1, h2, h3, h4, h5, h6 {
   animation: toast-exit 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Command palette animations */
+@keyframes cmd-backdrop-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes cmd-dialog-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.cmd-backdrop-enter {
+  animation: cmd-backdrop-enter 0.15s ease-out forwards;
+}
+
+.cmd-dialog-enter {
+  animation: cmd-dialog-enter 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 /* Smooth scroll */
 html {
   scroll-behavior: smooth;
