@@ -261,7 +261,7 @@ export default function GovernancePage() {
   }
 
   return (
-    <div className="p-8 max-w-4xl">
+    <div className="p-4 sm:p-8 max-w-4xl">
       <PageHeader title="Governance" subtitle="Quadratic voting. Every voice weighted fairly." />
 
       {/* Tabs */}
@@ -796,7 +796,7 @@ export default function GovernancePage() {
               </h3>
               <Card className="bg-white/[0.02] border-white/[0.06]">
                 <CardContent className="p-4">
-                  <div className="grid grid-cols-3 gap-2 text-[10px] font-mono uppercase tracking-[0.1em] text-neutral-600 mb-3 border-b border-white/[0.04] pb-2">
+                  <div className="hidden sm:grid grid-cols-3 gap-2 text-[10px] font-mono uppercase tracking-[0.1em] text-neutral-600 mb-3 border-b border-white/[0.04] pb-2">
                     <span>Member</span>
                     <span className="text-right">Base</span>
                     <span className="text-right">Effective</span>
@@ -804,7 +804,7 @@ export default function GovernancePage() {
                   {powerMap.map((p) => (
                     <div
                       key={p.did}
-                      className="grid grid-cols-3 gap-2 text-sm py-1.5"
+                      className="flex flex-col sm:grid sm:grid-cols-3 gap-1 sm:gap-2 text-sm py-1.5 border-b border-white/[0.04] sm:border-0 last:border-0"
                     >
                       <span className="font-mono text-xs truncate">
                         {p.did.length > 20
