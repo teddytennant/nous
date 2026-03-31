@@ -36,7 +36,6 @@ export default function MessagesPage() {
   const [messages, setMessages] = useState<MessageResponse[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [createMode, setCreateMode] = useState<CreateMode>(null);
   const [newDmDid, setNewDmDid] = useState("");
   const [newGroupName, setNewGroupName] = useState("");
@@ -52,9 +51,8 @@ export default function MessagesPage() {
     try {
       const chs = await messaging.listChannels(userDid);
       setChannels(chs);
-      setError(null);
-    } catch {
-      setError("API offline");
+    } catch (e) {
+      toast({ title: "API offline", description: e instanceof Error ? e.message : undefined, variant: "error" });
     } finally {
       setLoading(false);
     }
@@ -123,7 +121,7 @@ export default function MessagesPage() {
       setCreateMode(null);
       toast({ title: "Conversation created", variant: "success" });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to create channel");
+      toast({ title: "Failed to create channel", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
   }
 
@@ -144,7 +142,7 @@ export default function MessagesPage() {
       setCreateMode(null);
       toast({ title: "Group created", variant: "success" });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to create group");
+      toast({ title: "Failed to create group", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
   }
 
@@ -161,7 +159,7 @@ export default function MessagesPage() {
       setInput("");
       setReplyTo(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to send");
+      toast({ title: "Failed to send", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
   }
 
@@ -171,7 +169,7 @@ export default function MessagesPage() {
       setMessages((prev) => prev.filter((m) => m.id !== messageId));
       toast({ title: "Message deleted" });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to delete");
+      toast({ title: "Failed to delete", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
   }
 
@@ -184,7 +182,7 @@ export default function MessagesPage() {
         <div className="p-6 pb-4">
           <h1 className="text-lg font-extralight tracking-[-0.02em]">Messages</h1>
           <p className="text-[10px] font-mono text-neutral-600 mt-1 uppercase tracking-wider">
-            {error ? <span className="text-red-500">{error}</span> : "E2E encrypted"}
+            E2E encrypted
           </p>
         </div>
 
