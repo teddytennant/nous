@@ -16,6 +16,7 @@ import { EmptyState, WalletIllustration, TransactionsIllustration, InvoiceIllust
 import { useToast } from "@/components/toast";
 import { PageHeader } from "@/components/page-header";
 import { usePageShortcuts } from "@/components/keyboard-shortcuts";
+import { WalletChart } from "@/components/wallet-chart";
 
 type WalletTab = "balances" | "invoices" | "escrow";
 
@@ -360,6 +361,12 @@ export default function WalletPage() {
               </div>
             )}
           </section>
+
+          <WalletChart
+            balances={displayBalances}
+            transactions={transactions}
+            userDid={userDid}
+          />
 
           <section className="mb-16">
             <div className="flex gap-3">
