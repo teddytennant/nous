@@ -104,7 +104,7 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="p-8 max-w-3xl">
+      <div className="p-4 sm:p-8 max-w-3xl">
         <PageHeader title="Settings" subtitle="Identity, credentials, and preferences" />
 
         {/* Identity skeleton */}
@@ -147,7 +147,7 @@ export default function SettingsPage() {
                 <Skeleton className="h-2.5 w-24 mb-2" />
                 <Skeleton className="h-11 w-full" />
               </div>
-              <div className="grid grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
                 <div><Skeleton className="h-2.5 w-12 mb-1" /><Skeleton className="h-5 w-16" /></div>
                 <div><Skeleton className="h-2.5 w-14 mb-1" /><Skeleton className="h-5 w-12" /></div>
                 <div><Skeleton className="h-2.5 w-14 mb-1" /><Skeleton className="h-5 w-10" /></div>
@@ -166,7 +166,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="p-8 max-w-3xl">
+    <div className="p-4 sm:p-8 max-w-3xl">
       <PageHeader title="Settings" subtitle="Identity, credentials, and preferences" status={online ? "online" : "offline"} />
 
       {/* Identity section */}
@@ -232,7 +232,7 @@ export default function SettingsPage() {
                 </p>
               </div>
               {Object.keys(reputation.scores).length > 0 && (
-                <div className="grid grid-cols-3 gap-px bg-white/[0.03]">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-white/[0.03]">
                   {Object.entries(reputation.scores).map(([category, score]) => (
                     <div key={category} className="bg-black p-4">
                       <p className="text-[10px] font-mono uppercase tracking-wider text-neutral-600 mb-2">
@@ -326,7 +326,7 @@ export default function SettingsPage() {
               />
             </div>
             {nodeInfo && (
-              <div className="grid grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
                 <div>
                   <p className="text-[10px] font-mono text-neutral-600 uppercase tracking-wider mb-1">Status</p>
                   <p className="text-sm font-light text-emerald-500">{nodeInfo.status}</p>
