@@ -85,7 +85,7 @@ export default function FilesPage() {
     } finally {
       setLoading(false);
     }
-  }, [userDid]);
+  }, [userDid, toast]);
 
   useEffect(() => {
     loadFiles();
