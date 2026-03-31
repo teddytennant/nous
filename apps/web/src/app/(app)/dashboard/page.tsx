@@ -6,16 +6,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   node,
-  social,
   governance,
   payments,
   type NodeInfo,
-  type FeedEvent,
   type DaoListResponse,
   type WalletResponse,
 } from "@/lib/api";
 import { useConnection } from "@/components/connection-status";
 import { SubsystemsWidget } from "@/components/subsystems";
+import { ActivityTimeline } from "@/components/activity-timeline";
 import {
   Users,
   MessageSquare,
@@ -60,25 +59,6 @@ function formatUptime(ms: number): string {
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
-}
-
-function timeAgo(dateStr: string): string {
-  const now = Date.now();
-  const then = new Date(dateStr).getTime();
-  const diff = Math.max(0, now - then);
-  const s = Math.floor(diff / 1000);
-  if (s < 60) return "just now";
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const d = Math.floor(h / 24);
-  return `${d}d ago`;
-}
-
-function truncateDid(did: string): string {
-  if (did.length <= 24) return did;
-  return `${did.slice(0, 16)}...${did.slice(-6)}`;
 }
 
 // ── Quick Actions ────────────────────────────────────────────────────────
@@ -151,50 +131,12 @@ function QuickActionCard({
   );
 }
 
-function FeedEventRow({ event }: { event: FeedEvent }) {
-  return (
-    <div className="flex items-start gap-3 py-3 px-4 hover:bg-white/[0.01] transition-colors duration-150">
-      <div className="w-7 h-7 rounded-full bg-white/[0.04] border border-white/[0.06] flex items-center justify-center shrink-0 mt-0.5">
-        <Users className="w-3 h-3 text-neutral-600" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-xs text-neutral-500 font-mono mb-1">
-          {truncateDid(event.pubkey)}
-        </p>
-        <p className="text-sm text-neutral-300 font-light leading-relaxed line-clamp-2">
-          {event.content}
-        </p>
-      </div>
-      <span className="text-[10px] font-mono text-neutral-700 shrink-0 mt-0.5">
-        {timeAgo(event.created_at)}
-      </span>
-    </div>
-  );
-}
-
-function FeedSkeleton() {
-  return (
-    <div className="space-y-0">
-      {Array.from({ length: 3 }).map((_, i) => (
-        <div key={i} className="flex items-start gap-3 py-3 px-4">
-          <Skeleton className="w-7 h-7 rounded-full shrink-0" />
-          <div className="flex-1 space-y-2">
-            <Skeleton className="h-3 w-28" />
-            <Skeleton className="h-4 w-full" />
-          </div>
-          <Skeleton className="h-3 w-12 shrink-0" />
-        </div>
-      ))}
-    </div>
-  );
-}
 
 // ── Page ─────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const { status: apiStatus, health } = useConnection();
   const [nodeInfo, setNodeInfo] = useState<NodeInfo | null>(null);
-  const [feed, setFeed] = useState<FeedEvent[] | null>(null);
   const [daoData, setDaoData] = useState<DaoListResponse | null>(null);
   const [wallet, setWallet] = useState<WalletResponse | null>(null);
   const displayName = useSyncExternalStore(
@@ -220,23 +162,6 @@ export default function DashboardPage() {
       cancelled = true;
       clearInterval(interval);
     };
-  }, []);
-
-  // Fetch feed
-  useEffect(() => {
-    let active = true;
-    async function load() {
-      try {
-        const f = await social.feed({ limit: 5 });
-        if (active) setFeed(f.events);
-      } catch {
-        /* offline */
-      }
-    }
-    startTransition(() => {
-      load();
-    });
-    return () => { active = false; };
   }, []);
 
   // Fetch DAOs
@@ -388,11 +313,11 @@ export default function DashboardPage() {
 
       {/* Two-column: Activity Feed + Subsystems */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-        {/* Activity Feed */}
+        {/* Cross-subsystem Activity Timeline */}
         <section>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xs font-mono uppercase tracking-[0.2em] text-neutral-500">
-              Recent Activity
+              Activity Timeline
             </h2>
             <Link
               href="/social"
@@ -403,29 +328,7 @@ export default function DashboardPage() {
             </Link>
           </div>
           <div className="border border-white/[0.06] rounded-sm overflow-hidden">
-            {feed === null ? (
-              <FeedSkeleton />
-            ) : feed.length === 0 ? (
-              <div className="py-12 px-4 text-center">
-                <Users className="w-6 h-6 text-neutral-800 mx-auto mb-3" />
-                <p className="text-xs text-neutral-600 font-light">
-                  No activity yet. Create your first post!
-                </p>
-                <Link
-                  href="/social"
-                  className="inline-flex items-center gap-1.5 mt-4 text-[11px] text-[#d4af37] font-medium hover:text-[#c4a030] transition-colors duration-200"
-                >
-                  Go to Social
-                  <ArrowRight className="w-3 h-3" />
-                </Link>
-              </div>
-            ) : (
-              <div className="divide-y divide-white/[0.04]">
-                {feed.map((event) => (
-                  <FeedEventRow key={event.id} event={event} />
-                ))}
-              </div>
-            )}
+            <ActivityTimeline />
           </div>
         </section>
 
