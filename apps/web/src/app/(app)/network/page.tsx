@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, startTransition } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
   node,
@@ -114,6 +115,7 @@ export default function NetworkPage() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [nodeInfo, setNodeInfo] = useState<NodeInfo | null>(null);
   const [peerList, setPeerList] = useState<PeerResponse[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [connectAddr, setConnectAddr] = useState("");
   const [connecting, setConnecting] = useState(false);
@@ -131,6 +133,8 @@ export default function NetworkPage() {
       setError(null);
     } catch {
       setError("API offline");
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -240,24 +244,38 @@ export default function NetworkPage() {
         <h2 className="text-xs font-mono uppercase tracking-[0.2em] text-neutral-500 mb-8">
           Overview
         </h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-white/[0.03]">
-          {stats.map((stat) => (
-            <Card
-              key={stat.label}
-              className="bg-black border-0 rounded-none p-6"
-            >
-              <CardContent className="p-0">
-                <p className="text-xs font-mono uppercase tracking-[0.15em] text-neutral-600 mb-3">
-                  {stat.label}
-                </p>
-                <p className="text-2xl font-extralight mb-1">{stat.value}</p>
-                <p className="text-xs text-neutral-600 font-light font-mono truncate">
-                  {stat.detail}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {loading ? (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-white/[0.03]">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i} className="bg-black border-0 rounded-none p-6">
+                <CardContent className="p-0">
+                  <Skeleton className="h-2.5 w-16 mb-3" />
+                  <Skeleton className="h-7 w-20 mb-1" />
+                  <Skeleton className="h-3 w-24" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-white/[0.03]">
+            {stats.map((stat) => (
+              <Card
+                key={stat.label}
+                className="bg-black border-0 rounded-none p-6"
+              >
+                <CardContent className="p-0">
+                  <p className="text-xs font-mono uppercase tracking-[0.15em] text-neutral-600 mb-3">
+                    {stat.label}
+                  </p>
+                  <p className="text-2xl font-extralight mb-1">{stat.value}</p>
+                  <p className="text-xs text-neutral-600 font-light font-mono truncate">
+                    {stat.detail}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Subsystem health */}
@@ -326,7 +344,23 @@ export default function NetworkPage() {
           </div>
         </div>
 
-        {peerList.length === 0 ? (
+        {loading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-6 py-3">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-1.5 w-1.5 rounded-full" />
+                  <Skeleton className="h-3 w-28" />
+                </div>
+                <Skeleton className="h-3 w-36" />
+                <Skeleton className="h-3 w-12 ml-auto" />
+                <Skeleton className="h-3 w-14" />
+                <Skeleton className="h-3 w-14" />
+                <Skeleton className="h-3 w-12" />
+              </div>
+            ))}
+          </div>
+        ) : peerList.length === 0 ? (
           <p className="text-sm text-neutral-700 font-light">
             {error
               ? "Node offline \u2014 no peer data"
