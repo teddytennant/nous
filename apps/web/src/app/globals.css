@@ -496,6 +496,22 @@ select:focus {
   box-shadow: 0 0 4px rgba(212, 175, 55, 0.3);
 }
 
+/* Heatmap tooltip — fade + rise in */
+@keyframes heatmap-tooltip-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.heatmap-tooltip {
+  animation: heatmap-tooltip-enter 0.12s ease-out forwards;
+}
+
 /* Terminal demo — thin custom scrollbar */
 .terminal-scroll::-webkit-scrollbar {
   width: 4px;
