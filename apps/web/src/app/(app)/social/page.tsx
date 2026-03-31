@@ -7,13 +7,31 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { social, type FeedEvent } from "@/lib/api";
 import { useRealtime } from "@/lib/use-realtime";
 import { useToast } from "@/components/toast";
-import { EmptyState, SocialIllustration, FollowingIllustration } from "@/components/empty-state";
+import { EmptyState, SocialIllustration, FollowingIllustration, BookmarkIllustration } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { usePageShortcuts, useListNavigation } from "@/components/keyboard-shortcuts";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/avatar";
+import { Link, Bookmark, Share2, Check } from "lucide-react";
 
 const MAX_POST_LENGTH = 500;
+const BOOKMARKS_KEY = "nous_bookmarks";
+
+function loadBookmarks(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = localStorage.getItem(BOOKMARKS_KEY);
+    return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+function saveBookmarks(ids: Set<string>) {
+  localStorage.setItem(BOOKMARKS_KEY, JSON.stringify([...ids]));
+}
+
+type Tab = "timeline" | "following" | "bookmarks";
 
 export default function SocialPage() {
   const [posts, setPosts] = useState<FeedEvent[]>([]);
@@ -21,8 +39,10 @@ export default function SocialPage() {
   const [replyTo, setReplyTo] = useState<{ id: string; author: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
-  const [activeTab, setActiveTab] = useState<"timeline" | "following">("timeline");
+  const [activeTab, setActiveTab] = useState<Tab>("timeline");
   const [following, setFollowing] = useState<Set<string>>(new Set());
+  const [bookmarks, setBookmarks] = useState<Set<string>>(() => loadBookmarks());
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const { toast } = useToast();
   const userDid = typeof window !== "undefined" ? localStorage.getItem("nous_did") || "" : "";
@@ -41,6 +61,7 @@ export default function SocialPage() {
   usePageShortcuts({
     n: () => document.querySelector<HTMLTextAreaElement>("textarea")?.focus(),
     r: () => { loadFeed(); },
+    b: () => setActiveTab("bookmarks"),
   });
 
   useEffect(() => {
@@ -115,6 +136,50 @@ export default function SocialPage() {
     }
   }
 
+  function toggleBookmark(eventId: string) {
+    setBookmarks((prev) => {
+      const next = new Set(prev);
+      if (next.has(eventId)) {
+        next.delete(eventId);
+        toast({ title: "Bookmark removed" });
+      } else {
+        next.add(eventId);
+        toast({ title: "Bookmarked", variant: "success" });
+      }
+      saveBookmarks(next);
+      return next;
+    });
+  }
+
+  async function copyPostLink(eventId: string) {
+    const url = `${window.location.origin}/social?post=${eventId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedId(eventId);
+      toast({ title: "Link copied", variant: "success" });
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      toast({ title: "Failed to copy link", variant: "error" });
+    }
+  }
+
+  async function sharePost(post: FeedEvent) {
+    const url = `${window.location.origin}/social?post=${post.id}`;
+    const text = post.content.length > 140
+      ? post.content.slice(0, 137) + "..."
+      : post.content;
+
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({ title: "Nous Post", text, url });
+        return;
+      } catch {
+        // User cancelled or share failed — fall through to copy
+      }
+    }
+    await copyPostLink(post.id);
+  }
+
   function formatTime(iso: string): string {
     const date = new Date(iso);
     const now = new Date();
@@ -134,7 +199,9 @@ export default function SocialPage() {
   const displayPosts =
     activeTab === "following"
       ? posts.filter((p) => following.has(p.pubkey))
-      : posts;
+      : activeTab === "bookmarks"
+        ? posts.filter((p) => bookmarks.has(p.id))
+        : posts;
 
   const { selectedIndex, setSelectedIndex, containerRef } = useListNavigation({
     itemCount: displayPosts.length,
@@ -204,7 +271,7 @@ export default function SocialPage() {
       {/* Tabs + Refresh */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex gap-6">
-          {(["timeline", "following"] as const).map((tab) => (
+          {(["timeline", "following", "bookmarks"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => { setActiveTab(tab); setSelectedIndex(-1); }}
@@ -214,7 +281,7 @@ export default function SocialPage() {
                   : "text-neutral-600 hover:text-neutral-400"
               }`}
             >
-              {tab}
+              {tab}{tab === "bookmarks" && bookmarks.size > 0 ? ` (${bookmarks.size})` : ""}
             </button>
           ))}
         </div>
@@ -257,6 +324,20 @@ export default function SocialPage() {
               icon={<FollowingIllustration />}
               title="No followed posts yet"
               description="Follow other users to see their posts appear in this feed. Discover people in the timeline tab."
+            />
+          ) : activeTab === "bookmarks" ? (
+            <EmptyState
+              icon={<BookmarkIllustration />}
+              title="No bookmarks yet"
+              description="Bookmark posts to save them for later. They're stored locally on your device."
+              action={
+                <button
+                  onClick={() => { setActiveTab("timeline"); setSelectedIndex(-1); }}
+                  className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150"
+                >
+                  Browse timeline
+                </button>
+              }
             />
           ) : (
             <EmptyState
@@ -352,6 +433,39 @@ export default function SocialPage() {
                         className="text-[10px] font-mono uppercase tracking-wider text-neutral-700 hover:text-white transition-colors"
                       >
                         Reply
+                      </button>
+                      <button
+                        onClick={() => toggleBookmark(post.id)}
+                        className={cn(
+                          "flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider transition-colors",
+                          bookmarks.has(post.id)
+                            ? "text-[#d4af37]"
+                            : "text-neutral-700 hover:text-white"
+                        )}
+                      >
+                        <Bookmark
+                          size={11}
+                          fill={bookmarks.has(post.id) ? "currentColor" : "none"}
+                        />
+                        {bookmarks.has(post.id) ? "Saved" : "Save"}
+                      </button>
+                      <button
+                        onClick={() => copyPostLink(post.id)}
+                        className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-neutral-700 hover:text-white transition-colors"
+                      >
+                        {copiedId === post.id ? (
+                          <Check size={11} className="text-[#d4af37]" />
+                        ) : (
+                          <Link size={11} />
+                        )}
+                        {copiedId === post.id ? "Copied" : "Link"}
+                      </button>
+                      <button
+                        onClick={() => sharePost(post)}
+                        className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-neutral-700 hover:text-white transition-colors"
+                      >
+                        <Share2 size={11} />
+                        Share
                       </button>
                       {isOwn && (
                         <button
