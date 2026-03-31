@@ -133,7 +133,7 @@ pub fn parse_key(buf: &[u8]) -> ParseResult {
         b @ 0x01..=0x1a => {
             let ch = (b + b'a' - 1) as char;
             match ch {
-                'i' => ParseResult::Complete(KeyEvent::Tab, 1),       // Ctrl-I = Tab
+                'i' => ParseResult::Complete(KeyEvent::Tab, 1), // Ctrl-I = Tab
                 'j' | 'm' => ParseResult::Complete(KeyEvent::Enter, 1), // Ctrl-J/M = Enter
                 _ => ParseResult::Complete(KeyEvent::Ctrl(ch), 1),
             }
@@ -516,10 +516,7 @@ mod tests {
     #[test]
     fn parse_ctrl_i_is_tab() {
         // Ctrl-I (0x09) is the same as Tab
-        assert_eq!(
-            parse_key(&[0x09]),
-            ParseResult::Complete(KeyEvent::Tab, 1)
-        );
+        assert_eq!(parse_key(&[0x09]), ParseResult::Complete(KeyEvent::Tab, 1));
     }
 
     #[test]
@@ -535,10 +532,7 @@ mod tests {
 
     #[test]
     fn parse_arrow_up() {
-        assert_eq!(
-            parse_key(b"\x1b[A"),
-            ParseResult::Complete(KeyEvent::Up, 3)
-        );
+        assert_eq!(parse_key(b"\x1b[A"), ParseResult::Complete(KeyEvent::Up, 3));
     }
 
     #[test]
@@ -667,10 +661,7 @@ mod tests {
 
     #[test]
     fn parse_ss3_up() {
-        assert_eq!(
-            parse_key(b"\x1bOA"),
-            ParseResult::Complete(KeyEvent::Up, 3)
-        );
+        assert_eq!(parse_key(b"\x1bOA"), ParseResult::Complete(KeyEvent::Up, 3));
     }
 
     #[test]
@@ -826,10 +817,7 @@ mod tests {
     #[test]
     fn keymap_alt_f_is_word_right() {
         let km = KeyMap::new();
-        assert_eq!(
-            km.lookup(&KeyEvent::Alt('f')),
-            EditorAction::MoveWordRight
-        );
+        assert_eq!(km.lookup(&KeyEvent::Alt('f')), EditorAction::MoveWordRight);
     }
 
     #[test]
@@ -844,14 +832,8 @@ mod tests {
     #[test]
     fn keymap_ctrl_arrows() {
         let km = KeyMap::new();
-        assert_eq!(
-            km.lookup(&KeyEvent::CtrlLeft),
-            EditorAction::MoveWordLeft
-        );
-        assert_eq!(
-            km.lookup(&KeyEvent::CtrlRight),
-            EditorAction::MoveWordRight
-        );
+        assert_eq!(km.lookup(&KeyEvent::CtrlLeft), EditorAction::MoveWordLeft);
+        assert_eq!(km.lookup(&KeyEvent::CtrlRight), EditorAction::MoveWordRight);
     }
 
     #[test]
@@ -948,10 +930,7 @@ mod tests {
         let km = KeyMap::new();
         let (actions, consumed) = process_input(b"\x01\x05", &km);
         assert_eq!(consumed, 2);
-        assert_eq!(
-            actions,
-            vec![EditorAction::MoveHome, EditorAction::MoveEnd]
-        );
+        assert_eq!(actions, vec![EditorAction::MoveHome, EditorAction::MoveEnd]);
     }
 
     #[test]
