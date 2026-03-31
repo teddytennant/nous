@@ -8,6 +8,7 @@ import {
   type CredentialResponse,
   type ReputationResponse,
 } from "@/lib/api";
+import { PageHeader } from "@/components/page-header";
 
 export default function IdentityPage() {
   const [currentIdentity, setCurrentIdentity] =
@@ -74,14 +75,7 @@ export default function IdentityPage() {
   if (!currentIdentity) {
     return (
       <div className="p-8 max-w-4xl">
-        <header className="mb-16">
-          <h1 className="text-3xl font-extralight tracking-[-0.03em] mb-2">
-            Identity
-          </h1>
-          <p className="text-sm text-neutral-500 font-light">
-            Self-sovereign. Your keys, your identity.
-          </p>
-        </header>
+        <PageHeader title="Identity" subtitle="Self-sovereign. Your keys, your identity." />
 
         {error && (
           <p className="text-xs text-red-500 mb-6">{error}</p>
@@ -118,14 +112,7 @@ export default function IdentityPage() {
 
   return (
     <div className="p-8 max-w-4xl">
-      <header className="mb-16">
-        <h1 className="text-3xl font-extralight tracking-[-0.03em] mb-2">
-          Identity
-        </h1>
-        <p className="text-sm text-neutral-500 font-light">
-          Self-sovereign. Your keys, your identity.
-        </p>
-      </header>
+      <PageHeader title="Identity" subtitle="Self-sovereign. Your keys, your identity." />
 
       {error && (
         <p className="text-xs text-red-500 mb-6">{error}</p>
