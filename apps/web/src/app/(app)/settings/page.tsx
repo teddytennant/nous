@@ -348,9 +348,30 @@ export default function SettingsPage() {
         <h2 className="text-xs font-mono uppercase tracking-[0.2em] text-neutral-500 mb-8">Notifications</h2>
         <Card className="bg-white/[0.01] border-white/[0.06] rounded-none">
           <CardContent className="p-6">
-            <p className="text-xs text-neutral-500 font-light mb-6">
-              Choose which notification categories appear in your notification panel.
-            </p>
+            <div className="flex items-center justify-between mb-6">
+              <p className="text-xs text-neutral-500 font-light">
+                Choose which notification categories appear in your notification panel.
+              </p>
+              <button
+                onClick={() => {
+                  const allEnabled = NOTIFICATION_CATEGORIES.every(
+                    (cat) => notifPrefs[cat.key] ?? true,
+                  );
+                  const next: NotifPrefs = {};
+                  for (const cat of NOTIFICATION_CATEGORIES) {
+                    next[cat.key] = !allEnabled;
+                  }
+                  setNotifPrefs(next);
+                }}
+                className="text-[10px] font-mono uppercase tracking-wider px-3 py-1.5 border border-white/[0.06] text-neutral-600 hover:text-white hover:border-white/10 transition-all duration-150 shrink-0 ml-4"
+              >
+                {NOTIFICATION_CATEGORIES.every(
+                  (cat) => notifPrefs[cat.key] ?? true,
+                )
+                  ? "Mute all"
+                  : "Unmute all"}
+              </button>
+            </div>
             <div className="space-y-0">
               {NOTIFICATION_CATEGORIES.map((cat, i) => {
                 const enabled = notifPrefs[cat.key] ?? true;
