@@ -7,7 +7,7 @@ import { messaging, type ChannelResponse, type MessageResponse } from "@/lib/api
 import { useRealtime } from "@/lib/use-realtime";
 import { useToast } from "@/components/toast";
 import { EmptyState, MessagesIllustration } from "@/components/empty-state";
-import { usePageShortcuts } from "@/components/keyboard-shortcuts";
+import { usePageShortcuts, useListNavigation } from "@/components/keyboard-shortcuts";
 
 type CreateMode = "dm" | "group" | null;
 
@@ -49,6 +49,21 @@ export default function MessagesPage() {
 
   usePageShortcuts({
     n: () => setCreateMode("dm"),
+  });
+
+  const {
+    selectedIndex: highlightedIndex,
+    setSelectedIndex: setHighlightedIndex,
+    containerRef: channelListRef,
+  } = useListNavigation({
+    itemCount: channels.length,
+    onActivate: (index) => {
+      const ch = channels[index];
+      if (ch) {
+        setSelected(ch.id);
+        setReplyTo(null);
+      }
+    },
   });
 
   const fetchChannels = useCallback(async () => {
@@ -256,7 +271,7 @@ export default function MessagesPage() {
         </div>
 
         {/* Channel list */}
-        <div className="flex-1 overflow-y-auto">
+        <div ref={channelListRef} className="flex-1 overflow-y-auto">
           {loading ? (
             <div>
               {Array.from({ length: 5 }).map((_, i) => (
@@ -276,15 +291,22 @@ export default function MessagesPage() {
               <p className="text-[10px] text-neutral-700 font-light mt-1">Start a DM or create a group above</p>
             </div>
           ) : null}
-          {channels.map((ch) => (
+          {channels.map((ch, i) => {
+            const isHighlighted = i === highlightedIndex;
+            return (
             <button
               key={ch.id}
-              onClick={() => { setSelected(ch.id); setReplyTo(null); }}
+              data-list-item
+              onClick={() => { setSelected(ch.id); setReplyTo(null); setHighlightedIndex(i); }}
               className={cn(
-                "w-full text-left px-6 py-4 transition-colors duration-150 border-b border-white/[0.03]",
-                selected === ch.id ? "bg-white/[0.02]" : "hover:bg-white/[0.01]"
+                "relative w-full text-left px-6 py-4 transition-colors duration-150 border-b border-white/[0.03]",
+                selected === ch.id ? "bg-white/[0.02]" : "hover:bg-white/[0.01]",
+                isHighlighted && selected !== ch.id && "bg-[#d4af37]/[0.015]"
               )}
             >
+              {isHighlighted && (
+                <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[#d4af37] rounded-full" />
+              )}
               <div className="flex justify-between items-baseline mb-1.5">
                 <span className="text-xs font-mono text-neutral-500 truncate max-w-[140px]">
                   {channelDisplayName(ch, userDid)}
@@ -300,7 +322,8 @@ export default function MessagesPage() {
                 {ch.members.length} member{ch.members.length !== 1 ? "s" : ""}
               </p>
             </button>
-          ))}
+            );
+          })}
         </div>
       </div>
 
