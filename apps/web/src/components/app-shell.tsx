@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useSyncExternalStore, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import {
   Sidebar,
@@ -24,19 +24,22 @@ function PageTransition({ children }: { children: ReactNode }) {
   );
 }
 
-function OnboardingGate({ children }: { children: ReactNode }) {
-  const [hasIdentity, setHasIdentity] = useState<boolean | null>(null);
+const emptySubscribe = () => () => {};
 
-  useEffect(() => {
-    setHasIdentity(!!localStorage.getItem("nous_did"));
-  }, []);
+function OnboardingGate({ children }: { children: ReactNode }) {
+  const storedDid = useSyncExternalStore(
+    emptySubscribe,
+    () => localStorage.getItem("nous_did"),
+    () => null,
+  );
+
+  const [completed, setCompleted] = useState(false);
+
+  const hasIdentity = completed || !!storedDid;
 
   const handleComplete = useCallback(() => {
-    setHasIdentity(true);
+    setCompleted(true);
   }, []);
-
-  // Still checking — render nothing to avoid flash
-  if (hasIdentity === null) return null;
 
   if (!hasIdentity) {
     return <Onboarding onComplete={handleComplete} />;
