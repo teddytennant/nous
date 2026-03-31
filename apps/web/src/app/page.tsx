@@ -31,6 +31,7 @@ function GithubIcon({ className }: { className?: string }) {
   );
 }
 import { Badge } from "@/components/ui/badge";
+import { ArchitectureDiagram } from "@/components/architecture-diagram";
 
 const features = [
   {
@@ -441,6 +442,29 @@ export default function Home() {
             );
           })}
         </div>
+      </section>
+
+      {/* Divider */}
+      <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
+      {/* Topology */}
+      <section className="px-6 py-28 max-w-6xl mx-auto w-full">
+        <div className="mb-16 text-center">
+          <h2 className="text-xs font-mono uppercase tracking-[0.25em] text-neutral-600 mb-4">
+            Topology
+          </h2>
+          <p className="text-2xl sm:text-3xl font-extralight tracking-[-0.02em] text-neutral-300 max-w-xl mx-auto">
+            Everything connects through{" "}
+            <span className="text-white">one core.</span>
+          </p>
+        </div>
+
+        <ArchitectureDiagram />
+
+        <p className="text-center text-xs text-neutral-700 font-light mt-8 max-w-md mx-auto">
+          Each subsystem is independent but interconnected — composable
+          primitives that work together or standalone.
+        </p>
       </section>
 
       {/* Divider */}
