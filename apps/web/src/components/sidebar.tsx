@@ -16,6 +16,7 @@ import {
   Globe,
   Fingerprint,
   Settings,
+  Search,
 } from "lucide-react";
 
 const sections = [
@@ -70,6 +71,24 @@ export function Sidebar() {
         >
           Nous
         </Link>
+      </div>
+
+      <div className="px-3 mb-4">
+        <button
+          type="button"
+          onClick={() =>
+            window.dispatchEvent(
+              new KeyboardEvent("keydown", { key: "k", metaKey: true }),
+            )
+          }
+          className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-light text-neutral-600 hover:text-neutral-400 bg-white/[0.02] hover:bg-white/[0.04] border border-white/[0.06] rounded-sm transition-all duration-150 cursor-pointer"
+        >
+          <Search className="w-3.5 h-3.5" />
+          <span className="flex-1 text-left">Search...</span>
+          <kbd className="text-[10px] font-mono text-neutral-700 bg-white/[0.04] border border-white/[0.06] px-1.5 py-0.5 rounded">
+            ⌘K
+          </kbd>
+        </button>
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 space-y-6">
