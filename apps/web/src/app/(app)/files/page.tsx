@@ -44,7 +44,6 @@ export default function FilesPage() {
   const [fileList, setFileList] = useState<FileManifestResponse[]>([]);
   const [stats, setStats] = useState<FileStoreStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [userDid, setUserDid] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -76,9 +75,8 @@ export default function FilesPage() {
       ]);
       setFileList(data.files);
       setStats(storeStats);
-      setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load files");
+      toast({ title: "Failed to load files", description: e instanceof Error ? e.message : undefined, variant: "error" });
     } finally {
       setLoading(false);
     }
@@ -108,7 +106,7 @@ export default function FilesPage() {
       await loadFiles();
       toast({ title: "File uploaded", description: file.name, variant: "success" });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Upload failed");
+      toast({ title: "Upload failed", description: e instanceof Error ? e.message : undefined, variant: "error" });
     } finally {
       setUploading(false);
     }
@@ -122,7 +120,7 @@ export default function FilesPage() {
       await loadFiles();
       toast({ title: "File deleted", description: name });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Delete failed");
+      toast({ title: "Delete failed", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
   }
 
@@ -142,25 +140,13 @@ export default function FilesPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Download failed");
+      toast({ title: "Download failed", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
   }
 
   return (
     <div className="p-8 max-w-4xl">
       <PageHeader title="Files" subtitle="Content-addressed storage. Versioned. Deduplicated." />
-
-      {error && (
-        <div className="text-xs text-red-500/70 font-mono mb-6 px-1">
-          {error}
-          <button
-            onClick={() => setError(null)}
-            className="ml-3 text-neutral-600 hover:text-neutral-400"
-          >
-            dismiss
-          </button>
-        </div>
-      )}
 
       {/* Stats bar */}
       {stats && (
