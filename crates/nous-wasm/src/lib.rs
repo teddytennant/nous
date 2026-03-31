@@ -3,6 +3,7 @@
 //! Exposes identity generation, signing, verification, encryption,
 //! DID operations, zero-knowledge proofs, and CRDTs to JavaScript.
 
+pub mod content;
 pub mod crdt;
 
 use aes_gcm::aead::{Aead, KeyInit};
