@@ -220,12 +220,12 @@ export default function Home() {
             >
               Features
             </a>
-            <a
-              href="#download"
+            <Link
+              href="/download"
               className="text-xs text-neutral-500 hover:text-white transition-colors duration-200 hidden sm:block"
             >
               Download
-            </a>
+            </Link>
             <a
               href={`https://github.com/${GITHUB_REPO}`}
               target="_blank"
@@ -288,13 +288,13 @@ export default function Home() {
               Get Started
               <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-200" />
             </Link>
-            <a
-              href="#download"
+            <Link
+              href="/download"
               className="flex items-center gap-2 border border-white/10 px-8 py-3 rounded-md text-sm font-light text-neutral-300 hover:border-white/20 hover:text-white transition-all duration-200"
             >
               <Download className="w-4 h-4" />
               Download
-            </a>
+            </Link>
           </div>
         </div>
       </section>
@@ -439,6 +439,13 @@ export default function Home() {
                 </a>
               ))}
             </div>
+            <Link
+              href="/download"
+              className="flex items-center gap-2 mt-4 px-4 py-2 text-xs text-neutral-500 hover:text-[#d4af37] transition-colors duration-200"
+            >
+              View all platforms, install guides & verification
+              <ArrowRight className="w-3 h-3" />
+            </Link>
           </div>
         </div>
       </section>
