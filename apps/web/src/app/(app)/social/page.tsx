@@ -8,6 +8,7 @@ import { social, type FeedEvent } from "@/lib/api";
 import { useRealtime } from "@/lib/use-realtime";
 import { useToast } from "@/components/toast";
 import { EmptyState, SocialIllustration, FollowingIllustration } from "@/components/empty-state";
+import { PageHeader } from "@/components/page-header";
 
 const MAX_POST_LENGTH = 500;
 
@@ -129,14 +130,7 @@ export default function SocialPage() {
 
   return (
     <div className="p-8 max-w-3xl">
-      <header className="mb-16">
-        <h1 className="text-3xl font-extralight tracking-[-0.03em] mb-2">
-          Social
-        </h1>
-        <p className="text-sm text-neutral-500 font-light">
-          Decentralized feed. Your posts, your protocol.
-        </p>
-      </header>
+      <PageHeader title="Social" subtitle="Decentralized feed. Your posts, your protocol." />
 
       {/* Compose */}
       <section className="mb-12">
