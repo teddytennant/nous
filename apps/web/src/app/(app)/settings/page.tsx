@@ -2,6 +2,7 @@
 
 import { useEffect, useState, startTransition } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   node,
   identity,
@@ -16,6 +17,7 @@ import { PageHeader } from "@/components/page-header";
 type Theme = "dark" | "light";
 
 export default function SettingsPage() {
+  const [loading, setLoading] = useState(true);
   const [online, setOnline] = useState(false);
   const [nodeInfo, setNodeInfo] = useState<HealthResponse | null>(null);
   const [did, setDid] = useState("");
@@ -40,16 +42,22 @@ export default function SettingsPage() {
       setApiUrl(storedApi);
     });
 
-    node
-      .health()
-      .then((h) => { setOnline(true); setNodeInfo(h); })
-      .catch(() => setOnline(false));
+    const promises: Promise<void>[] = [];
+
+    promises.push(
+      node
+        .health()
+        .then((h) => { setOnline(true); setNodeInfo(h); })
+        .catch(() => setOnline(false))
+    );
 
     if (storedDid) {
-      identity.get(storedDid).then(setUserIdentity).catch(() => {});
-      identity.listCredentials(storedDid).then(setCredentials).catch(() => {});
-      identity.getReputation(storedDid).then(setReputation).catch(() => {});
+      promises.push(identity.get(storedDid).then(setUserIdentity).catch(() => {}));
+      promises.push(identity.listCredentials(storedDid).then(setCredentials).catch(() => {}));
+      promises.push(identity.getReputation(storedDid).then(setReputation).catch(() => {}));
     }
+
+    Promise.allSettled(promises).then(() => setLoading(false));
   }, []);
 
   const handleSave = () => {
@@ -94,6 +102,69 @@ export default function SettingsPage() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="p-8 max-w-3xl">
+        <PageHeader title="Settings" subtitle="Identity, credentials, and preferences" />
+
+        {/* Identity skeleton */}
+        <section className="mb-16">
+          <Skeleton className="h-3 w-16 mb-8" />
+          <Card className="bg-white/[0.01] border-white/[0.06] rounded-none">
+            <CardContent className="p-6 space-y-6">
+              <div>
+                <Skeleton className="h-2.5 w-20 mb-2" />
+                <Skeleton className="h-11 w-full" />
+              </div>
+              <div>
+                <Skeleton className="h-2.5 w-24 mb-2" />
+                <Skeleton className="h-11 w-full" />
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Appearance skeleton */}
+        <section className="mb-16">
+          <Skeleton className="h-3 w-24 mb-8" />
+          <Card className="bg-white/[0.01] border-white/[0.06] rounded-none">
+            <CardContent className="p-6">
+              <Skeleton className="h-2.5 w-12 mb-3" />
+              <div className="flex gap-3">
+                <Skeleton className="h-10 w-20" />
+                <Skeleton className="h-10 w-20" />
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Network skeleton */}
+        <section className="mb-16">
+          <Skeleton className="h-3 w-20 mb-8" />
+          <Card className="bg-white/[0.01] border-white/[0.06] rounded-none">
+            <CardContent className="p-6 space-y-6">
+              <div>
+                <Skeleton className="h-2.5 w-24 mb-2" />
+                <Skeleton className="h-11 w-full" />
+              </div>
+              <div className="grid grid-cols-3 gap-6">
+                <div><Skeleton className="h-2.5 w-12 mb-1" /><Skeleton className="h-5 w-16" /></div>
+                <div><Skeleton className="h-2.5 w-14 mb-1" /><Skeleton className="h-5 w-12" /></div>
+                <div><Skeleton className="h-2.5 w-14 mb-1" /><Skeleton className="h-5 w-10" /></div>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Actions skeleton */}
+        <section className="flex items-center gap-4">
+          <Skeleton className="h-11 w-32" />
+          <Skeleton className="h-11 w-36" />
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="p-8 max-w-3xl">
       <PageHeader title="Settings" subtitle="Identity, credentials, and preferences" status={online ? "online" : "offline"} />
@@ -109,7 +180,7 @@ export default function SettingsPage() {
                 value={did}
                 onChange={(e) => setDid(e.target.value)}
                 placeholder="did:key:z..."
-                className="w-full bg-white/[0.02] text-sm font-light font-mono px-4 py-3 outline-none placeholder:text-neutral-700"
+                className="w-full bg-white/[0.02] border border-transparent text-sm font-light font-mono px-4 py-3 outline-none placeholder:text-neutral-700 transition-colors duration-150"
               />
               {userIdentity && (
                 <p className="text-[10px] font-mono text-emerald-700 mt-2">Identity verified on node</p>
@@ -121,7 +192,7 @@ export default function SettingsPage() {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="Anonymous"
-                className="w-full bg-white/[0.02] text-sm font-light px-4 py-3 outline-none placeholder:text-neutral-700"
+                className="w-full bg-white/[0.02] border border-transparent text-sm font-light px-4 py-3 outline-none placeholder:text-neutral-700 transition-colors duration-150"
               />
             </div>
             {userIdentity && (
@@ -251,7 +322,7 @@ export default function SettingsPage() {
               <input
                 value={apiUrl}
                 onChange={(e) => setApiUrl(e.target.value)}
-                className="w-full bg-white/[0.02] text-sm font-light font-mono px-4 py-3 outline-none placeholder:text-neutral-700"
+                className="w-full bg-white/[0.02] border border-transparent text-sm font-light font-mono px-4 py-3 outline-none placeholder:text-neutral-700 transition-colors duration-150"
               />
             </div>
             {nodeInfo && (
