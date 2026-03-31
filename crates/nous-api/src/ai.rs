@@ -502,10 +502,12 @@ mod tests {
             .unwrap();
         assert_eq!(res.status(), 503);
         let body = body_json(res).await;
-        assert!(body["error"]["message"]
-            .as_str()
-            .unwrap()
-            .contains("no inference backend configured"));
+        assert!(
+            body["error"]["message"]
+                .as_str()
+                .unwrap()
+                .contains("no inference backend configured")
+        );
     }
 
     #[tokio::test]
