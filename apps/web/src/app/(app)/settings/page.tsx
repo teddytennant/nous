@@ -11,6 +11,7 @@ import {
   type ReputationResponse,
 } from "@/lib/api";
 import { useToast } from "@/components/toast";
+import { PageHeader } from "@/components/page-header";
 
 type Theme = "dark" | "light";
 
@@ -95,13 +96,7 @@ export default function SettingsPage() {
 
   return (
     <div className="p-8 max-w-3xl">
-      <header className="mb-16">
-        <h1 className="text-3xl font-extralight tracking-[-0.03em] mb-2">Settings</h1>
-        <div className="flex items-center gap-3">
-          <p className="text-sm text-neutral-500 font-light">Identity, credentials, and preferences</p>
-          <span className={`inline-block w-1.5 h-1.5 rounded-full ${online ? "bg-emerald-500" : "bg-red-500"}`} />
-        </div>
-      </header>
+      <PageHeader title="Settings" subtitle="Identity, credentials, and preferences" status={online ? "online" : "offline"} />
 
       {/* Identity section */}
       <section className="mb-16">
