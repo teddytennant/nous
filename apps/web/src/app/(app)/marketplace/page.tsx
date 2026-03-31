@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { EmptyState, MarketplaceIllustration, OrdersIllustration, DisputeIllustration, OffersIllustration } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
+import { useToast } from "@/components/toast";
 
 type Tab = "listings" | "orders" | "disputes" | "offers";
 
@@ -83,7 +84,7 @@ function ListingsTab() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
   const [creating, setCreating] = useState(false);
   const [newListing, setNewListing] = useState({
     title: "",
@@ -103,9 +104,8 @@ function ListingsTab() {
       if (category !== "All") params.category = category.toLowerCase();
       const res = await marketplace.search(params);
       setListings(res.listings || []);
-      setError(null);
     } catch {
-      setError("API offline");
+      toast({ title: "API offline", variant: "error" });
       setListings([]);
     } finally {
       setLoading(false);
@@ -145,14 +145,12 @@ function ListingsTab() {
       });
       fetchListings();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to create listing");
+      toast({ title: "Failed to create listing", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
   }
 
   return (
     <>
-      {error && <p className="text-xs text-red-500 mb-6">{error}</p>}
-
       <div className="flex justify-end mb-8">
         <button
           onClick={() => setCreating(!creating)}
@@ -370,14 +368,14 @@ function ListingsTab() {
 function OrdersTab() {
   const [ordersList, setOrders] = useState<OrderResponse[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     orders
       .list()
       .then((res) => setOrders(res.orders || []))
       .catch(() => {
-        setError("API offline");
+        toast({ title: "API offline", variant: "error" });
         setOrders([]);
       })
       .finally(() => setLoading(false));
@@ -385,8 +383,6 @@ function OrdersTab() {
 
   return (
     <>
-      {error && <p className="text-xs text-red-500 mb-6">{error}</p>}
-
       {loading ? (
         <div className="space-y-px">
           {Array.from({ length: 3 }).map((_, i) => (
@@ -491,14 +487,14 @@ function OrdersTab() {
 function DisputesTab() {
   const [disputesList, setDisputes] = useState<DisputeResponse[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     disputes
       .list()
       .then((res) => setDisputes(res.disputes || []))
       .catch(() => {
-        setError("API offline");
+        toast({ title: "API offline", variant: "error" });
         setDisputes([]);
       })
       .finally(() => setLoading(false));
@@ -506,8 +502,6 @@ function DisputesTab() {
 
   return (
     <>
-      {error && <p className="text-xs text-red-500 mb-6">{error}</p>}
-
       {loading ? (
         <div className="space-y-px">
           {Array.from({ length: 2 }).map((_, i) => (
@@ -631,14 +625,14 @@ function DisputesTab() {
 function OffersTab() {
   const [offersList, setOffers] = useState<OfferResponse[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     offers
       .list()
       .then((res) => setOffers(res.offers || []))
       .catch(() => {
-        setError("API offline");
+        toast({ title: "API offline", variant: "error" });
         setOffers([]);
       })
       .finally(() => setLoading(false));
@@ -646,8 +640,6 @@ function OffersTab() {
 
   return (
     <>
-      {error && <p className="text-xs text-red-500 mb-6">{error}</p>}
-
       {loading ? (
         <div className="space-y-px">
           {Array.from({ length: 3 }).map((_, i) => (
