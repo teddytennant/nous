@@ -12,6 +12,7 @@ import {
   type PeerResponse,
 } from "@/lib/api";
 import { EmptyState, NetworkIllustration } from "@/components/empty-state";
+import { PageHeader } from "@/components/page-header";
 
 interface Subsystem {
   name: string;
@@ -219,14 +220,7 @@ export default function NetworkPage() {
 
   return (
     <div className="p-8 max-w-6xl">
-      <header className="mb-16">
-        <h1 className="text-3xl font-extralight tracking-[-0.03em] mb-2">
-          Network
-        </h1>
-        <p className="text-sm text-neutral-500 font-light">
-          P2P mesh status, connected peers, and subsystem health
-        </p>
-      </header>
+      <PageHeader title="Network" subtitle="P2P mesh status, connected peers, and subsystem health" />
 
       {error && (
         <div className="text-xs text-red-500/70 font-mono mb-6 px-1 flex items-center justify-between">
