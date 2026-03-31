@@ -252,7 +252,7 @@ export default function NetworkPage() {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-white/[0.03]">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-white/[0.03] stagger-in">
             {stats.map((stat) => (
               <Card
                 key={stat.label}
@@ -278,7 +278,7 @@ export default function NetworkPage() {
         <h2 className="text-xs font-mono uppercase tracking-[0.2em] text-neutral-500 mb-8">
           Subsystems
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-white/[0.03]">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-white/[0.03] stagger-in">
           {SUBSYSTEMS.map((sub) => (
             <div
               key={sub.name}
