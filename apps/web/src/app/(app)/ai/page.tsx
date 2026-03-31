@@ -11,6 +11,7 @@ import {
   type ConversationResponse,
   type AIMessage,
 } from "@/lib/api";
+import { EmptyState, AIIllustration, ChatIllustration, ConversationsIllustration } from "@/components/empty-state";
 
 type ViewMode = "chat" | "agents" | "conversations";
 
@@ -253,13 +254,11 @@ export default function AIPage() {
           {/* Messages */}
           <div className="min-h-[400px] max-h-[600px] overflow-y-auto mb-8 space-y-6">
             {messages.length === 0 && !loading && (
-              <div className="py-20 text-center">
-                <p className="text-sm text-neutral-600 font-light">
-                  {selectedAgent
-                    ? `Start a conversation with ${selectedAgent.name}`
-                    : "Create an agent to begin"}
-                </p>
-              </div>
+              <EmptyState
+                icon={<ChatIllustration />}
+                title={selectedAgent ? `Chat with ${selectedAgent.name}` : "No agent selected"}
+                description={selectedAgent ? "Type a message below to start a conversation. All inference runs locally." : "Create an agent in the Agents tab to begin."}
+              />
             )}
             {messages
               .filter((m) => m.role !== "system")
@@ -407,11 +406,19 @@ export default function AIPage() {
               ))}
             </div>
           ) : agents.length === 0 ? (
-            <div className="py-16 text-center">
-              <p className="text-sm text-neutral-600 font-light">
-                No agents yet. Create one to start.
-              </p>
-            </div>
+            <EmptyState
+              icon={<AIIllustration />}
+              title="No agents yet"
+              description="Create an AI agent with a custom system prompt. Agents run locally with full sovereignty over your data."
+              action={
+                <button
+                  onClick={() => setShowCreate(true)}
+                  className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150"
+                >
+                  Create Agent
+                </button>
+              }
+            />
           ) : (
             <div className="space-y-px">
               {agents.map((agent) => (
@@ -490,11 +497,11 @@ export default function AIPage() {
           </div>
 
           {conversations.length === 0 ? (
-            <div className="py-16 text-center">
-              <p className="text-sm text-neutral-600 font-light">
-                No conversations yet. Start chatting with an agent.
-              </p>
-            </div>
+            <EmptyState
+              icon={<ConversationsIllustration />}
+              title="No conversations yet"
+              description="Start chatting with an agent in the Chat tab. Your conversation history will appear here."
+            />
           ) : (
             <div className="space-y-px">
               {conversations.map((conv) => {
