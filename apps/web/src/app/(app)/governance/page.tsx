@@ -17,6 +17,7 @@ import {
   type PowerEntry,
 } from "@/lib/api";
 import { GovernanceAnalytics } from "@/components/governance-analytics";
+import { EmptyState, GovernanceIllustration, DelegationIllustration } from "@/components/empty-state";
 
 type Tab = "analytics" | "proposals" | "daos" | "delegation";
 
@@ -394,9 +395,22 @@ export default function GovernancePage() {
               ))}
             </div>
           ) : proposals.length === 0 ? (
-            <p className="text-sm text-neutral-600 font-light">
-              No proposals yet. Create the first one.
-            </p>
+            <EmptyState
+              icon={<GovernanceIllustration />}
+              title="No proposals yet"
+              description="Submit the first proposal for your DAO. Quadratic voting ensures every voice is weighted fairly."
+              action={
+                <button
+                  onClick={() => {
+                    setShowProposalForm(true);
+                    if (daos.length > 0 && !propDaoId) setPropDaoId(daos[0].id);
+                  }}
+                  className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150"
+                >
+                  New Proposal
+                </button>
+              }
+            />
           ) : (
             <div className="space-y-px">
               {proposals.map((p) => {
@@ -564,9 +578,19 @@ export default function GovernancePage() {
           )}
 
           {daos.length === 0 ? (
-            <p className="text-sm text-neutral-600 font-light">
-              No DAOs yet. Create the first one.
-            </p>
+            <EmptyState
+              icon={<GovernanceIllustration />}
+              title="No DAOs yet"
+              description="Create a decentralized autonomous organization to coordinate governance with your community."
+              action={
+                <button
+                  onClick={() => setShowDaoForm(true)}
+                  className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150"
+                >
+                  Create DAO
+                </button>
+              }
+            />
           ) : (
             <div className="space-y-px">
               {daos.map((d) => (
@@ -711,10 +735,11 @@ export default function GovernancePage() {
               Your Delegations
             </h3>
             {delegations.length === 0 ? (
-              <p className="text-xs text-neutral-600 font-light">
-                No active delegations.{" "}
-                {!userDid && "Connect an identity to view delegations."}
-              </p>
+              <EmptyState
+                icon={<DelegationIllustration />}
+                title="No active delegations"
+                description={userDid ? "Delegate your voting power to a trusted member of your DAO." : "Connect an identity in Settings to manage delegations."}
+              />
             ) : (
               <div className="space-y-2">
                 {delegations.map((d) => (
