@@ -19,6 +19,7 @@ import {
 import { GovernanceAnalytics } from "@/components/governance-analytics";
 import { EmptyState, GovernanceIllustration, DelegationIllustration } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
+import { Avatar } from "@/components/avatar";
 import { useToast } from "@/components/toast";
 import { usePageShortcuts, useListNavigation } from "@/components/keyboard-shortcuts";
 
@@ -757,7 +758,9 @@ export default function GovernancePage() {
                     className="bg-white/[0.02] border-white/[0.06] card-lift"
                   >
                     <CardContent className="p-4 flex items-center justify-between">
-                      <div className="space-y-1">
+                      <div className="flex items-center gap-3">
+                        <Avatar did={d.to_did} size="sm" />
+                        <div className="space-y-1">
                         <p className="text-sm font-mono">
                           <span className="text-neutral-600">to </span>
                           <span className="text-[#d4af37]">
@@ -774,6 +777,7 @@ export default function GovernancePage() {
                             </span>
                           )}
                         </p>
+                        </div>
                       </div>
                       <Button
                         onClick={() => handleRevoke(d.id)}
@@ -806,7 +810,8 @@ export default function GovernancePage() {
                       key={p.did}
                       className="flex flex-col sm:grid sm:grid-cols-3 gap-1 sm:gap-2 text-sm py-1.5 border-b border-white/[0.04] sm:border-0 last:border-0"
                     >
-                      <span className="font-mono text-xs truncate">
+                      <span className="flex items-center gap-2 font-mono text-xs truncate">
+                        <Avatar did={p.did} size="xs" />
                         {p.did.length > 20
                           ? `${p.did.slice(0, 10)}...${p.did.slice(-6)}`
                           : p.did}
