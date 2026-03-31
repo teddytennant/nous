@@ -10,6 +10,7 @@ import {
   type CredentialResponse,
   type ReputationResponse,
 } from "@/lib/api";
+import { useToast } from "@/components/toast";
 
 type Theme = "dark" | "light";
 
@@ -24,6 +25,7 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [credentials, setCredentials] = useState<CredentialResponse[]>([]);
   const [reputation, setReputation] = useState<ReputationResponse | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const storedDid = localStorage.getItem("nous_did") || "";
@@ -56,6 +58,7 @@ export default function SettingsPage() {
     localStorage.setItem("nous_api_url", apiUrl);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+    toast({ title: "Settings saved", variant: "success" });
   };
 
   const handleClearData = () => {
@@ -71,6 +74,7 @@ export default function SettingsPage() {
     setCredentials([]);
     setReputation(null);
     setSaved(false);
+    toast({ title: "Data cleared", description: "All local data has been removed" });
   };
 
   const exportDIDDocument = async () => {
