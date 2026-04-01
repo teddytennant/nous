@@ -24,20 +24,17 @@ export function RevealOnScroll({
   once = true,
 }: RevealOnScrollProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  });
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
 
-    // Check for reduced motion preference
-    const prefersReducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
-    ).matches;
-    if (prefersReducedMotion) {
-      setIsVisible(true);
-      return;
-    }
+    // Skip observer if reduced motion — already visible from initial state
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
