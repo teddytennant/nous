@@ -34,6 +34,11 @@ import { Badge } from "@/components/ui/badge";
 import { ArchitectureDiagram } from "@/components/architecture-diagram";
 import { TerminalDemo } from "@/components/terminal-demo";
 import { OpenSourceSection } from "@/components/open-source-section";
+import {
+  RevealOnScroll,
+  ScrollProgress,
+  ScrollToTop,
+} from "@/components/reveal-on-scroll";
 
 const features = [
   {
@@ -318,6 +323,9 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-screen">
+      <ScrollProgress />
+      <ScrollToTop />
+
       {/* Floating nav */}
       <nav
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -490,16 +498,19 @@ export default function Home() {
 
       {/* Features */}
       <section id="features" className="px-6 py-28 max-w-6xl mx-auto w-full scroll-mt-16">
-        <div className="mb-20">
-          <h2 className="text-xs font-mono uppercase tracking-[0.25em] text-neutral-600 mb-4">
-            Architecture
-          </h2>
-          <p className="text-2xl sm:text-3xl font-extralight tracking-[-0.02em] text-neutral-300 max-w-xl">
-            Eight subsystems. One protocol.{" "}
-            <span className="text-white">Zero compromise.</span>
-          </p>
-        </div>
+        <RevealOnScroll>
+          <div className="mb-20">
+            <h2 className="text-xs font-mono uppercase tracking-[0.25em] text-neutral-600 mb-4">
+              Architecture
+            </h2>
+            <p className="text-2xl sm:text-3xl font-extralight tracking-[-0.02em] text-neutral-300 max-w-xl">
+              Eight subsystems. One protocol.{" "}
+              <span className="text-white">Zero compromise.</span>
+            </p>
+          </div>
+        </RevealOnScroll>
 
+        <RevealOnScroll delay={100}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-white/[0.04] rounded-sm overflow-hidden stagger-in">
           {features.map((feature) => {
             const Icon = feature.icon;
@@ -530,6 +541,7 @@ export default function Home() {
             );
           })}
         </div>
+        </RevealOnScroll>
       </section>
 
       {/* Divider */}
@@ -537,16 +549,19 @@ export default function Home() {
 
       {/* Ownership — Why Nous Matters */}
       <section className="px-6 py-28 max-w-6xl mx-auto w-full">
-        <div className="mb-20">
-          <h2 className="text-xs font-mono uppercase tracking-[0.25em] text-neutral-600 mb-4">
-            Ownership
-          </h2>
-          <p className="text-2xl sm:text-3xl font-extralight tracking-[-0.02em] text-neutral-300 max-w-xl">
-            The question is simple.{" "}
-            <span className="text-white">Who&apos;s in control?</span>
-          </p>
-        </div>
+        <RevealOnScroll>
+          <div className="mb-20">
+            <h2 className="text-xs font-mono uppercase tracking-[0.25em] text-neutral-600 mb-4">
+              Ownership
+            </h2>
+            <p className="text-2xl sm:text-3xl font-extralight tracking-[-0.02em] text-neutral-300 max-w-xl">
+              The question is simple.{" "}
+              <span className="text-white">Who&apos;s in control?</span>
+            </p>
+          </div>
+        </RevealOnScroll>
 
+        <RevealOnScroll delay={100}>
         <div className="overflow-x-auto -mx-2 px-2">
           <table className="w-full min-w-[560px]">
             <thead>
@@ -581,7 +596,10 @@ export default function Home() {
           </table>
         </div>
 
+        </RevealOnScroll>
+
         {/* Nous replaces */}
+        <RevealOnScroll delay={150}>
         <div className="mt-16 pt-12 border-t border-white/[0.04]">
           <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-700 mb-5">
             One app replaces
@@ -597,6 +615,7 @@ export default function Home() {
             ))}
           </div>
         </div>
+        </RevealOnScroll>
       </section>
 
       {/* Divider */}
@@ -604,16 +623,19 @@ export default function Home() {
 
       {/* Who Is This For */}
       <section className="px-6 py-28 max-w-6xl mx-auto w-full">
-        <div className="mb-20">
-          <h2 className="text-xs font-mono uppercase tracking-[0.25em] text-neutral-600 mb-4">
-            Who Is This For
-          </h2>
-          <p className="text-2xl sm:text-3xl font-extralight tracking-[-0.02em] text-neutral-300 max-w-xl">
-            Built for people who{" "}
-            <span className="text-white">refuse to compromise.</span>
-          </p>
-        </div>
+        <RevealOnScroll>
+          <div className="mb-20">
+            <h2 className="text-xs font-mono uppercase tracking-[0.25em] text-neutral-600 mb-4">
+              Who Is This For
+            </h2>
+            <p className="text-2xl sm:text-3xl font-extralight tracking-[-0.02em] text-neutral-300 max-w-xl">
+              Built for people who{" "}
+              <span className="text-white">refuse to compromise.</span>
+            </p>
+          </div>
+        </RevealOnScroll>
 
+        <RevealOnScroll delay={100}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-white/[0.04] rounded-sm overflow-hidden stagger-in">
           {personas.map((persona) => {
             const Icon = persona.icon;
@@ -649,6 +671,7 @@ export default function Home() {
             );
           })}
         </div>
+        </RevealOnScroll>
       </section>
 
       {/* Divider */}
@@ -656,21 +679,27 @@ export default function Home() {
 
       {/* How It Works — Terminal Demo */}
       <section className="px-6 py-28 max-w-6xl mx-auto w-full">
-        <div className="mb-16 text-center">
-          <h2 className="text-xs font-mono uppercase tracking-[0.25em] text-neutral-600 mb-4">
-            How It Works
-          </h2>
-          <p className="text-2xl sm:text-3xl font-extralight tracking-[-0.02em] text-neutral-300 max-w-xl mx-auto">
-            One CLI. <span className="text-white">Total sovereignty.</span>
+        <RevealOnScroll>
+          <div className="mb-16 text-center">
+            <h2 className="text-xs font-mono uppercase tracking-[0.25em] text-neutral-600 mb-4">
+              How It Works
+            </h2>
+            <p className="text-2xl sm:text-3xl font-extralight tracking-[-0.02em] text-neutral-300 max-w-xl mx-auto">
+              One CLI. <span className="text-white">Total sovereignty.</span>
+            </p>
+          </div>
+        </RevealOnScroll>
+
+        <RevealOnScroll delay={100} variant="scale">
+          <TerminalDemo />
+        </RevealOnScroll>
+
+        <RevealOnScroll delay={200}>
+          <p className="text-center text-xs text-neutral-700 font-light mt-8 max-w-md mx-auto">
+            Every command runs locally. Your keys never leave your machine.
+            No accounts, no servers, no permission needed.
           </p>
-        </div>
-
-        <TerminalDemo />
-
-        <p className="text-center text-xs text-neutral-700 font-light mt-8 max-w-md mx-auto">
-          Every command runs locally. Your keys never leave your machine.
-          No accounts, no servers, no permission needed.
-        </p>
+        </RevealOnScroll>
       </section>
 
       {/* Divider */}
@@ -678,22 +707,28 @@ export default function Home() {
 
       {/* Topology */}
       <section className="px-6 py-28 max-w-6xl mx-auto w-full">
-        <div className="mb-16 text-center">
-          <h2 className="text-xs font-mono uppercase tracking-[0.25em] text-neutral-600 mb-4">
-            Topology
-          </h2>
-          <p className="text-2xl sm:text-3xl font-extralight tracking-[-0.02em] text-neutral-300 max-w-xl mx-auto">
-            Everything connects through{" "}
-            <span className="text-white">one core.</span>
+        <RevealOnScroll>
+          <div className="mb-16 text-center">
+            <h2 className="text-xs font-mono uppercase tracking-[0.25em] text-neutral-600 mb-4">
+              Topology
+            </h2>
+            <p className="text-2xl sm:text-3xl font-extralight tracking-[-0.02em] text-neutral-300 max-w-xl mx-auto">
+              Everything connects through{" "}
+              <span className="text-white">one core.</span>
+            </p>
+          </div>
+        </RevealOnScroll>
+
+        <RevealOnScroll delay={100} variant="scale">
+          <ArchitectureDiagram />
+        </RevealOnScroll>
+
+        <RevealOnScroll delay={200}>
+          <p className="text-center text-xs text-neutral-700 font-light mt-8 max-w-md mx-auto">
+            Each subsystem is independent but interconnected — composable
+            primitives that work together or standalone.
           </p>
-        </div>
-
-        <ArchitectureDiagram />
-
-        <p className="text-center text-xs text-neutral-700 font-light mt-8 max-w-md mx-auto">
-          Each subsystem is independent but interconnected — composable
-          primitives that work together or standalone.
-        </p>
+        </RevealOnScroll>
       </section>
 
       {/* Divider */}
@@ -701,15 +736,18 @@ export default function Home() {
 
       {/* Download */}
       <section id="download" className="px-6 py-28 max-w-6xl mx-auto w-full scroll-mt-16">
-        <div className="mb-20">
-          <h2 className="text-xs font-mono uppercase tracking-[0.25em] text-neutral-600 mb-4">
-            Install
-          </h2>
-          <p className="text-2xl sm:text-3xl font-extralight tracking-[-0.02em] text-neutral-300 max-w-xl">
-            One click. <span className="text-white">Every platform.</span>
-          </p>
-        </div>
+        <RevealOnScroll>
+          <div className="mb-20">
+            <h2 className="text-xs font-mono uppercase tracking-[0.25em] text-neutral-600 mb-4">
+              Install
+            </h2>
+            <p className="text-2xl sm:text-3xl font-extralight tracking-[-0.02em] text-neutral-300 max-w-xl">
+              One click. <span className="text-white">Every platform.</span>
+            </p>
+          </div>
+        </RevealOnScroll>
 
+        <RevealOnScroll delay={100}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Primary download */}
           <div className="space-y-6">
@@ -798,6 +836,7 @@ export default function Home() {
             </Link>
           </div>
         </div>
+        </RevealOnScroll>
       </section>
 
       {/* Divider */}
@@ -805,15 +844,18 @@ export default function Home() {
 
       {/* Primitives */}
       <section className="px-6 py-28 max-w-6xl mx-auto w-full">
-        <div className="mb-20">
-          <h2 className="text-xs font-mono uppercase tracking-[0.25em] text-neutral-600 mb-4">
-            Primitives
-          </h2>
-          <p className="text-2xl sm:text-3xl font-extralight tracking-[-0.02em] text-neutral-300 max-w-xl">
-            Built on <span className="text-white">audited cryptography.</span>
-          </p>
-        </div>
+        <RevealOnScroll>
+          <div className="mb-20">
+            <h2 className="text-xs font-mono uppercase tracking-[0.25em] text-neutral-600 mb-4">
+              Primitives
+            </h2>
+            <p className="text-2xl sm:text-3xl font-extralight tracking-[-0.02em] text-neutral-300 max-w-xl">
+              Built on <span className="text-white">audited cryptography.</span>
+            </p>
+          </div>
+        </RevealOnScroll>
 
+        <RevealOnScroll delay={100}>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-10 gap-x-12">
           {primitives.map(([label, value]) => (
             <div key={label} className="group">
@@ -826,6 +868,7 @@ export default function Home() {
             </div>
           ))}
         </div>
+        </RevealOnScroll>
       </section>
 
       {/* Divider */}
@@ -833,15 +876,18 @@ export default function Home() {
 
       {/* By the Numbers */}
       <section className="px-6 py-28 max-w-6xl mx-auto w-full">
-        <div className="mb-20">
-          <h2 className="text-xs font-mono uppercase tracking-[0.25em] text-neutral-600 mb-4">
-            By the Numbers
-          </h2>
-          <p className="text-2xl sm:text-3xl font-extralight tracking-[-0.02em] text-neutral-300 max-w-xl">
-            Engineered for <span className="text-white">real sovereignty.</span>
-          </p>
-        </div>
+        <RevealOnScroll>
+          <div className="mb-20">
+            <h2 className="text-xs font-mono uppercase tracking-[0.25em] text-neutral-600 mb-4">
+              By the Numbers
+            </h2>
+            <p className="text-2xl sm:text-3xl font-extralight tracking-[-0.02em] text-neutral-300 max-w-xl">
+              Engineered for <span className="text-white">real sovereignty.</span>
+            </p>
+          </div>
+        </RevealOnScroll>
 
+        <RevealOnScroll delay={100}>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-white/[0.04] rounded-sm overflow-hidden">
           {[
             { value: "20", label: "Crates", description: "Modular Rust workspace" },
@@ -865,27 +911,33 @@ export default function Home() {
             </div>
           ))}
         </div>
+        </RevealOnScroll>
       </section>
 
       {/* Divider */}
       <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
       {/* Open Source */}
-      <OpenSourceSection />
+      <RevealOnScroll>
+        <OpenSourceSection />
+      </RevealOnScroll>
 
       {/* Divider */}
       <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
       {/* CTA */}
       <section className="px-6 py-32 text-center">
-        <p className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-[-0.03em] mb-4">
-          Sovereign. Encrypted.{" "}
-          <span className="text-[#d4af37]">Unstoppable.</span>
-        </p>
-        <p className="text-sm text-neutral-600 font-light mb-12 max-w-md mx-auto">
-          Join the private alpha and help build the future of decentralized
-          software.
-        </p>
+        <RevealOnScroll>
+          <p className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-[-0.03em] mb-4">
+            Sovereign. Encrypted.{" "}
+            <span className="text-[#d4af37]">Unstoppable.</span>
+          </p>
+          <p className="text-sm text-neutral-600 font-light mb-12 max-w-md mx-auto">
+            Join the private alpha and help build the future of decentralized
+            software.
+          </p>
+        </RevealOnScroll>
+        <RevealOnScroll delay={100}>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
             href="/dashboard"
@@ -904,6 +956,7 @@ export default function Home() {
             View on GitHub
           </a>
         </div>
+        </RevealOnScroll>
       </section>
 
       {/* Footer */}
