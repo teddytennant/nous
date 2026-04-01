@@ -921,54 +921,110 @@ export default function GovernancePage() {
             )}
           </div>
 
-          {/* Effective Power */}
+          {/* Effective Power — Bar Chart */}
           {powerMap.length > 0 && (
             <div>
               <h3 className="text-xs font-mono uppercase tracking-[0.15em] text-neutral-600 mb-4">
                 Effective Voting Power
               </h3>
-              <Card className="bg-white/[0.02] border-white/[0.06]">
-                <CardContent className="p-4">
-                  <div className="hidden sm:grid grid-cols-3 gap-2 text-[10px] font-mono uppercase tracking-[0.1em] text-neutral-600 mb-3 border-b border-white/[0.04] pb-2">
-                    <span>Member</span>
-                    <span className="text-right">Base</span>
-                    <span className="text-right">Effective</span>
-                  </div>
-                  {powerMap.map((p) => (
-                    <div
-                      key={p.did}
-                      className="flex flex-col sm:grid sm:grid-cols-3 gap-1 sm:gap-2 text-sm py-1.5 border-b border-white/[0.04] sm:border-0 last:border-0"
-                    >
-                      <span className="flex items-center gap-2 font-mono text-xs truncate">
-                        <Avatar did={p.did} size="xs" />
-                        {p.did.length > 20
-                          ? `${p.did.slice(0, 10)}...${p.did.slice(-6)}`
-                          : p.did}
-                      </span>
-                      <span className="text-right text-neutral-500 font-mono text-xs">
-                        {p.base_credits}
-                      </span>
-                      <span
-                        className={cn(
-                          "text-right font-mono text-xs",
-                          p.effective_credits > p.base_credits
-                            ? "text-[#d4af37]"
-                            : p.effective_credits < p.base_credits
-                              ? "text-neutral-600"
-                              : "text-neutral-300"
-                        )}
-                      >
-                        {p.effective_credits}
-                        {p.effective_credits > p.base_credits && (
-                          <span className="text-[10px] ml-1 text-[#d4af37]/60">
-                            +{p.effective_credits - p.base_credits}
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+              {(() => {
+                const maxPower = Math.max(...powerMap.map((p) => Math.max(p.base_credits, p.effective_credits)), 1);
+                const sorted = [...powerMap].sort((a, b) => b.effective_credits - a.effective_credits);
+                return (
+                  <Card className="bg-white/[0.02] border-white/[0.06]">
+                    <CardContent className="p-5">
+                      <div className="space-y-4 stagger-in">
+                        {sorted.map((p) => {
+                          const basePct = (p.base_credits / maxPower) * 100;
+                          const effectivePct = (p.effective_credits / maxPower) * 100;
+                          const gained = p.effective_credits > p.base_credits;
+                          const lost = p.effective_credits < p.base_credits;
+                          const delta = p.effective_credits - p.base_credits;
+                          return (
+                            <div key={p.did}>
+                              {/* Member row */}
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="flex items-center gap-2 font-mono text-xs truncate">
+                                  <Avatar did={p.did} size="xs" />
+                                  {p.did.length > 20
+                                    ? `${p.did.slice(0, 10)}...${p.did.slice(-6)}`
+                                    : p.did}
+                                </span>
+                                <div className="flex items-baseline gap-3">
+                                  <span className="text-[10px] font-mono text-neutral-600">
+                                    base {p.base_credits}
+                                  </span>
+                                  <span
+                                    className={cn(
+                                      "text-xs font-mono font-medium",
+                                      gained ? "text-[#d4af37]" : lost ? "text-neutral-600" : "text-neutral-300"
+                                    )}
+                                  >
+                                    {p.effective_credits}
+                                    {delta !== 0 && (
+                                      <span className={cn("text-[10px] ml-1", gained ? "text-[#d4af37]/60" : "text-neutral-700")}>
+                                        {delta > 0 ? `+${delta}` : delta}
+                                      </span>
+                                    )}
+                                  </span>
+                                </div>
+                              </div>
+                              {/* Bar */}
+                              <div className="relative h-2 bg-white/[0.04] rounded-full overflow-hidden">
+                                {/* Base power (background layer) */}
+                                <div
+                                  className="absolute inset-y-0 left-0 bg-white/[0.08] rounded-full power-bar-enter"
+                                  style={{ width: `${basePct}%` }}
+                                />
+                                {/* Effective power (foreground layer) */}
+                                <div
+                                  className={cn(
+                                    "absolute inset-y-0 left-0 rounded-full power-bar-enter",
+                                    gained
+                                      ? "bg-[#d4af37]/50"
+                                      : lost
+                                        ? "bg-neutral-600/50"
+                                        : "bg-white/[0.15]"
+                                  )}
+                                  style={{
+                                    width: `${effectivePct}%`,
+                                    animationDelay: "100ms",
+                                  }}
+                                />
+                                {/* Gold glow on gained power */}
+                                {gained && (
+                                  <div
+                                    className="absolute inset-y-0 left-0 rounded-full bg-[#d4af37]/20 blur-[2px] power-bar-enter"
+                                    style={{
+                                      width: `${effectivePct}%`,
+                                      animationDelay: "200ms",
+                                    }}
+                                  />
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {/* Legend */}
+                      <div className="flex items-center gap-6 mt-6 pt-4 border-t border-white/[0.04]">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-1.5 rounded-full bg-white/[0.08]" />
+                          <span className="text-[10px] font-mono text-neutral-600">Base</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-1.5 rounded-full bg-[#d4af37]/50" />
+                          <span className="text-[10px] font-mono text-neutral-600">Gained via delegation</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-1.5 rounded-full bg-neutral-600/50" />
+                          <span className="text-[10px] font-mono text-neutral-600">Delegated away</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })()}
             </div>
           )}
         </section>
