@@ -138,21 +138,41 @@ function generateSparkData(seed: string, count: number, base: number, variance: 
   return data;
 }
 
+/** External store for uptime samples — avoids ref-during-render and setState-in-effect */
+const uptimeSamplesStore = {
+  _samples: [] as number[],
+  _listeners: new Set<() => void>(),
+  push(val: number) {
+    this._samples = [...this._samples.slice(-11), val];
+    for (const l of this._listeners) l();
+  },
+  subscribe(listener: () => void) {
+    uptimeSamplesStore._listeners.add(listener);
+    return () => { uptimeSamplesStore._listeners.delete(listener); };
+  },
+  getSnapshot() {
+    return uptimeSamplesStore._samples;
+  },
+};
+
 /** Hook: track uptime samples over time from health polling */
 function useUptimeSamples(uptimeMs: number | undefined): number[] {
-  const samples = useRef<number[]>([]);
+  const data = useSyncExternalStore(
+    uptimeSamplesStore.subscribe,
+    uptimeSamplesStore.getSnapshot,
+    () => [] as number[],
+  );
 
   useEffect(() => {
     if (uptimeMs === undefined) return;
-    const val = uptimeMs / 1000 / 60; // minutes
-    samples.current = [...samples.current.slice(-11), val];
+    uptimeSamplesStore.push(uptimeMs / 1000 / 60);
   }, [uptimeMs]);
 
   // Return at least some data points so sparkline renders
-  if (samples.current.length < 2 && uptimeMs !== undefined) {
+  if (data.length < 2 && uptimeMs !== undefined) {
     return generateSparkData("uptime", 12, uptimeMs / 1000 / 60, 10);
   }
-  return samples.current;
+  return data;
 }
 
 // Weekly activity demo data (deterministic per day-of-year)
