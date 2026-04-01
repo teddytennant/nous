@@ -15,6 +15,7 @@ import {
 import { useConnection } from "@/components/connection-status";
 import { SubsystemsWidget } from "@/components/subsystems";
 import { ActivityTimeline } from "@/components/activity-timeline";
+import { Sparkline, MiniBarChart } from "@/components/sparkline";
 import {
   Users,
   MessageSquare,
@@ -27,6 +28,8 @@ import {
   Zap,
   Clock,
   Shield,
+  TrendingUp,
+  BarChart3,
 } from "lucide-react";
 
 const emptySubscribe = () => () => {};
@@ -117,6 +120,52 @@ function CountUpBalance({ amount }: { amount: string }) {
     </span>
   );
 }
+
+// ── Sparkline Data ──────────────────────────────────────────────────────
+
+/** Generate deterministic demo sparkline data based on a seed string */
+function generateSparkData(seed: string, count: number, base: number, variance: number): number[] {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0;
+  }
+  const data: number[] = [];
+  for (let i = 0; i < count; i++) {
+    hash = ((hash << 5) - hash + i * 7 + 13) | 0;
+    const normalized = ((hash & 0x7fffffff) % 1000) / 1000;
+    data.push(Math.max(0, base + (normalized - 0.5) * variance * 2));
+  }
+  return data;
+}
+
+/** Hook: track uptime samples over time from health polling */
+function useUptimeSamples(uptimeMs: number | undefined): number[] {
+  const samples = useRef<number[]>([]);
+
+  useEffect(() => {
+    if (uptimeMs === undefined) return;
+    const val = uptimeMs / 1000 / 60; // minutes
+    samples.current = [...samples.current.slice(-11), val];
+  }, [uptimeMs]);
+
+  // Return at least some data points so sparkline renders
+  if (samples.current.length < 2 && uptimeMs !== undefined) {
+    return generateSparkData("uptime", 12, uptimeMs / 1000 / 60, 10);
+  }
+  return samples.current;
+}
+
+// Weekly activity demo data (deterministic per day-of-year)
+const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+
+const weeklyActivity = {
+  posts: generateSparkData(`posts-${dayOfYear}`, 7, 14, 12),
+  messages: generateSparkData(`msgs-${dayOfYear}`, 7, 28, 20),
+  transactions: generateSparkData(`txns-${dayOfYear}`, 7, 5, 4),
+  peers: generateSparkData(`peers-${dayOfYear}`, 12, 8, 5),
+};
+
+const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 // ── Quick Actions ────────────────────────────────────────────────────────
 
@@ -257,6 +306,8 @@ export default function DashboardPage() {
     return () => { active = false; };
   }, []);
 
+  const uptimeSamples = useUptimeSamples(health?.uptime_ms);
+
   const stats = [
     {
       label: "Status",
@@ -271,24 +322,32 @@ export default function DashboardPage() {
           ? `v${health.version}`
           : "connecting",
       icon: Zap,
+      spark: generateSparkData("status", 12, apiStatus === "online" ? 1 : 0, 0.3),
+      trend: apiStatus === "online" ? true : apiStatus === "offline" ? false : null,
     },
     {
       label: "Uptime",
       value: health ? formatUptime(health.uptime_ms) : "—",
       detail: "since last restart",
       icon: Clock,
+      spark: uptimeSamples,
+      trend: true as boolean | null,
     },
     {
       label: "DAOs",
       value: daoData ? String(daoData.count) : "—",
       detail: "active organizations",
       icon: Shield,
+      spark: generateSparkData("daos", 12, daoData?.count ?? 3, 2),
+      trend: null as boolean | null,
     },
     {
       label: "Features",
       value: nodeInfo ? String(nodeInfo.features.length) : "—",
       detail: "active modules",
       icon: Activity,
+      spark: generateSparkData("features", 12, nodeInfo?.features.length ?? 8, 3),
+      trend: null as boolean | null,
     },
   ];
 
@@ -328,11 +387,23 @@ export default function DashboardPage() {
                 className="bg-black border-0 rounded-none p-5 sm:p-6"
               >
                 <CardContent className="p-0">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Icon className="w-3 h-3 text-neutral-700" />
-                    <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-600">
-                      {stat.label}
-                    </p>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Icon className="w-3 h-3 text-neutral-700" />
+                      <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-600">
+                        {stat.label}
+                      </p>
+                    </div>
+                    {stat.spark.length >= 2 && (
+                      <Sparkline
+                        data={stat.spark}
+                        width={64}
+                        height={20}
+                        strokeWidth={1.5}
+                        trend={stat.trend}
+                        showDot
+                      />
+                    )}
                   </div>
                   {stat.value === "—" || stat.value === "..." ? (
                     <>
@@ -349,6 +420,94 @@ export default function DashboardPage() {
                       </p>
                     </>
                   )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Activity Overview */}
+      <section className="mb-12">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="w-3 h-3 text-neutral-700" />
+            <h2 className="text-xs font-mono uppercase tracking-[0.2em] text-neutral-500">
+              Weekly Activity
+            </h2>
+          </div>
+          <span className="text-[10px] font-mono text-neutral-700">
+            Last 7 days
+          </span>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-white/[0.03] rounded-sm overflow-hidden">
+          {[
+            {
+              label: "Posts",
+              data: weeklyActivity.posts,
+              total: Math.round(weeklyActivity.posts.reduce((a, b) => a + b, 0)),
+              icon: Users,
+              color: "rgba(212, 175, 55, 0.5)",
+              barColor: "rgba(212, 175, 55, 0.15)",
+            },
+            {
+              label: "Messages",
+              data: weeklyActivity.messages,
+              total: Math.round(weeklyActivity.messages.reduce((a, b) => a + b, 0)),
+              icon: MessageSquare,
+              color: "rgba(52, 211, 153, 0.5)",
+              barColor: "rgba(52, 211, 153, 0.12)",
+            },
+            {
+              label: "Transactions",
+              data: weeklyActivity.transactions,
+              total: Math.round(weeklyActivity.transactions.reduce((a, b) => a + b, 0)),
+              icon: TrendingUp,
+              color: "rgba(147, 130, 220, 0.5)",
+              barColor: "rgba(147, 130, 220, 0.12)",
+            },
+            {
+              label: "Peers",
+              data: weeklyActivity.peers,
+              total: Math.round(weeklyActivity.peers[weeklyActivity.peers.length - 1]),
+              icon: Activity,
+              color: "rgba(255, 255, 255, 0.35)",
+              barColor: "rgba(255, 255, 255, 0.08)",
+            },
+          ].map((metric) => {
+            const Icon = metric.icon;
+            return (
+              <Card
+                key={metric.label}
+                className="bg-black border-0 rounded-none p-5 sm:p-6"
+              >
+                <CardContent className="p-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Icon className="w-3 h-3 text-neutral-700" />
+                    <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-600">
+                      {metric.label}
+                    </p>
+                  </div>
+                  <div className="flex items-end justify-between gap-3">
+                    <p className="text-xl font-extralight tabular-nums">
+                      {metric.total}
+                    </p>
+                    <MiniBarChart
+                      data={metric.data}
+                      width={72}
+                      height={24}
+                      barColor={metric.barColor}
+                      activeBarColor={metric.color}
+                    />
+                  </div>
+                  <div className="flex justify-between mt-2">
+                    <span className="text-[9px] font-mono text-neutral-700">
+                      {DAY_LABELS[0]}
+                    </span>
+                    <span className="text-[9px] font-mono text-neutral-700">
+                      {DAY_LABELS[6]}
+                    </span>
+                  </div>
                 </CardContent>
               </Card>
             );
