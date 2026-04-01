@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, startTransition } from "react";
+import { useCallback, useEffect, useRef, useState, startTransition } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,7 @@ import {
 import { EmptyState, NetworkIllustration } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { useToast } from "@/components/toast";
+import { Sparkline } from "@/components/sparkline";
 
 interface Subsystem {
   name: string;
@@ -40,6 +41,37 @@ function timeAgo(iso: string): string {
 function truncateId(id: string): string {
   if (id.length > 20) return `${id.slice(0, 8)}...${id.slice(-6)}`;
   return id;
+}
+
+// ── Latency history ────────────────────────────────────────────────────
+
+/** Max samples per peer (~100s at 5s interval) */
+const MAX_HISTORY = 20;
+
+type LatencyHistoryMap = Record<string, number[]>;
+
+function pushLatencySample(
+  history: LatencyHistoryMap,
+  peers: PeerResponse[],
+): LatencyHistoryMap {
+  const next = { ...history };
+  for (const peer of peers) {
+    const val = peer.latency_ms ?? 0;
+    const prev = next[peer.peer_id] ?? [];
+    const updated = prev.length >= MAX_HISTORY ? [...prev.slice(1), val] : [...prev, val];
+    next[peer.peer_id] = updated;
+  }
+  return next;
+}
+
+/** Compute trend: compare avg of last 3 to avg of first 3. Lower is better for latency. */
+function latencyTrend(samples: number[]): boolean | null {
+  if (samples.length < 4) return null;
+  const head = samples.slice(0, 3).reduce((s, v) => s + v, 0) / 3;
+  const tail = samples.slice(-3).reduce((s, v) => s + v, 0) / 3;
+  const diff = tail - head;
+  if (Math.abs(diff) < 3) return null; // stable
+  return diff < 0; // improving (lower) = positive trend
 }
 
 const SUBSYSTEMS: Subsystem[] = [
@@ -200,6 +232,11 @@ export default function NetworkPage() {
   const [connecting, setConnecting] = useState(false);
   const [sortKey, setSortKey] = useState<PeerSortKey>("connected");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [latencyHistory, setLatencyHistory] = useState<LatencyHistoryMap>({});
+  const [avgLatencyHistory, setAvgLatencyHistory] = useState<number[]>([]);
+  const [peerCountHistory, setPeerCountHistory] = useState<number[]>([]);
+  const [bandwidthHistory, setBandwidthHistory] = useState<number[]>([]);
+  const prevBandwidthRef = useRef(0);
 
   const fetchData = useCallback(async () => {
     try {
@@ -212,6 +249,29 @@ export default function NetworkPage() {
       setNodeInfo(n);
       setPeerList(p.peers);
       setApiOffline(false);
+
+      // Update latency history
+      setLatencyHistory((prev) => pushLatencySample(prev, p.peers));
+
+      // Update aggregate stats history
+      const avg =
+        p.peers.length > 0
+          ? Math.round(p.peers.reduce((s, pr) => s + (pr.latency_ms ?? 0), 0) / p.peers.length)
+          : 0;
+      setAvgLatencyHistory((prev) =>
+        prev.length >= MAX_HISTORY ? [...prev.slice(1), avg] : [...prev, avg],
+      );
+      setPeerCountHistory((prev) =>
+        prev.length >= MAX_HISTORY
+          ? [...prev.slice(1), p.peers.length]
+          : [...prev, p.peers.length],
+      );
+      const totalBw = p.peers.reduce((s, pr) => s + pr.bytes_sent + pr.bytes_recv, 0);
+      const bwDelta = Math.max(0, totalBw - prevBandwidthRef.current);
+      prevBandwidthRef.current = totalBw;
+      setBandwidthHistory((prev) =>
+        prev.length >= MAX_HISTORY ? [...prev.slice(1), bwDelta] : [...prev, bwDelta],
+      );
     } catch {
       setApiOffline(true);
       toast({ title: "API offline", variant: "error" });
@@ -291,21 +351,31 @@ export default function NetworkPage() {
             ? "Offline"
             : "...",
       detail: health ? `v${health.version}` : "",
+      sparkData: null as number[] | null,
+      sparkTrend: null as boolean | null,
     },
     {
       label: "Peers",
       value: String(peerList.length),
       detail: "connected",
+      sparkData: peerCountHistory.length >= 2 ? peerCountHistory : null,
+      sparkTrend: peerCountHistory.length >= 4
+        ? (peerCountHistory[peerCountHistory.length - 1] >= peerCountHistory[0] ? true : false)
+        : null,
     },
     {
       label: "Bandwidth",
       value: formatBytes(totalBandwidth),
       detail: "total transferred",
+      sparkData: bandwidthHistory.length >= 2 ? bandwidthHistory : null,
+      sparkTrend: true as boolean | null, // bandwidth throughput is always "positive"
     },
     {
       label: "Latency",
       value: peerList.length > 0 ? `${avgLatency}ms` : "\u2014",
       detail: "avg peer latency",
+      sparkData: avgLatencyHistory.length >= 2 ? avgLatencyHistory : null,
+      sparkTrend: latencyTrend(avgLatencyHistory),
     },
   ];
 
@@ -338,9 +408,20 @@ export default function NetworkPage() {
                 className="bg-black border-0 rounded-none p-6"
               >
                 <CardContent className="p-0">
-                  <p className="text-xs font-mono uppercase tracking-[0.15em] text-neutral-600 mb-3">
-                    {stat.label}
-                  </p>
+                  <div className="flex items-start justify-between mb-3">
+                    <p className="text-xs font-mono uppercase tracking-[0.15em] text-neutral-600">
+                      {stat.label}
+                    </p>
+                    {stat.sparkData && (
+                      <Sparkline
+                        data={stat.sparkData}
+                        width={56}
+                        height={18}
+                        strokeWidth={1.2}
+                        trend={stat.sparkTrend}
+                      />
+                    )}
+                  </div>
                   <p className="text-2xl font-extralight mb-1">{stat.value}</p>
                   <p className="text-xs text-neutral-600 font-light font-mono truncate">
                     {stat.detail}
@@ -462,6 +543,9 @@ export default function NetworkPage() {
                     Latency
                     <SortIndicator active={sortKey === "latency"} dir={sortDir} />
                   </th>
+                  <th className="text-center text-[10px] font-mono uppercase tracking-wider text-neutral-600 pb-3 pr-6 hidden lg:table-cell">
+                    Trend
+                  </th>
                   <th
                     className="text-right text-[10px] font-mono uppercase tracking-wider text-neutral-600 pb-3 pr-6 cursor-pointer select-none hover:text-neutral-400 transition-colors duration-150"
                     onClick={() => toggleSort("sent")}
@@ -518,6 +602,22 @@ export default function NetworkPage() {
                       >
                         {peer.latency_ms != null ? `${peer.latency_ms}ms` : "\u2014"}
                       </span>
+                    </td>
+                    <td className="py-3 pr-6 hidden lg:table-cell">
+                      {(latencyHistory[peer.peer_id]?.length ?? 0) >= 2 ? (
+                        <div className="flex justify-center">
+                          <Sparkline
+                            data={latencyHistory[peer.peer_id]}
+                            width={52}
+                            height={18}
+                            strokeWidth={1.2}
+                            showDot={true}
+                            trend={latencyTrend(latencyHistory[peer.peer_id])}
+                          />
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-neutral-700 font-mono block text-center">&mdash;</span>
+                      )}
                     </td>
                     <td className="py-3 pr-6 text-right">
                       <span className="text-xs font-mono text-neutral-500">
