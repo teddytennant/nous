@@ -746,3 +746,98 @@ select option {
 .thread-replies[data-expanded="true"] .thread-reply-item:nth-child(3) { animation-delay: 90ms; }
 .thread-replies[data-expanded="true"] .thread-reply-item:nth-child(4) { animation-delay: 120ms; }
 .thread-replies[data-expanded="true"] .thread-reply-item:nth-child(n+5) { animation-delay: 150ms; }
+
+/* ── Scroll-triggered reveal animations ──────────────────────────────── */
+
+/* Base: hidden state for all reveal variants */
+.reveal-fade-up,
+.reveal-fade,
+.reveal-fade-left,
+.reveal-fade-right,
+.reveal-scale {
+  opacity: 0;
+  will-change: opacity, transform;
+  transition:
+    opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal-fade-up {
+  transform: translateY(24px);
+}
+
+.reveal-fade-left {
+  transform: translateX(-24px);
+}
+
+.reveal-fade-right {
+  transform: translateX(24px);
+}
+
+.reveal-scale {
+  transform: scale(0.95);
+}
+
+/* Visible: all variants resolve to identity transform */
+.reveal-fade-up.reveal-visible,
+.reveal-fade.reveal-visible,
+.reveal-fade-left.reveal-visible,
+.reveal-fade-right.reveal-visible,
+.reveal-scale.reveal-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* ── Scroll-to-top button ────────────────────────────────────────────── */
+
+.scroll-to-top {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 50;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(12px);
+  color: #737373;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(12px);
+  pointer-events: none;
+  transition:
+    opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.scroll-to-top-visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.scroll-to-top:hover {
+  color: #d4af37;
+  border-color: rgba(212, 175, 55, 0.3);
+  background: rgba(212, 175, 55, 0.04);
+}
+
+.scroll-to-top:active {
+  transform: translateY(0) scale(0.92);
+}
+
+@media (max-width: 640px) {
+  .scroll-to-top {
+    bottom: 5rem;
+    right: 1.25rem;
+    width: 36px;
+    height: 36px;
+  }
+}
