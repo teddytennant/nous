@@ -824,6 +824,18 @@ select option {
   animation: power-bar-enter 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* ── Vote progress bar animation ─────────────────────────────────── */
+
+@keyframes vote-bar-enter {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+.vote-bar-enter {
+  transform-origin: left;
+  animation: vote-bar-enter 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 /* ── Double-tap like heart burst ──────────────────────────────────── */
 
 @keyframes heart-burst {
