@@ -18,6 +18,7 @@ import { useToast } from "@/components/toast";
 import { usePageShortcuts } from "@/components/keyboard-shortcuts";
 import { Copy, Check, Send, Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MarkdownRenderer } from "@/components/markdown-renderer";
 
 type ViewMode = "chat" | "agents" | "conversations";
 
@@ -331,7 +332,11 @@ export default function AIPage() {
                         "text-sm font-light leading-relaxed",
                         msg.role === "user" ? "text-neutral-300" : "text-neutral-100"
                       )}>
-                        <p className="whitespace-pre-wrap">{msg.content}</p>
+                        {msg.role === "assistant" ? (
+                          <MarkdownRenderer content={msg.content} />
+                        ) : (
+                          <p className="whitespace-pre-wrap">{msg.content}</p>
+                        )}
                       </div>
                     </div>
                   </div>
