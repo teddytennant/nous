@@ -56,19 +56,28 @@ jobs:
         if: matrix.cross
         run: cargo install cross --git https://github.com/cross-rs/cross
 
-      - name: Install protoc in cross container
-        if: matrix.cross
-        run: |
-          # protoc from setup-protoc is only on the host; cross runs in Docker
-          # Install protoc inside the container by mounting it
-          PROTOC_PATH=$(which protoc)
-          echo "PROTOC=$PROTOC_PATH" >> "$GITHUB_ENV"
-
       - name: Build (cross)
         if: matrix.cross
         env:
-          CROSS_CONTAINER_OPTS: "-v /usr/local/bin/protoc:/usr/local/bin/protoc -v /usr/local/include/google:/usr/local/include/google"
-        run: cross build --release --target ${{ matrix.target }} --bin nous --bin nous-api
+          # Mount protoc and its includes into the cross Docker container
+          CROSS_CONTAINER_OPTS: "-v /home/runner/.local/bin/protoc:/usr/bin/protoc:ro -v /home/runner/.local/include:/usr/local/include:ro"
+          PROTOC: /usr/bin/protoc
+        run: |
+          # Verify protoc is available on host
+          which protoc && protoc --version
+          # Ensure the mounted protoc path matches
+          PROTOC_HOST=$(which protoc)
+          echo "Host protoc: $PROTOC_HOST"
+          # Copy protoc to a known location for mounting
+          mkdir -p /home/runner/.local/bin
+          cp "$PROTOC_HOST" /home/runner/.local/bin/protoc
+          chmod +x /home/runner/.local/bin/protoc
+          # Copy includes
+          PROTOC_INCLUDE=$(dirname "$(dirname "$PROTOC_HOST")")/include
+          if [ -d "$PROTOC_INCLUDE" ]; then
+            cp -r "$PROTOC_INCLUDE" /home/runner/.local/
+          fi
+          cross build --release --target ${{ matrix.target }} --bin nous --bin nous-api
 
       - name: Build (native)
         if: "!matrix.cross"
