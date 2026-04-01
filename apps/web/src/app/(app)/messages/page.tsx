@@ -15,7 +15,8 @@ type CreateMode = "dm" | "group" | null;
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
-  if (diff < 60_000) return "now";
+  if (diff < 10_000) return "just now";
+  if (diff < 60_000) return `${Math.floor(diff / 1000)}s`;
   if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m`;
   if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h`;
   return `${Math.floor(diff / 86_400_000)}d`;
