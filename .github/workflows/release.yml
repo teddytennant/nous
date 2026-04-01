@@ -56,8 +56,18 @@ jobs:
         if: matrix.cross
         run: cargo install cross --git https://github.com/cross-rs/cross
 
+      - name: Install protoc in cross container
+        if: matrix.cross
+        run: |
+          # protoc from setup-protoc is only on the host; cross runs in Docker
+          # Install protoc inside the container by mounting it
+          PROTOC_PATH=$(which protoc)
+          echo "PROTOC=$PROTOC_PATH" >> "$GITHUB_ENV"
+
       - name: Build (cross)
         if: matrix.cross
+        env:
+          CROSS_CONTAINER_OPTS: "-v /usr/local/bin/protoc:/usr/local/bin/protoc -v /usr/local/include/google:/usr/local/include/google"
         run: cross build --release --target ${{ matrix.target }} --bin nous --bin nous-api
 
       - name: Build (native)
