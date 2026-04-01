@@ -28,6 +28,7 @@ hex = { workspace = true }
 base64 = { workspace = true }
 futures = { workspace = true }
 tokio-tungstenite = { workspace = true }
+openssl = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
