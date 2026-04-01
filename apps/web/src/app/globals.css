@@ -945,3 +945,52 @@ select option {
     height: 36px;
   }
 }
+
+/* ── Proposal timeline ─────────────────────────────────────────────── */
+
+@keyframes timeline-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.timeline-enter {
+  animation: timeline-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes timeline-line-grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+.timeline-line-grow {
+  transform-origin: left;
+  animation: timeline-line-grow 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+}
+
+/* ── Signal strength bars ──────────────────────────────────────────── */
+
+@keyframes signal-bar-enter {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+.signal-bar {
+  transform-origin: bottom;
+  animation: signal-bar-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.signal-bar:nth-child(1) { animation-delay: 0ms; }
+.signal-bar:nth-child(2) { animation-delay: 40ms; }
+.signal-bar:nth-child(3) { animation-delay: 80ms; }
+.signal-bar:nth-child(4) { animation-delay: 120ms; }
+
+/* ── Category icon pulse on hover ──────────────────────────────────── */
+
+@keyframes category-icon-enter {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.category-icon-enter {
+  animation: category-icon-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
