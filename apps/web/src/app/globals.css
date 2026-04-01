@@ -994,3 +994,54 @@ select option {
 .category-icon-enter {
   animation: category-icon-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
+/* ── Sparkline animations ────────────────────────────────────────── */
+
+@keyframes sparkline-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes sparkline-line-draw {
+  from { stroke-dashoffset: var(--sparkline-length, 200); }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes sparkline-area-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes sparkline-dot-pop {
+  0% { r: 0; opacity: 0; }
+  60% { r: 2.8; }
+  100% { r: 2; opacity: 1; }
+}
+
+@keyframes sparkline-bar-grow {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+.sparkline-enter {
+  animation: sparkline-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.sparkline-line-enter {
+  stroke-dasharray: 200;
+  stroke-dashoffset: 200;
+  animation: sparkline-line-draw 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+}
+
+.sparkline-area-enter {
+  animation: sparkline-area-fade 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
+}
+
+.sparkline-dot-enter {
+  animation: sparkline-dot-pop 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.7s both;
+}
+
+.sparkline-bar-enter {
+  transform-origin: bottom;
+  animation: sparkline-bar-grow 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
