@@ -72,6 +72,66 @@ const OFFER_SORT_OPTIONS: { key: OfferSortKey; label: string }[] = [
   { key: "expires", label: "Expires soon" },
 ];
 
+// ── Category icons (inline SVG) ─────────────────────────────────────────
+
+function CategoryIcon({ category, className }: { category: string; className?: string }) {
+  const c = category.toLowerCase();
+  const baseClass = `${className ?? "w-4 h-4"} shrink-0 category-icon-enter`;
+
+  // Physical — package/box
+  if (c === "physical") return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={baseClass}>
+      <path d="M12 2l9 4.5v11L12 22l-9-4.5v-11L12 2z" />
+      <path d="M12 22V11" />
+      <path d="M21 6.5l-9 4.5-9-4.5" />
+      <path d="M7.5 4.2L16.5 9" />
+    </svg>
+  );
+
+  // Digital — code/download
+  if (c === "digital") return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={baseClass}>
+      <polyline points="16 18 22 12 16 6" />
+      <polyline points="8 6 2 12 8 18" />
+      <line x1="14" y1="4" x2="10" y2="20" />
+    </svg>
+  );
+
+  // Service — wrench
+  if (c === "service") return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={baseClass}>
+      <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
+    </svg>
+  );
+
+  // NFT — diamond/gem
+  if (c === "nft") return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={baseClass}>
+      <path d="M6 3h12l4 6-10 13L2 9l4-6z" />
+      <path d="M2 9h20" />
+      <path d="M10 3l-2 6 4 13 4-13-2-6" />
+    </svg>
+  );
+
+  // Data — database
+  if (c === "data") return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={baseClass}>
+      <ellipse cx="12" cy="5" rx="9" ry="3" />
+      <path d="M21 12c0 1.66-4.03 3-9 3s-9-1.34-9-3" />
+      <path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5" />
+    </svg>
+  );
+
+  // Other/fallback — layers
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={baseClass}>
+      <polygon points="12 2 2 7 12 12 22 7 12 2" />
+      <polyline points="2 17 12 22 22 17" />
+      <polyline points="2 12 12 17 22 12" />
+    </svg>
+  );
+}
+
 function formatPrice(amount: number, token: string): string {
   if (amount === 0) return "Free";
   return `${(amount / 100).toFixed(2)} ${token}`;
@@ -308,12 +368,13 @@ function ListingsTab() {
                 key={cat}
                 onClick={() => setCategory(cat)}
                 className={cn(
-                  "text-[10px] font-mono uppercase tracking-wider px-4 py-2 border transition-all duration-150",
+                  "flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider px-4 py-2 border transition-all duration-150",
                   category === cat
                     ? "border-[#d4af37]/30 text-[#d4af37] bg-[#d4af37]/[0.06]"
                     : "border-white/[0.06] text-neutral-600 hover:text-neutral-400"
                 )}
               >
+                {cat !== "All" && <CategoryIcon category={cat} className="w-3 h-3" />}
                 {cat}
               </button>
             ))}
@@ -427,11 +488,12 @@ function ListingsTab() {
                   <p className="text-xs text-neutral-500 font-light mb-4 line-clamp-2">
                     {listing.description}
                   </p>
-                  <div className="flex items-baseline justify-between">
+                  <div className="flex items-center justify-between">
                     <p className="text-lg font-extralight">
                       {formatPrice(listing.price_amount, listing.price_token)}
                     </p>
-                    <span className="text-[10px] font-mono text-neutral-700">
+                    <span className="flex items-center gap-1.5 text-[10px] font-mono text-neutral-700">
+                      <CategoryIcon category={listing.category} className="w-3 h-3" />
                       {listing.category}
                     </span>
                   </div>
