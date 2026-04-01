@@ -639,16 +639,68 @@ export default function GovernancePage() {
                         </div>
                       )}
 
-                      <div className="mt-3">
-                        <div className="flex justify-between text-[10px] font-mono text-neutral-700 mb-1.5">
-                          <span>{votesFor} for</span>
-                          <span>{votesAgainst} against</span>
+                      {/* Voting progress bar */}
+                      <div className="mt-4">
+                        {/* Labels row */}
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-3">
+                            <span className="text-[10px] font-mono text-emerald-600">
+                              {votesFor} for
+                            </span>
+                            <span className="text-[10px] font-mono text-red-500/70">
+                              {votesAgainst} against
+                            </span>
+                            {(tally?.votes_abstain ?? 0) > 0 && (
+                              <span className="text-[10px] font-mono text-neutral-600">
+                                {tally.votes_abstain} abstain
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[10px] font-mono text-neutral-700">
+                            {tally?.total_voters ?? 0} voter{(tally?.total_voters ?? 0) !== 1 ? "s" : ""}
+                          </span>
                         </div>
-                        <div className="h-px bg-white/[0.06] relative">
+
+                        {/* Bar */}
+                        <div className="relative h-1.5 bg-white/[0.04] rounded-full overflow-hidden">
+                          {total > 0 && (
+                            <>
+                              <div
+                                className="absolute inset-y-0 left-0 bg-emerald-500/60 vote-bar-enter rounded-l-full"
+                                style={{ width: `${forPct}%` }}
+                              />
+                              <div
+                                className="absolute inset-y-0 bg-red-500/40 vote-bar-enter rounded-r-full"
+                                style={{
+                                  left: `${forPct}%`,
+                                  width: `${(votesAgainst / total) * 100}%`,
+                                  animationDelay: "80ms",
+                                }}
+                              />
+                            </>
+                          )}
+
+                          {/* Quorum marker */}
                           <div
-                            className="absolute inset-y-0 left-0 bg-[#d4af37]/40"
-                            style={{ width: `${forPct}%` }}
+                            className="absolute top-0 bottom-0 w-px bg-white/20"
+                            style={{ left: `${p.quorum * 100}%` }}
+                            title={`Quorum: ${(p.quorum * 100).toFixed(0)}%`}
                           />
+                        </div>
+
+                        {/* Quorum + threshold labels */}
+                        <div className="flex items-center justify-between mt-1.5">
+                          <span className="text-[9px] font-mono text-neutral-700">
+                            {p.threshold * 100}% to pass
+                          </span>
+                          {total > 0 && (
+                            <span className={cn(
+                              "text-[9px] font-mono",
+                              forPct >= p.threshold * 100 ? "text-emerald-700" : "text-neutral-700"
+                            )}>
+                              {forPct.toFixed(0)}% approval
+                            </span>
+                          )}
                         </div>
                       </div>
                     </CardContent>
