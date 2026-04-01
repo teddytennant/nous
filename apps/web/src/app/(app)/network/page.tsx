@@ -114,6 +114,49 @@ function statusLabel(status: string): string {
   }
 }
 
+// ── Signal strength bars ──────────────────────────────────────────────
+
+type SignalLevel = "excellent" | "good" | "fair" | "poor" | "unknown";
+
+function getSignalLevel(latencyMs: number | null | undefined): SignalLevel {
+  if (latencyMs == null) return "unknown";
+  if (latencyMs < 30) return "excellent";
+  if (latencyMs < 80) return "good";
+  if (latencyMs < 150) return "fair";
+  return "poor";
+}
+
+const signalConfig: Record<SignalLevel, { bars: number; color: string; label: string }> = {
+  excellent: { bars: 4, color: "bg-emerald-500", label: "Excellent" },
+  good: { bars: 3, color: "bg-emerald-500", label: "Good" },
+  fair: { bars: 2, color: "bg-yellow-500", label: "Fair" },
+  poor: { bars: 1, color: "bg-red-500", label: "Poor" },
+  unknown: { bars: 0, color: "bg-neutral-700", label: "Unknown" },
+};
+
+function SignalStrength({ latencyMs }: { latencyMs: number | null | undefined }) {
+  const level = getSignalLevel(latencyMs);
+  const config = signalConfig[level];
+
+  return (
+    <div
+      className="flex items-end gap-[2px] h-3 shrink-0"
+      title={`${config.label}${latencyMs != null ? ` (${latencyMs}ms)` : ""}`}
+    >
+      {[1, 2, 3, 4].map((bar) => (
+        <div
+          key={bar}
+          className={cn(
+            "w-[3px] rounded-[0.5px] signal-bar",
+            bar <= config.bars ? config.color : "bg-white/[0.08]",
+          )}
+          style={{ height: `${bar * 3}px` }}
+        />
+      ))}
+    </div>
+  );
+}
+
 type PeerSortKey = "peer_id" | "latency" | "sent" | "recv" | "connected";
 type SortDir = "asc" | "desc";
 
@@ -450,8 +493,8 @@ export default function NetworkPage() {
                     className="border-b border-white/[0.03] hover:bg-white/[0.01] transition-colors duration-100 group"
                   >
                     <td className="py-3 pr-6">
-                      <div className="flex items-center gap-2">
-                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                      <div className="flex items-center gap-2.5">
+                        <SignalStrength latencyMs={peer.latency_ms} />
                         <span className="text-xs font-mono text-neutral-400">
                           {truncateId(peer.peer_id)}
                         </span>
