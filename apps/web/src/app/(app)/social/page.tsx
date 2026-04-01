@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,10 +12,11 @@ import { PageHeader } from "@/components/page-header";
 import { usePageShortcuts, useListNavigation } from "@/components/keyboard-shortcuts";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/avatar";
-import { Link, Bookmark, Share2, Check, MessageCircle, ChevronDown } from "lucide-react";
+import { Link, Bookmark, Share2, Check, MessageCircle, ChevronDown, Heart } from "lucide-react";
 
 const MAX_POST_LENGTH = 500;
 const BOOKMARKS_KEY = "nous_bookmarks";
+const LIKES_KEY = "nous_likes";
 
 function loadBookmarks(): Set<string> {
   if (typeof window === "undefined") return new Set();
@@ -29,6 +30,20 @@ function loadBookmarks(): Set<string> {
 
 function saveBookmarks(ids: Set<string>) {
   localStorage.setItem(BOOKMARKS_KEY, JSON.stringify([...ids]));
+}
+
+function loadLikes(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = localStorage.getItem(LIKES_KEY);
+    return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+function saveLikes(ids: Set<string>) {
+  localStorage.setItem(LIKES_KEY, JSON.stringify([...ids]));
 }
 
 // ── Threading ──────────────────────────────────────────────────────────────
@@ -73,14 +88,19 @@ type Tab = "timeline" | "following" | "bookmarks";
 export default function SocialPage() {
   const [posts, setPosts] = useState<FeedEvent[]>([]);
   const [draft, setDraft] = useState("");
-  const [replyTo, setReplyTo] = useState<{ id: string; author: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("timeline");
   const [following, setFollowing] = useState<Set<string>>(new Set());
   const [bookmarks, setBookmarks] = useState<Set<string>>(() => loadBookmarks());
+  const [likes, setLikes] = useState<Set<string>>(() => loadLikes());
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [expandedThreads, setExpandedThreads] = useState<Set<string>>(new Set());
+  const [inlineReplyTo, setInlineReplyTo] = useState<string | null>(null);
+  const [inlineReplyDraft, setInlineReplyDraft] = useState("");
+  const [inlinePosting, setInlinePosting] = useState(false);
+  const [likedAnimating, setLikedAnimating] = useState<string | null>(null);
+  const inlineReplyRef = useRef<HTMLTextAreaElement>(null);
 
   const { toast } = useToast();
   const userDid = typeof window !== "undefined" ? localStorage.getItem("nous_did") || "" : "";
@@ -129,11 +149,9 @@ export default function SocialPage() {
       await social.createPost({
         author_did: userDid,
         content: draft,
-        reply_to: replyTo?.id,
         hashtags,
       });
       setDraft("");
-      setReplyTo(null);
       await loadFeed();
       toast({ title: "Post published", variant: "success" });
     } catch (e) {
@@ -141,6 +159,58 @@ export default function SocialPage() {
     } finally {
       setPosting(false);
     }
+  }
+
+  async function handleInlineReply(parentId: string) {
+    if (!inlineReplyDraft.trim() || inlinePosting || !userDid) return;
+    setInlinePosting(true);
+    try {
+      const hashtags = inlineReplyDraft.match(/#(\w+)/g)?.map((t) => t.slice(1)) || [];
+      await social.createPost({
+        author_did: userDid,
+        content: inlineReplyDraft,
+        reply_to: parentId,
+        hashtags,
+      });
+      setInlineReplyDraft("");
+      setInlineReplyTo(null);
+      await loadFeed();
+      // Auto-expand thread to show the new reply
+      setExpandedThreads((prev) => new Set(prev).add(parentId));
+      toast({ title: "Reply posted", variant: "success" });
+    } catch (e) {
+      toast({ title: "Failed to reply", description: e instanceof Error ? e.message : undefined, variant: "error" });
+    } finally {
+      setInlinePosting(false);
+    }
+  }
+
+  function openInlineReply(postId: string) {
+    setInlineReplyTo(postId);
+    setInlineReplyDraft("");
+    // Auto-expand thread if it has replies
+    if (replyMap.get(postId)?.length) {
+      setExpandedThreads((prev) => new Set(prev).add(postId));
+    }
+    // Focus after render
+    requestAnimationFrame(() => {
+      inlineReplyRef.current?.focus();
+    });
+  }
+
+  function toggleLike(eventId: string) {
+    setLikes((prev) => {
+      const next = new Set(prev);
+      if (next.has(eventId)) {
+        next.delete(eventId);
+      } else {
+        next.add(eventId);
+        setLikedAnimating(eventId);
+        setTimeout(() => setLikedAnimating(null), 300);
+      }
+      saveLikes(next);
+      return next;
+    });
   }
 
   async function handleDelete(eventId: string) {
@@ -238,6 +308,7 @@ export default function SocialPage() {
     const date = new Date(iso);
     const now = new Date();
     const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
+    if (diff < 10) return "just now";
     if (diff < 60) return `${diff}s`;
     if (diff < 3600) return `${Math.floor(diff / 60)}m`;
     if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
@@ -269,8 +340,7 @@ export default function SocialPage() {
     onActivate: (index) => {
       const post = displayPosts[index];
       if (post) {
-        setReplyTo({ id: post.id, author: post.pubkey });
-        document.querySelector<HTMLTextAreaElement>("textarea")?.focus();
+        openInlineReply(post.id);
       }
     },
   });
@@ -282,25 +352,10 @@ export default function SocialPage() {
       {/* Compose */}
       <section className="mb-12">
         <div className="border border-white/[0.06] p-5">
-          {replyTo && (
-            <div className="flex items-center justify-between mb-3 pb-3 border-b border-white/[0.04]">
-              <span className="text-[10px] font-mono text-neutral-600">
-                Replying to {truncateDid(replyTo.author)}
-              </span>
-              <button
-                onClick={() => setReplyTo(null)}
-                className="text-[10px] font-mono text-neutral-700 hover:text-white transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          )}
           <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value.slice(0, MAX_POST_LENGTH))}
-            placeholder={
-              replyTo ? "Write your reply..." : "What's on your mind?"
-            }
+            placeholder="What's on your mind?"
             className="w-full bg-transparent text-sm font-light resize-none outline-none placeholder:text-neutral-700 min-h-[80px]"
             rows={3}
             onKeyDown={(e) => {
@@ -318,7 +373,7 @@ export default function SocialPage() {
               size="sm"
               className="text-xs font-mono uppercase tracking-wider border-white/10 hover:border-[#d4af37] hover:text-[#d4af37] disabled:opacity-30"
             >
-              {posting ? "Posting..." : replyTo ? "Reply" : "Post"}
+              {posting ? "Posting..." : "Post"}
             </Button>
           </div>
           {!userDid && (
@@ -488,10 +543,29 @@ export default function SocialPage() {
                     {/* Actions */}
                     <div className="flex items-center gap-6 mt-4">
                       <button
-                        onClick={() =>
-                          setReplyTo({ id: post.id, author: post.pubkey })
-                        }
-                        className="text-[10px] font-mono uppercase tracking-wider text-neutral-700 hover:text-white transition-colors"
+                        onClick={() => toggleLike(post.id)}
+                        className={cn(
+                          "flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider transition-colors",
+                          likes.has(post.id)
+                            ? "text-[#d4af37]"
+                            : "text-neutral-700 hover:text-white"
+                        )}
+                      >
+                        <Heart
+                          size={11}
+                          fill={likes.has(post.id) ? "currentColor" : "none"}
+                          className={likedAnimating === post.id ? "like-pulse" : ""}
+                        />
+                        {likes.has(post.id) ? "Liked" : "Like"}
+                      </button>
+                      <button
+                        onClick={() => openInlineReply(post.id)}
+                        className={cn(
+                          "text-[10px] font-mono uppercase tracking-wider transition-colors",
+                          inlineReplyTo === post.id
+                            ? "text-[#d4af37]"
+                            : "text-neutral-700 hover:text-white"
+                        )}
                       >
                         Reply
                       </button>
@@ -596,9 +670,22 @@ export default function SocialPage() {
                                   {/* Reply actions */}
                                   <div className="flex items-center gap-5 mt-2">
                                     <button
-                                      onClick={() =>
-                                        setReplyTo({ id: post.id, author: reply.pubkey })
-                                      }
+                                      onClick={() => toggleLike(reply.id)}
+                                      className={cn(
+                                        "flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider transition-colors",
+                                        likes.has(reply.id)
+                                          ? "text-[#d4af37]"
+                                          : "text-neutral-700 hover:text-white"
+                                      )}
+                                    >
+                                      <Heart
+                                        size={10}
+                                        fill={likes.has(reply.id) ? "currentColor" : "none"}
+                                        className={likedAnimating === reply.id ? "like-pulse" : ""}
+                                      />
+                                    </button>
+                                    <button
+                                      onClick={() => openInlineReply(post.id)}
                                       className="text-[10px] font-mono uppercase tracking-wider text-neutral-700 hover:text-white transition-colors"
                                     >
                                       Reply
@@ -652,6 +739,65 @@ export default function SocialPage() {
                                 </div>
                               );
                             })}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Inline Reply Compose */}
+                    {inlineReplyTo === post.id && userDid && (
+                      <div className="inline-reply-compose mt-4 ml-4 pl-4 border-l border-[#d4af37]/20">
+                        <div className="flex gap-3">
+                          <Avatar did={userDid} size="xs" />
+                          <div className="flex-1 min-w-0">
+                            <textarea
+                              ref={inlineReplyRef}
+                              value={inlineReplyDraft}
+                              onChange={(e) => setInlineReplyDraft(e.target.value.slice(0, MAX_POST_LENGTH))}
+                              placeholder="Write a reply..."
+                              className="w-full bg-transparent text-[13px] font-light resize-none outline-none placeholder:text-neutral-700 min-h-[40px]"
+                              rows={2}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" && e.metaKey) {
+                                  handleInlineReply(post.id);
+                                }
+                                if (e.key === "Escape") {
+                                  setInlineReplyTo(null);
+                                  setInlineReplyDraft("");
+                                }
+                              }}
+                            />
+                            <div className="flex items-center justify-between mt-2">
+                              <div className="flex items-center gap-3">
+                                <span className="text-[10px] font-mono text-neutral-700">
+                                  {inlineReplyDraft.length}/{MAX_POST_LENGTH}
+                                </span>
+                                <kbd className="hidden sm:inline text-[9px] font-mono text-neutral-700 bg-white/[0.03] px-1.5 py-0.5 rounded border border-white/[0.04]">
+                                  ⌘↵ send
+                                </kbd>
+                                <kbd className="hidden sm:inline text-[9px] font-mono text-neutral-700 bg-white/[0.03] px-1.5 py-0.5 rounded border border-white/[0.04]">
+                                  esc cancel
+                                </kbd>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => {
+                                    setInlineReplyTo(null);
+                                    setInlineReplyDraft("");
+                                  }}
+                                  className="text-[10px] font-mono uppercase tracking-wider text-neutral-700 hover:text-white transition-colors px-2 py-1"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  onClick={() => handleInlineReply(post.id)}
+                                  disabled={inlinePosting || !inlineReplyDraft.trim()}
+                                  className="text-[10px] font-mono uppercase tracking-wider px-3 py-1 border border-white/10 hover:border-[#d4af37] hover:text-[#d4af37] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                >
+                                  {inlinePosting ? "Sending..." : "Reply"}
+                                </button>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
