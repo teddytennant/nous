@@ -1115,3 +1115,43 @@ select option {
   transform-origin: bottom;
   animation: sparkline-bar-grow 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
+/* ── Markdown body styles ────────────────────────────────────────────── */
+
+.markdown-body .counter-reset-list {
+  counter-reset: list-item;
+}
+.markdown-body .counter-increment-list {
+  counter-increment: list-item;
+}
+
+/* Ordered list items — use CSS counters */
+.markdown-body ol {
+  counter-reset: md-list;
+}
+.markdown-body ol > li {
+  counter-increment: md-list;
+}
+
+/* Smooth selection color for code blocks */
+.markdown-body pre ::selection {
+  background: rgba(212, 175, 55, 0.2);
+}
+.markdown-body code ::selection {
+  background: rgba(212, 175, 55, 0.2);
+}
+
+/* Scrollbar for code blocks */
+.markdown-body pre::-webkit-scrollbar {
+  height: 4px;
+}
+.markdown-body pre::-webkit-scrollbar-track {
+  background: transparent;
+}
+.markdown-body pre::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+}
+.markdown-body pre::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
