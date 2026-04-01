@@ -48,11 +48,6 @@ function formatShortDate(iso: string): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function formatShortTime(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-}
-
 type TimelineStage = {
   label: string;
   date: string | null;
@@ -63,7 +58,6 @@ type TimelineStage = {
 
 function getTimelineStages(proposal: ProposalResponse): TimelineStage[] {
   const now = Date.now();
-  const created = new Date(proposal.created_at).getTime();
   const voteStart = new Date(proposal.voting_starts).getTime();
   const voteEnd = new Date(proposal.voting_ends).getTime();
   const s = proposal.status.toLowerCase();
