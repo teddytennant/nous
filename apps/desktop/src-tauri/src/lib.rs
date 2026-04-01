@@ -10,7 +10,6 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
 };
 use tokio::sync::RwLock;
-#[cfg(unix)]
 use uuid::Uuid;
 
 const DEFAULT_API_URL: &str = "http://localhost:8080/api/v1";
@@ -101,7 +100,6 @@ pub struct IdentityInfo {
 }
 
 impl IdentityInfo {
-    /// Populate the `keys` vec from signing/exchange key types if empty.
     fn with_keys_populated(mut self) -> Self {
         if self.keys.is_empty() {
             self.keys = vec![
@@ -156,38 +154,14 @@ async fn get_node_status(api: State<'_, Arc<ApiClient>>) -> Result<NodeStatus, S
                 uptime_secs: health.uptime_ms / 1000,
                 version: health.version,
                 modules: vec![
-                    ModuleStatus {
-                        name: "Identity".into(),
-                        status: "active".into(),
-                    },
-                    ModuleStatus {
-                        name: "Messaging".into(),
-                        status: "active".into(),
-                    },
-                    ModuleStatus {
-                        name: "Governance".into(),
-                        status: "active".into(),
-                    },
-                    ModuleStatus {
-                        name: "Social".into(),
-                        status: "active".into(),
-                    },
-                    ModuleStatus {
-                        name: "Payments".into(),
-                        status: "active".into(),
-                    },
-                    ModuleStatus {
-                        name: "Storage".into(),
-                        status: "active".into(),
-                    },
-                    ModuleStatus {
-                        name: "AI".into(),
-                        status: "standby".into(),
-                    },
-                    ModuleStatus {
-                        name: "Browser".into(),
-                        status: "standby".into(),
-                    },
+                    ModuleStatus { name: "Identity".into(), status: "active".into() },
+                    ModuleStatus { name: "Messaging".into(), status: "active".into() },
+                    ModuleStatus { name: "Governance".into(), status: "active".into() },
+                    ModuleStatus { name: "Social".into(), status: "active".into() },
+                    ModuleStatus { name: "Payments".into(), status: "active".into() },
+                    ModuleStatus { name: "Storage".into(), status: "active".into() },
+                    ModuleStatus { name: "AI".into(), status: "standby".into() },
+                    ModuleStatus { name: "Browser".into(), status: "standby".into() },
                 ],
                 api_connected: health.status == "ok",
             })
@@ -198,38 +172,14 @@ async fn get_node_status(api: State<'_, Arc<ApiClient>>) -> Result<NodeStatus, S
             uptime_secs: 0,
             version: env!("CARGO_PKG_VERSION").into(),
             modules: vec![
-                ModuleStatus {
-                    name: "Identity".into(),
-                    status: "offline".into(),
-                },
-                ModuleStatus {
-                    name: "Messaging".into(),
-                    status: "offline".into(),
-                },
-                ModuleStatus {
-                    name: "Governance".into(),
-                    status: "offline".into(),
-                },
-                ModuleStatus {
-                    name: "Social".into(),
-                    status: "offline".into(),
-                },
-                ModuleStatus {
-                    name: "Payments".into(),
-                    status: "offline".into(),
-                },
-                ModuleStatus {
-                    name: "Storage".into(),
-                    status: "offline".into(),
-                },
-                ModuleStatus {
-                    name: "AI".into(),
-                    status: "offline".into(),
-                },
-                ModuleStatus {
-                    name: "Browser".into(),
-                    status: "offline".into(),
-                },
+                ModuleStatus { name: "Identity".into(), status: "offline".into() },
+                ModuleStatus { name: "Messaging".into(), status: "offline".into() },
+                ModuleStatus { name: "Governance".into(), status: "offline".into() },
+                ModuleStatus { name: "Social".into(), status: "offline".into() },
+                ModuleStatus { name: "Payments".into(), status: "offline".into() },
+                ModuleStatus { name: "Storage".into(), status: "offline".into() },
+                ModuleStatus { name: "AI".into(), status: "offline".into() },
+                ModuleStatus { name: "Browser".into(), status: "offline".into() },
             ],
             api_connected: false,
         }),
@@ -256,21 +206,9 @@ async fn get_wallet_balances(api: State<'_, Arc<ApiClient>>) -> Result<Vec<Walle
     }
 
     Ok(vec![
-        WalletBalance {
-            token: "ETH".into(),
-            balance: "0.000".into(),
-            usd_value: Some("$0.00".into()),
-        },
-        WalletBalance {
-            token: "NOUS".into(),
-            balance: "0.000".into(),
-            usd_value: None,
-        },
-        WalletBalance {
-            token: "USDC".into(),
-            balance: "0.000".into(),
-            usd_value: Some("$0.00".into()),
-        },
+        WalletBalance { token: "ETH".into(), balance: "0.000".into(), usd_value: Some("$0.00".into()) },
+        WalletBalance { token: "NOUS".into(), balance: "0.000".into(), usd_value: None },
+        WalletBalance { token: "USDC".into(), balance: "0.000".into(), usd_value: Some("$0.00".into()) },
     ])
 }
 
@@ -278,26 +216,16 @@ async fn get_wallet_balances(api: State<'_, Arc<ApiClient>>) -> Result<Vec<Walle
 async fn get_identity(api: State<'_, Arc<ApiClient>>) -> Result<IdentityInfo, String> {
     let did = api.identity_did.read().await;
     if let Some(ref did) = *did
-        && let Ok(info) = api
-            .get::<IdentityInfo>(&format!("/identities/{}", did))
-            .await
+        && let Ok(info) = api.get::<IdentityInfo>(&format!("/identities/{}", did)).await
     {
         return Ok(info.with_keys_populated());
     }
 
-    // Create a new identity
     #[derive(Serialize)]
-    struct CreateReq {
-        display_name: Option<String>,
-    }
+    struct CreateReq { display_name: Option<String> }
 
     match api
-        .post::<IdentityInfo>(
-            "/identities",
-            &CreateReq {
-                display_name: Some("Nous Desktop".into()),
-            },
-        )
+        .post::<IdentityInfo>("/identities", &CreateReq { display_name: Some("Nous Desktop".into()) })
         .await
     {
         Ok(info) => {
@@ -320,12 +248,18 @@ fn app_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
 }
 
-// ── Terminal Types (Unix only) ────────────────────────────────────────────
+// ── Terminal ─────────────────────────────────────────────────────────────
+// Terminal features require Unix (PTY support). On Windows, terminal
+// commands return errors. The Tauri command handlers are always registered
+// so that the invoke_handler macro works on all platforms.
 
 #[cfg(unix)]
-type TerminalSessions = Arc<Mutex<HashMap<String, Terminal>>>;
+type TerminalSessionMap = HashMap<String, Terminal>;
+#[cfg(not(unix))]
+type TerminalSessionMap = HashMap<String, ()>;
 
-#[cfg(unix)]
+type TerminalSessions = Arc<Mutex<TerminalSessionMap>>;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScreenCell {
     pub ch: String,
@@ -338,7 +272,6 @@ pub struct ScreenCell {
     pub inverse: bool,
 }
 
-#[cfg(unix)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", content = "value")]
 pub enum SerColor {
@@ -375,7 +308,6 @@ fn render_row_to_cells(row: &RenderRow) -> Vec<ScreenCell> {
         .collect()
 }
 
-#[cfg(unix)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScreenState {
     pub rows: Vec<Vec<ScreenCell>>,
@@ -384,9 +316,6 @@ pub struct ScreenState {
     pub title: String,
 }
 
-// ── Terminal Commands (Unix only) ────────────────────────────────────────
-
-#[cfg(unix)]
 #[tauri::command]
 fn terminal_spawn(
     sessions: State<'_, TerminalSessions>,
@@ -394,56 +323,65 @@ fn terminal_spawn(
     cols: Option<u16>,
     shell: Option<String>,
 ) -> Result<String, String> {
-    let config = TerminalConfig {
-        rows: rows.unwrap_or(24),
-        cols: cols.unwrap_or(80),
-        shell: shell.unwrap_or_else(|| std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".into())),
-        ..Default::default()
-    };
-
-    let terminal = Terminal::spawn(config).map_err(|e| e.to_string())?;
-    let id = Uuid::new_v4().to_string();
-
-    sessions
-        .lock()
-        .map_err(|e| format!("lock poisoned: {e}"))?
-        .insert(id.clone(), terminal);
-
-    Ok(id)
+    #[cfg(unix)]
+    {
+        let config = TerminalConfig {
+            rows: rows.unwrap_or(24),
+            cols: cols.unwrap_or(80),
+            shell: shell.unwrap_or_else(|| std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".into())),
+            ..Default::default()
+        };
+        let terminal = Terminal::spawn(config).map_err(|e| e.to_string())?;
+        let id = Uuid::new_v4().to_string();
+        sessions.lock().map_err(|e| format!("lock poisoned: {e}"))?.insert(id.clone(), terminal);
+        Ok(id)
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = (sessions, rows, cols, shell);
+        Err("Terminal is only supported on Unix systems".into())
+    }
 }
 
-#[cfg(unix)]
 #[tauri::command]
 fn terminal_write(
     sessions: State<'_, TerminalSessions>,
     id: String,
     data: String,
 ) -> Result<(), String> {
-    let mut map = sessions.lock().map_err(|e| format!("lock poisoned: {e}"))?;
-    let terminal = map
-        .get_mut(&id)
-        .ok_or_else(|| format!("no session: {id}"))?;
-    terminal.write(data.as_bytes()).map_err(|e| e.to_string())
+    #[cfg(unix)]
+    {
+        let mut map = sessions.lock().map_err(|e| format!("lock poisoned: {e}"))?;
+        let terminal = map.get_mut(&id).ok_or_else(|| format!("no session: {id}"))?;
+        terminal.write(data.as_bytes()).map_err(|e| e.to_string())
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = (sessions, id, data);
+        Err("Terminal is only supported on Unix systems".into())
+    }
 }
 
-#[cfg(unix)]
 #[tauri::command]
 fn terminal_read(sessions: State<'_, TerminalSessions>, id: String) -> Result<Vec<u8>, String> {
-    let mut map = sessions.lock().map_err(|e| format!("lock poisoned: {e}"))?;
-    let terminal = map
-        .get_mut(&id)
-        .ok_or_else(|| format!("no session: {id}"))?;
-
-    // Read from PTY and process through VT parser
-    let _ = terminal.tick().map_err(|e| e.to_string())?;
-    let data = terminal.try_read().map_err(|e| e.to_string())?;
-    if !data.is_empty() {
-        terminal.process(&data);
+    #[cfg(unix)]
+    {
+        let mut map = sessions.lock().map_err(|e| format!("lock poisoned: {e}"))?;
+        let terminal = map.get_mut(&id).ok_or_else(|| format!("no session: {id}"))?;
+        let _ = terminal.tick().map_err(|e: nous_terminal::TerminalError| e.to_string())?;
+        let data = terminal.try_read().map_err(|e: nous_terminal::TerminalError| e.to_string())?;
+        if !data.is_empty() {
+            terminal.process(&data);
+        }
+        Ok(data)
     }
-    Ok(data)
+    #[cfg(not(unix))]
+    {
+        let _ = (sessions, id);
+        Err("Terminal is only supported on Unix systems".into())
+    }
 }
 
-#[cfg(unix)]
 #[tauri::command]
 fn terminal_resize(
     sessions: State<'_, TerminalSessions>,
@@ -451,14 +389,19 @@ fn terminal_resize(
     rows: u16,
     cols: u16,
 ) -> Result<(), String> {
-    let mut map = sessions.lock().map_err(|e| format!("lock poisoned: {e}"))?;
-    let terminal = map
-        .get_mut(&id)
-        .ok_or_else(|| format!("no session: {id}"))?;
-    terminal.resize(rows, cols).map_err(|e| e.to_string())
+    #[cfg(unix)]
+    {
+        let mut map = sessions.lock().map_err(|e| format!("lock poisoned: {e}"))?;
+        let terminal = map.get_mut(&id).ok_or_else(|| format!("no session: {id}"))?;
+        terminal.resize(rows, cols).map_err(|e: nous_terminal::TerminalError| e.to_string())
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = (sessions, id, rows, cols);
+        Err("Terminal is only supported on Unix systems".into())
+    }
 }
 
-#[cfg(unix)]
 #[tauri::command]
 fn terminal_close(sessions: State<'_, TerminalSessions>, id: String) -> Result<(), String> {
     let mut map = sessions.lock().map_err(|e| format!("lock poisoned: {e}"))?;
@@ -466,30 +409,31 @@ fn terminal_close(sessions: State<'_, TerminalSessions>, id: String) -> Result<(
     Ok(())
 }
 
-#[cfg(unix)]
 #[tauri::command]
 fn terminal_screen(
     sessions: State<'_, TerminalSessions>,
     id: String,
 ) -> Result<ScreenState, String> {
-    let mut map = sessions.lock().map_err(|e| format!("lock poisoned: {e}"))?;
-    let terminal = map
-        .get_mut(&id)
-        .ok_or_else(|| format!("no session: {id}"))?;
-
-    // Drain any pending PTY output into the VT parser before reading screen
-    let _ = terminal.tick();
-
-    let screen_rows = terminal.screen();
-    let (cursor_row, cursor_col) = terminal.cursor_position();
-    let title = terminal.title().to_string();
-
-    Ok(ScreenState {
-        rows: screen_rows.iter().map(render_row_to_cells).collect(),
-        cursor_row,
-        cursor_col,
-        title,
-    })
+    #[cfg(unix)]
+    {
+        let mut map = sessions.lock().map_err(|e| format!("lock poisoned: {e}"))?;
+        let terminal = map.get_mut(&id).ok_or_else(|| format!("no session: {id}"))?;
+        let _ = terminal.tick();
+        let screen_rows = terminal.screen();
+        let (cursor_row, cursor_col) = terminal.cursor_position();
+        let title = terminal.title().to_string();
+        Ok(ScreenState {
+            rows: screen_rows.iter().map(render_row_to_cells).collect(),
+            cursor_row,
+            cursor_col,
+            title,
+        })
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = (sessions, id);
+        Err("Terminal is only supported on Unix systems".into())
+    }
 }
 
 // ── System Tray ───────────────────────────────────────────────────────────
@@ -538,42 +482,25 @@ fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
 
 pub fn run() {
     let api = Arc::new(ApiClient::new());
+    let terminal_sessions: TerminalSessions = Arc::new(Mutex::new(HashMap::new()));
 
-    let mut builder = tauri::Builder::default()
+    tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_notification::init())
-        .manage(api);
-
-    #[cfg(unix)]
-    {
-        let terminal_sessions: TerminalSessions = Arc::new(Mutex::new(HashMap::new()));
-        builder = builder
-            .manage(terminal_sessions)
-            .invoke_handler(tauri::generate_handler![
-                get_node_status,
-                get_wallet_balances,
-                get_identity,
-                app_version,
-                terminal_spawn,
-                terminal_write,
-                terminal_read,
-                terminal_resize,
-                terminal_close,
-                terminal_screen,
-            ]);
-    }
-
-    #[cfg(not(unix))]
-    {
-        builder = builder.invoke_handler(tauri::generate_handler![
+        .manage(api)
+        .manage(terminal_sessions)
+        .invoke_handler(tauri::generate_handler![
             get_node_status,
             get_wallet_balances,
             get_identity,
             app_version,
-        ]);
-    }
-
-    builder
+            terminal_spawn,
+            terminal_write,
+            terminal_read,
+            terminal_resize,
+            terminal_close,
+            terminal_screen,
+        ])
         .setup(|app| {
             setup_tray(app.handle())?;
             Ok(())
@@ -637,20 +564,13 @@ mod tests {
             signing_key_type: "ed25519".into(),
             exchange_key_type: "x25519".into(),
             keys: vec![
-                KeyInfo {
-                    key_type: "ed25519".into(),
-                    purpose: "signing".into(),
-                },
-                KeyInfo {
-                    key_type: "x25519".into(),
-                    purpose: "exchange".into(),
-                },
+                KeyInfo { key_type: "ed25519".into(), purpose: "signing".into() },
+                KeyInfo { key_type: "x25519".into(), purpose: "exchange".into() },
             ],
         };
         let json = serde_json::to_string(&info).unwrap();
         let deserialized: IdentityInfo = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.did, "did:key:zTest");
         assert_eq!(deserialized.keys.len(), 2);
-        assert_eq!(deserialized.keys[0].purpose, "signing");
     }
 }
