@@ -59,7 +59,9 @@ impl Executor {
             #[cfg(unix)]
             Command::Terminal => Self::run_terminal(),
             #[cfg(not(unix))]
-            Command::Terminal => Err("Embedded terminal is only supported on Unix systems".to_string()),
+            Command::Terminal => {
+                Err("Embedded terminal is only supported on Unix systems".to_string())
+            }
             Command::Status => self.status(),
         }
     }
