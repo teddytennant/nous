@@ -54,7 +54,7 @@ impl Pty {
 
                 // Make slave the controlling terminal
                 unsafe {
-                    libc::ioctl(slave_fd, libc::TIOCSCTTY, 0);
+                    libc::ioctl(slave_fd, libc::TIOCSCTTY as libc::c_ulong, 0);
                 }
 
                 // Redirect stdin/stdout/stderr to slave via raw libc
