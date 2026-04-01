@@ -41,6 +41,121 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "title", label: "Title A–Z" },
 ];
 
+// ── Proposal lifecycle timeline ──────────────────────────────────────────
+
+function formatShortDate(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function formatShortTime(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+}
+
+type TimelineStage = {
+  label: string;
+  date: string | null;
+  reached: boolean;
+  current: boolean;
+  color: string;
+};
+
+function getTimelineStages(proposal: ProposalResponse): TimelineStage[] {
+  const now = Date.now();
+  const created = new Date(proposal.created_at).getTime();
+  const voteStart = new Date(proposal.voting_starts).getTime();
+  const voteEnd = new Date(proposal.voting_ends).getTime();
+  const s = proposal.status.toLowerCase();
+
+  const isFinished = s === "passed" || s === "executed" || s === "rejected" || s === "cancelled";
+  const isPassed = s === "passed" || s === "executed";
+
+  return [
+    {
+      label: "Created",
+      date: proposal.created_at,
+      reached: true,
+      current: now < voteStart && !isFinished,
+      color: "bg-white",
+    },
+    {
+      label: "Voting Open",
+      date: proposal.voting_starts,
+      reached: now >= voteStart || isFinished,
+      current: now >= voteStart && now < voteEnd && !isFinished,
+      color: "bg-[#d4af37]",
+    },
+    {
+      label: "Voting Closed",
+      date: proposal.voting_ends,
+      reached: now >= voteEnd || isFinished,
+      current: now >= voteEnd && !isFinished,
+      color: "bg-white",
+    },
+    {
+      label: isPassed ? "Passed" : isFinished ? (s === "cancelled" ? "Cancelled" : "Rejected") : "Outcome",
+      date: isFinished ? proposal.voting_ends : null,
+      reached: isFinished,
+      current: false,
+      color: isPassed ? "bg-emerald-500" : isFinished ? "bg-red-500" : "bg-white",
+    },
+  ];
+}
+
+function ProposalTimeline({ proposal }: { proposal: ProposalResponse }) {
+  const stages = getTimelineStages(proposal);
+
+  return (
+    <div className="mb-5 timeline-enter">
+      <div className="relative flex items-start justify-between">
+        {/* Connecting line (behind dots) */}
+        <div className="absolute top-[5px] left-[5px] right-[5px] h-px bg-white/[0.08]" />
+        <div
+          className="absolute top-[5px] left-[5px] h-px timeline-line-grow"
+          style={{
+            width: `${((stages.filter((s) => s.reached).length - 1) / (stages.length - 1)) * 100}%`,
+            background: "linear-gradient(90deg, rgba(255,255,255,0.25), rgba(212,175,55,0.4))",
+          }}
+        />
+
+        {stages.map((stage, i) => (
+          <div key={stage.label} className="relative flex flex-col items-center" style={{ flex: i === 0 || i === stages.length - 1 ? "0 0 auto" : "1" }}>
+            {/* Dot */}
+            <div
+              className={cn(
+                "relative w-[11px] h-[11px] rounded-full border transition-all duration-300",
+                stage.reached
+                  ? `${stage.color} border-transparent`
+                  : "bg-transparent border-white/20",
+                stage.current && "ring-2 ring-[#d4af37]/30 ring-offset-1 ring-offset-black",
+              )}
+              style={{ animationDelay: `${i * 80}ms` }}
+            >
+              {stage.current && (
+                <span className="absolute inset-0 rounded-full bg-[#d4af37]/40 animate-ping" />
+              )}
+            </div>
+            {/* Label */}
+            <span className={cn(
+              "text-[9px] font-mono uppercase tracking-wider mt-2 whitespace-nowrap",
+              stage.current ? "text-[#d4af37]" : stage.reached ? "text-neutral-400" : "text-neutral-700",
+            )}>
+              {stage.label}
+            </span>
+            {/* Date */}
+            {stage.date && (
+              <span className="text-[8px] font-mono text-neutral-700 mt-0.5">
+                {formatShortDate(stage.date)}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function GovernancePage() {
   const [tab, setTab] = useState<Tab>("analytics");
   const [daos, setDaos] = useState<DaoResponse[]>([]);
@@ -606,10 +721,14 @@ export default function GovernancePage() {
                               ? `${p.proposer_did.slice(0, 24)}...`
                               : p.proposer_did}
                           </p>
-                          <p className="text-[10px] font-mono text-neutral-700 mb-4">
+                          <p className="text-[10px] font-mono text-neutral-700 mb-5">
                             Quorum: {(p.quorum * 100).toFixed(0)}% | Threshold:{" "}
                             {(p.threshold * 100).toFixed(0)}%
                           </p>
+
+                          {/* Proposal lifecycle timeline */}
+                          <ProposalTimeline proposal={p} />
+
                           {p.status === "Active" && (
                             <div className="flex gap-3">
                               <Button
