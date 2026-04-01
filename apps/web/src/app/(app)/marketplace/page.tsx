@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, startTransition } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar } from "@/components/avatar";
 import {
   marketplace,
   orders,
@@ -12,12 +13,14 @@ import {
   type OrderResponse,
   type DisputeResponse,
   type OfferResponse,
+  type SellerRating,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { EmptyState, MarketplaceIllustration, OrdersIllustration, DisputeIllustration, OffersIllustration } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { useToast } from "@/components/toast";
 import { usePageShortcuts } from "@/components/keyboard-shortcuts";
+import { ChevronDown, ShoppingCart, MessageSquare, Star, Clock, Package, User } from "lucide-react";
 
 type Tab = "listings" | "orders" | "disputes" | "offers";
 type SortKey = "newest" | "price-low" | "price-high" | "title";
@@ -174,12 +177,28 @@ function statusColor(status: string): string {
 
 // ── Listings Tab ──────────────────────────────────────────────────────────
 
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function formatRelativeTime(iso: string): string {
+  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (diff < 60) return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+  return formatDate(iso);
+}
+
 function ListingsTab() {
   const [listingsList, setListings] = useState<ListingResponse[]>([]);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [sortKey, setSortKey] = useState<SortKey>("newest");
   const [loading, setLoading] = useState(true);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [sellerRatings, setSellerRatings] = useState<Record<string, SellerRating>>({});
   const { toast } = useToast();
   const [creating, setCreating] = useState(false);
   const [newListing, setNewListing] = useState({
@@ -222,6 +241,22 @@ function ListingsTab() {
       fetchListings();
     });
   }, [fetchListings]);
+
+  // Fetch seller rating when a listing is expanded
+  useEffect(() => {
+    if (!selectedId) return;
+    const listing = listingsList.find((l) => l.id === selectedId);
+    if (!listing || sellerRatings[listing.seller_did]) return;
+    marketplace.getSellerRating(listing.seller_did).then((rating) => {
+      setSellerRatings((prev) => ({ ...prev, [listing.seller_did]: rating }));
+    }).catch(() => {
+      // Rating not available — that's fine
+    });
+  }, [selectedId, listingsList, sellerRatings]);
+
+  function toggleListing(id: string) {
+    setSelectedId((prev) => (prev === id ? null : id));
+  }
 
   async function createListing() {
     if (!newListing.title.trim() || !newListing.price_amount) return;
@@ -467,27 +502,54 @@ function ListingsTab() {
             />
           )
         ) : (
-          <div className="grid grid-cols-2 gap-px bg-white/[0.03] stagger-in">
-            {sortedListings.map((listing) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-white/[0.03] stagger-in">
+            {sortedListings.map((listing) => {
+              const isExpanded = selectedId === listing.id;
+              const rating = sellerRatings[listing.seller_did];
+
+              return (
               <Card
                 key={listing.id}
-                className="bg-black border-0 rounded-none card-lift"
+                onClick={() => toggleListing(listing.id)}
+                className={cn(
+                  "bg-black border-0 rounded-none cursor-pointer transition-colors duration-150",
+                  isExpanded
+                    ? "sm:col-span-2 bg-white/[0.01]"
+                    : "card-lift"
+                )}
               >
                 <CardContent className="p-6">
+                  {/* Header row */}
                   <div className="flex items-start justify-between mb-3">
                     <h3 className="text-sm font-light">{listing.title}</h3>
-                    <span
-                      className={cn(
-                        "text-[10px] font-mono uppercase tracking-wider",
-                        statusColor(listing.status)
-                      )}
-                    >
-                      {listing.status}
-                    </span>
+                    <div className="flex items-center gap-3 shrink-0 ml-3">
+                      <span
+                        className={cn(
+                          "text-[10px] font-mono uppercase tracking-wider",
+                          statusColor(listing.status)
+                        )}
+                      >
+                        {listing.status}
+                      </span>
+                      <ChevronDown
+                        size={14}
+                        className={cn(
+                          "text-neutral-700 transition-transform duration-200",
+                          isExpanded && "rotate-180"
+                        )}
+                      />
+                    </div>
                   </div>
-                  <p className="text-xs text-neutral-500 font-light mb-4 line-clamp-2">
+
+                  {/* Description — truncated when collapsed, full when expanded */}
+                  <p className={cn(
+                    "text-xs text-neutral-500 font-light mb-4",
+                    !isExpanded && "line-clamp-2"
+                  )}>
                     {listing.description}
                   </p>
+
+                  {/* Price + category row */}
                   <div className="flex items-center justify-between">
                     <p className="text-lg font-extralight">
                       {formatPrice(listing.price_amount, listing.price_token)}
@@ -497,8 +559,10 @@ function ListingsTab() {
                       {listing.category}
                     </span>
                   </div>
+
+                  {/* Tags */}
                   {listing.tags && listing.tags.length > 0 && (
-                    <div className="flex gap-2 mt-3">
+                    <div className="flex gap-2 mt-3 flex-wrap">
                       {listing.tags.map((tag) => (
                         <span
                           key={tag}
@@ -509,12 +573,112 @@ function ListingsTab() {
                       ))}
                     </div>
                   )}
-                  <p className="text-[10px] font-mono text-neutral-800 mt-3">
-                    {truncateDid(listing.seller_did)}
-                  </p>
+
+                  {/* Collapsed: seller DID */}
+                  {!isExpanded && (
+                    <p className="text-[10px] font-mono text-neutral-800 mt-3">
+                      {truncateDid(listing.seller_did)}
+                    </p>
+                  )}
+
+                  {/* Expanded detail section */}
+                  <div
+                    className="listing-detail"
+                    data-expanded={isExpanded}
+                  >
+                    <div className="listing-detail-inner">
+                      <div className="pt-5 mt-5 border-t border-white/[0.04]">
+                        {/* Detail grid */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
+                          <div>
+                            <span className="flex items-center gap-1.5 text-neutral-700 font-mono text-[10px] uppercase tracking-wider mb-1">
+                              <User size={10} />
+                              Seller
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <Avatar did={listing.seller_did} size="xs" />
+                              <p className="text-xs text-neutral-500 font-light truncate">
+                                {truncateDid(listing.seller_did)}
+                              </p>
+                            </div>
+                          </div>
+                          <div>
+                            <span className="flex items-center gap-1.5 text-neutral-700 font-mono text-[10px] uppercase tracking-wider mb-1">
+                              <Package size={10} />
+                              Quantity
+                            </span>
+                            <p className="text-xs text-neutral-500 font-light">
+                              {listing.quantity} available
+                            </p>
+                          </div>
+                          <div>
+                            <span className="flex items-center gap-1.5 text-neutral-700 font-mono text-[10px] uppercase tracking-wider mb-1">
+                              <Clock size={10} />
+                              Listed
+                            </span>
+                            <p className="text-xs text-neutral-500 font-light">
+                              {formatRelativeTime(listing.created_at)}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="flex items-center gap-1.5 text-neutral-700 font-mono text-[10px] uppercase tracking-wider mb-1">
+                              <Star size={10} />
+                              Rating
+                            </span>
+                            <p className="text-xs text-neutral-500 font-light">
+                              {rating
+                                ? `${rating.average_rating.toFixed(1)}/5 (${rating.total_reviews} review${rating.total_reviews !== 1 ? "s" : ""})`
+                                : "No reviews yet"}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Listing ID */}
+                        <p className="text-[10px] font-mono text-neutral-800 mb-5">
+                          ID: {listing.id}
+                        </p>
+
+                        {/* Actions */}
+                        {listing.status === "Active" && (
+                          <div className="flex flex-wrap gap-3">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toast({ title: "Purchase started", description: `Buying "${listing.title}"`, variant: "success" });
+                              }}
+                              className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150"
+                            >
+                              <ShoppingCart size={12} />
+                              Buy Now
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toast({ title: "Offer flow", description: "Make an offer for this listing", variant: "success" });
+                              }}
+                              className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-white/10 text-neutral-500 hover:text-white hover:border-white/20 transition-all duration-150"
+                            >
+                              Make Offer
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toast({ title: "Message sent", description: `Contacting seller`, variant: "success" });
+                              }}
+                              className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-white/10 text-neutral-500 hover:text-white hover:border-white/20 transition-all duration-150"
+                            >
+                              <MessageSquare size={12} />
+                              Contact
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         );
         })()}
