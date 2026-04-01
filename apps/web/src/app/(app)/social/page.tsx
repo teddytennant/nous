@@ -12,7 +12,7 @@ import { PageHeader } from "@/components/page-header";
 import { usePageShortcuts, useListNavigation } from "@/components/keyboard-shortcuts";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/avatar";
-import { Link, Bookmark, Share2, Check } from "lucide-react";
+import { Link, Bookmark, Share2, Check, MessageCircle, ChevronDown } from "lucide-react";
 
 const MAX_POST_LENGTH = 500;
 const BOOKMARKS_KEY = "nous_bookmarks";
@@ -31,6 +31,43 @@ function saveBookmarks(ids: Set<string>) {
   localStorage.setItem(BOOKMARKS_KEY, JSON.stringify([...ids]));
 }
 
+// ── Threading ──────────────────────────────────────────────────────────────
+
+/** Extract the parent event ID from Nostr-style tags. Returns null for root posts. */
+function getReplyParent(event: FeedEvent): string | null {
+  for (const tag of event.tags) {
+    if (tag[0] === "e" && tag[1]) return tag[1];
+  }
+  return null;
+}
+
+/** Build a map of parentId → replies, sorted chronologically. */
+function buildReplyMap(events: FeedEvent[]): Map<string, FeedEvent[]> {
+  const map = new Map<string, FeedEvent[]>();
+  for (const event of events) {
+    const parentId = getReplyParent(event);
+    if (parentId) {
+      const existing = map.get(parentId) || [];
+      existing.push(event);
+      map.set(parentId, existing);
+    }
+  }
+  // Sort replies oldest-first within each thread
+  for (const replies of map.values()) {
+    replies.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  }
+  return map;
+}
+
+/** Get root posts (posts that aren't replies to another post in the feed). */
+function getRootPosts(events: FeedEvent[], eventIds: Set<string>): FeedEvent[] {
+  return events.filter((e) => {
+    const parent = getReplyParent(e);
+    // Show as root if: no parent tag, or parent doesn't exist in this feed
+    return !parent || !eventIds.has(parent);
+  });
+}
+
 type Tab = "timeline" | "following" | "bookmarks";
 
 export default function SocialPage() {
@@ -43,6 +80,7 @@ export default function SocialPage() {
   const [following, setFollowing] = useState<Set<string>>(new Set());
   const [bookmarks, setBookmarks] = useState<Set<string>>(() => loadBookmarks());
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [expandedThreads, setExpandedThreads] = useState<Set<string>>(new Set());
 
   const { toast } = useToast();
   const userDid = typeof window !== "undefined" ? localStorage.getItem("nous_did") || "" : "";
@@ -180,6 +218,22 @@ export default function SocialPage() {
     await copyPostLink(post.id);
   }
 
+  function toggleThread(postId: string) {
+    setExpandedThreads((prev) => {
+      const next = new Set(prev);
+      if (next.has(postId)) {
+        next.delete(postId);
+      } else {
+        next.add(postId);
+      }
+      return next;
+    });
+  }
+
+  // Build threading data
+  const allEventIds = new Set(posts.map((p) => p.id));
+  const replyMap = buildReplyMap(posts);
+
   function formatTime(iso: string): string {
     const date = new Date(iso);
     const now = new Date();
@@ -196,12 +250,19 @@ export default function SocialPage() {
     return did;
   }
 
-  const displayPosts =
+  const filteredPosts =
     activeTab === "following"
       ? posts.filter((p) => following.has(p.pubkey))
       : activeTab === "bookmarks"
         ? posts.filter((p) => bookmarks.has(p.id))
         : posts;
+
+  // For timeline/following: show only root posts (replies appear nested)
+  // For bookmarks: show all bookmarked posts flat (user bookmarked them specifically)
+  const displayPosts =
+    activeTab === "bookmarks"
+      ? filteredPosts
+      : getRootPosts(filteredPosts, allEventIds);
 
   const { selectedIndex, setSelectedIndex, containerRef } = useListNavigation({
     itemCount: displayPosts.length,
@@ -434,6 +495,27 @@ export default function SocialPage() {
                       >
                         Reply
                       </button>
+                      {(replyMap.get(post.id)?.length ?? 0) > 0 && (
+                        <button
+                          onClick={() => toggleThread(post.id)}
+                          className={cn(
+                            "flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider transition-colors",
+                            expandedThreads.has(post.id)
+                              ? "text-[#d4af37]"
+                              : "text-neutral-700 hover:text-white"
+                          )}
+                        >
+                          <MessageCircle size={11} />
+                          {replyMap.get(post.id)!.length}
+                          <ChevronDown
+                            size={10}
+                            className={cn(
+                              "transition-transform duration-200",
+                              expandedThreads.has(post.id) && "rotate-180"
+                            )}
+                          />
+                        </button>
+                      )}
                       <button
                         onClick={() => toggleBookmark(post.id)}
                         className={cn(
@@ -476,6 +558,104 @@ export default function SocialPage() {
                         </button>
                       )}
                     </div>
+
+                    {/* Inline Thread Replies */}
+                    {(replyMap.get(post.id)?.length ?? 0) > 0 && (
+                      <div
+                        className="thread-replies mt-4"
+                        data-expanded={expandedThreads.has(post.id)}
+                      >
+                        <div className="thread-replies-inner">
+                          <div className="ml-4 pl-4 border-l border-white/[0.06]">
+                            {replyMap.get(post.id)!.map((reply) => {
+                              const isReplyOwn = reply.pubkey === userDid;
+                              return (
+                                <div
+                                  key={reply.id}
+                                  className="thread-reply-item py-3 first:pt-1"
+                                >
+                                  {/* Reply author row */}
+                                  <div className="flex items-center gap-2.5 mb-1.5">
+                                    <Avatar did={reply.pubkey} size="xs" />
+                                    <span className="text-[11px] font-mono text-neutral-600 truncate max-w-[160px]">
+                                      {truncateDid(reply.pubkey)}
+                                    </span>
+                                    <span className="text-[10px] text-neutral-700">
+                                      {formatTime(reply.created_at)}
+                                    </span>
+                                    {isReplyOwn && (
+                                      <span className="text-[10px] font-mono text-neutral-700">you</span>
+                                    )}
+                                  </div>
+
+                                  {/* Reply content */}
+                                  <p className="text-[13px] font-light leading-relaxed text-neutral-300 whitespace-pre-wrap">
+                                    {reply.content}
+                                  </p>
+
+                                  {/* Reply actions */}
+                                  <div className="flex items-center gap-5 mt-2">
+                                    <button
+                                      onClick={() =>
+                                        setReplyTo({ id: post.id, author: reply.pubkey })
+                                      }
+                                      className="text-[10px] font-mono uppercase tracking-wider text-neutral-700 hover:text-white transition-colors"
+                                    >
+                                      Reply
+                                    </button>
+                                    <button
+                                      onClick={() => toggleBookmark(reply.id)}
+                                      className={cn(
+                                        "flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider transition-colors",
+                                        bookmarks.has(reply.id)
+                                          ? "text-[#d4af37]"
+                                          : "text-neutral-700 hover:text-white"
+                                      )}
+                                    >
+                                      <Bookmark
+                                        size={10}
+                                        fill={bookmarks.has(reply.id) ? "currentColor" : "none"}
+                                      />
+                                      {bookmarks.has(reply.id) ? "Saved" : "Save"}
+                                    </button>
+                                    {isReplyOwn && (
+                                      <button
+                                        onClick={() => handleDelete(reply.id)}
+                                        className="text-[10px] font-mono uppercase tracking-wider text-neutral-700 hover:text-red-400 transition-colors"
+                                      >
+                                        Delete
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  {/* Nested replies (one level deep) */}
+                                  {(replyMap.get(reply.id)?.length ?? 0) > 0 && (
+                                    <div className="ml-4 pl-3 mt-2 border-l border-white/[0.04]">
+                                      {replyMap.get(reply.id)!.map((nested) => (
+                                        <div key={nested.id} className="thread-reply-item py-2">
+                                          <div className="flex items-center gap-2 mb-1">
+                                            <Avatar did={nested.pubkey} size="xs" />
+                                            <span className="text-[10px] font-mono text-neutral-600 truncate max-w-[140px]">
+                                              {truncateDid(nested.pubkey)}
+                                            </span>
+                                            <span className="text-[10px] text-neutral-700">
+                                              {formatTime(nested.created_at)}
+                                            </span>
+                                          </div>
+                                          <p className="text-xs font-light leading-relaxed text-neutral-400 whitespace-pre-wrap">
+                                            {nested.content}
+                                          </p>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               );
