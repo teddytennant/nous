@@ -26,7 +26,7 @@ jobs:
             asset_pattern: "*.dmg"
             rename_to: "nous-{tag}-macos-aarch64.dmg"
           - name: macOS (Intel)
-            os: macos-13
+            os: macos-14
             target: x86_64-apple-darwin
             bundles: dmg
             asset_pattern: "*.dmg"
