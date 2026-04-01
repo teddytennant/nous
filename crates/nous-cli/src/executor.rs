@@ -10,10 +10,14 @@ use nous_messaging::{Channel, Message, MessageContent};
 use nous_payments::Wallet;
 use nous_social::{EventKind, Feed, FollowGraph, SignedEvent, Tag};
 use nous_storage::Database;
+#[cfg(unix)]
 use nous_terminal::{Terminal, TerminalConfig};
 
+#[cfg(unix)]
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
+#[cfg(unix)]
 use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
+#[cfg(unix)]
 use crossterm::{cursor, execute, queue, style};
 
 use nous_cli::commands::*;
@@ -52,7 +56,10 @@ impl Executor {
             Command::Net(cmd) => self.net(cmd).await,
             Command::Marketplace(cmd) => self.marketplace(cmd),
             Command::Ai(cmd) => self.ai(cmd),
+            #[cfg(unix)]
             Command::Terminal => Self::run_terminal(),
+            #[cfg(not(unix))]
+            Command::Terminal => Err("Embedded terminal is only supported on Unix systems".to_string()),
             Command::Status => self.status(),
         }
     }
@@ -1141,6 +1148,7 @@ impl Executor {
     }
 
     /// Launch an embedded terminal using nous-terminal and crossterm raw mode.
+    #[cfg(unix)]
     fn run_terminal() -> Result<(), String> {
         let (cols, rows) =
             terminal::size().map_err(|e| format!("failed to get terminal size: {e}"))?;
@@ -1170,6 +1178,7 @@ impl Executor {
         result
     }
 
+    #[cfg(unix)]
     fn terminal_loop(term: &mut Terminal, stdout: &mut std::io::Stdout) -> Result<(), String> {
         use std::time::Duration;
 
@@ -1236,6 +1245,7 @@ impl Executor {
         Ok(())
     }
 
+    #[cfg(unix)]
     fn render_screen(
         term: &Terminal,
         stdout: &mut std::io::Stdout,
@@ -1839,6 +1849,7 @@ fn mime_from_extension(filename: &str) -> String {
 }
 
 /// Convert a nous-terminal Color to a crossterm Color.
+#[cfg(unix)]
 fn nous_color_to_crossterm(color: nous_terminal::Color) -> crossterm::style::Color {
     match color {
         nous_terminal::Color::Default => crossterm::style::Color::Reset,
@@ -1848,6 +1859,7 @@ fn nous_color_to_crossterm(color: nous_terminal::Color) -> crossterm::style::Col
 }
 
 /// Convert a crossterm KeyEvent into the byte sequence expected by a PTY.
+#[cfg(unix)]
 fn key_event_to_bytes(key: &KeyEvent) -> Vec<u8> {
     // Handle Ctrl+<letter> combinations (except Ctrl+Q which is handled as quit)
     if key.modifiers.contains(KeyModifiers::CONTROL)
