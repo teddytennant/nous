@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
+#[cfg(unix)]
 use nous_terminal::{Cell as TermCell, Color as TermColor, RenderRow, Terminal, TerminalConfig};
 use serde::{Deserialize, Serialize};
 use tauri::{
@@ -9,6 +10,7 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
 };
 use tokio::sync::RwLock;
+#[cfg(unix)]
 use uuid::Uuid;
 
 const DEFAULT_API_URL: &str = "http://localhost:8080/api/v1";
@@ -318,10 +320,12 @@ fn app_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
 }
 
-// ── Terminal Types ────────────────────────────────────────────────────────
+// ── Terminal Types (Unix only) ────────────────────────────────────────────
 
+#[cfg(unix)]
 type TerminalSessions = Arc<Mutex<HashMap<String, Terminal>>>;
 
+#[cfg(unix)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScreenCell {
     pub ch: String,
@@ -334,6 +338,7 @@ pub struct ScreenCell {
     pub inverse: bool,
 }
 
+#[cfg(unix)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", content = "value")]
 pub enum SerColor {
@@ -342,6 +347,7 @@ pub enum SerColor {
     Indexed(u8),
 }
 
+#[cfg(unix)]
 impl From<TermColor> for SerColor {
     fn from(c: TermColor) -> Self {
         match c {
@@ -352,6 +358,7 @@ impl From<TermColor> for SerColor {
     }
 }
 
+#[cfg(unix)]
 fn render_row_to_cells(row: &RenderRow) -> Vec<ScreenCell> {
     row.cells
         .iter()
@@ -368,6 +375,7 @@ fn render_row_to_cells(row: &RenderRow) -> Vec<ScreenCell> {
         .collect()
 }
 
+#[cfg(unix)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScreenState {
     pub rows: Vec<Vec<ScreenCell>>,
@@ -376,8 +384,9 @@ pub struct ScreenState {
     pub title: String,
 }
 
-// ── Terminal Commands ─────────────────────────────────────────────────────
+// ── Terminal Commands (Unix only) ────────────────────────────────────────
 
+#[cfg(unix)]
 #[tauri::command]
 fn terminal_spawn(
     sessions: State<'_, TerminalSessions>,
@@ -403,6 +412,7 @@ fn terminal_spawn(
     Ok(id)
 }
 
+#[cfg(unix)]
 #[tauri::command]
 fn terminal_write(
     sessions: State<'_, TerminalSessions>,
@@ -416,6 +426,7 @@ fn terminal_write(
     terminal.write(data.as_bytes()).map_err(|e| e.to_string())
 }
 
+#[cfg(unix)]
 #[tauri::command]
 fn terminal_read(sessions: State<'_, TerminalSessions>, id: String) -> Result<Vec<u8>, String> {
     let mut map = sessions.lock().map_err(|e| format!("lock poisoned: {e}"))?;
@@ -432,6 +443,7 @@ fn terminal_read(sessions: State<'_, TerminalSessions>, id: String) -> Result<Ve
     Ok(data)
 }
 
+#[cfg(unix)]
 #[tauri::command]
 fn terminal_resize(
     sessions: State<'_, TerminalSessions>,
@@ -446,6 +458,7 @@ fn terminal_resize(
     terminal.resize(rows, cols).map_err(|e| e.to_string())
 }
 
+#[cfg(unix)]
 #[tauri::command]
 fn terminal_close(sessions: State<'_, TerminalSessions>, id: String) -> Result<(), String> {
     let mut map = sessions.lock().map_err(|e| format!("lock poisoned: {e}"))?;
@@ -453,6 +466,7 @@ fn terminal_close(sessions: State<'_, TerminalSessions>, id: String) -> Result<(
     Ok(())
 }
 
+#[cfg(unix)]
 #[tauri::command]
 fn terminal_screen(
     sessions: State<'_, TerminalSessions>,
@@ -524,25 +538,42 @@ fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
 
 pub fn run() {
     let api = Arc::new(ApiClient::new());
-    let terminal_sessions: TerminalSessions = Arc::new(Mutex::new(HashMap::new()));
 
-    tauri::Builder::default()
+    let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_notification::init())
-        .manage(api)
-        .manage(terminal_sessions)
-        .invoke_handler(tauri::generate_handler![
+        .manage(api);
+
+    #[cfg(unix)]
+    {
+        let terminal_sessions: TerminalSessions = Arc::new(Mutex::new(HashMap::new()));
+        builder = builder
+            .manage(terminal_sessions)
+            .invoke_handler(tauri::generate_handler![
+                get_node_status,
+                get_wallet_balances,
+                get_identity,
+                app_version,
+                terminal_spawn,
+                terminal_write,
+                terminal_read,
+                terminal_resize,
+                terminal_close,
+                terminal_screen,
+            ]);
+    }
+
+    #[cfg(not(unix))]
+    {
+        builder = builder.invoke_handler(tauri::generate_handler![
             get_node_status,
             get_wallet_balances,
             get_identity,
             app_version,
-            terminal_spawn,
-            terminal_write,
-            terminal_read,
-            terminal_resize,
-            terminal_close,
-            terminal_screen,
-        ])
+        ]);
+    }
+
+    builder
         .setup(|app| {
             setup_tray(app.handle())?;
             Ok(())
