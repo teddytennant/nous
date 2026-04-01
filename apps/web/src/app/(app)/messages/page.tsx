@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, startTransition } from "react";
-import { ArrowLeft, Send, Lock } from "lucide-react";
+import { ArrowLeft, Send, Lock, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { messaging, type ChannelResponse, type MessageResponse } from "@/lib/api";
@@ -34,6 +34,31 @@ function channelDisplayName(ch: ChannelResponse, localDid: string): string {
   return truncateDid(ch.id);
 }
 
+// ── Unread tracking via localStorage ────────────────────────────────────
+
+const UNREAD_KEY = "nous_msg_last_read";
+
+function getLastReadMap(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(localStorage.getItem(UNREAD_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function markChannelRead(channelId: string, lastMessageId: string) {
+  const map = getLastReadMap();
+  map[channelId] = lastMessageId;
+  localStorage.setItem(UNREAD_KEY, JSON.stringify(map));
+}
+
+function isChannelUnread(channelId: string, lastMessageId: string | undefined): boolean {
+  if (!lastMessageId) return false;
+  const map = getLastReadMap();
+  return map[channelId] !== lastMessageId;
+}
+
 export default function MessagesPage() {
   const [channels, setChannels] = useState<ChannelResponse[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -45,14 +70,20 @@ export default function MessagesPage() {
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupMembers, setNewGroupMembers] = useState("");
   const [replyTo, setReplyTo] = useState<MessageResponse | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [lastMessages, setLastMessages] = useState<Record<string, MessageResponse>>({});
+  const [unreadState, setUnreadState] = useState(0); // counter to trigger re-renders
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const { toast } = useToast();
   const userDid = typeof window !== "undefined" ? localStorage.getItem("nous_did") || "" : "";
 
   usePageShortcuts({
     n: () => setCreateMode("dm"),
+    "/": () => { setSearchOpen(true); setTimeout(() => searchInputRef.current?.focus(), 50); },
   });
 
   const {
@@ -70,22 +101,47 @@ export default function MessagesPage() {
     },
   });
 
+  // Fetch last message for each channel (for preview + sorting)
+  const fetchLastMessages = useCallback(async (chs: ChannelResponse[]) => {
+    const results: Record<string, MessageResponse> = {};
+    await Promise.all(
+      chs.map(async (ch) => {
+        try {
+          const msgs = await messaging.getMessages(ch.id, 1);
+          if (msgs.length > 0) results[ch.id] = msgs[0];
+        } catch {
+          // Channel may be empty
+        }
+      })
+    );
+    setLastMessages(results);
+    setUnreadState((n) => n + 1);
+  }, []);
+
   const fetchChannels = useCallback(async () => {
     if (!userDid) { setLoading(false); return; }
     try {
       const chs = await messaging.listChannels(userDid);
       setChannels(chs);
+      fetchLastMessages(chs);
     } catch (e) {
       toast({ title: "API offline", description: e instanceof Error ? e.message : undefined, variant: "error" });
     } finally {
       setLoading(false);
     }
-  }, [userDid, toast]);
+  }, [userDid, toast, fetchLastMessages]);
 
   const fetchMessages = useCallback(async (channelId: string) => {
     try {
       const msgs = await messaging.getMessages(channelId, 100);
       setMessages(msgs);
+      // Mark as read when viewing
+      if (msgs.length > 0) {
+        markChannelRead(channelId, msgs[msgs.length - 1].id);
+        setUnreadState((n) => n + 1);
+        // Update last message cache
+        setLastMessages((prev) => ({ ...prev, [channelId]: msgs[msgs.length - 1] }));
+      }
     } catch {
       setMessages([]);
     }
@@ -111,18 +167,21 @@ export default function MessagesPage() {
 
   // Live message updates via SSE
   useRealtime("new_message", (data) => {
+    const newMsg: MessageResponse = {
+      id: `live-${Date.now()}`,
+      channel_id: data.channel_id,
+      sender: data.sender,
+      content: data.content,
+      reply_to: null,
+      timestamp: new Date().toISOString(),
+    };
+    // Update last message cache for the channel
+    setLastMessages((prev) => ({ ...prev, [data.channel_id]: newMsg }));
+    setUnreadState((n) => n + 1);
     if (selected && data.channel_id === selected) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `live-${Date.now()}`,
-          channel_id: data.channel_id,
-          sender: data.sender,
-          content: data.content,
-          reply_to: null,
-          timestamp: new Date().toISOString(),
-        },
-      ]);
+      setMessages((prev) => [...prev, newMsg]);
+      // Auto-mark read since we're viewing this channel
+      markChannelRead(data.channel_id, newMsg.id);
     }
   });
 
@@ -182,6 +241,10 @@ export default function MessagesPage() {
       setMessages((prev) => [...prev, msg]);
       setInput("");
       setReplyTo(null);
+      // Update last message + mark read
+      setLastMessages((prev) => ({ ...prev, [selected]: msg }));
+      markChannelRead(selected, msg.id);
+      setUnreadState((n) => n + 1);
     } catch (e) {
       toast({ title: "Failed to send", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
@@ -199,18 +262,91 @@ export default function MessagesPage() {
 
   const selectedChannel = channels.find((c) => c.id === selected);
 
+  // Sort channels by last message timestamp (most recent first), then by created_at
+  const sortedChannels = [...channels].sort((a, b) => {
+    const aMsg = lastMessages[a.id];
+    const bMsg = lastMessages[b.id];
+    const aTime = aMsg ? new Date(aMsg.timestamp).getTime() : new Date(a.created_at).getTime();
+    const bTime = bMsg ? new Date(bMsg.timestamp).getTime() : new Date(b.created_at).getTime();
+    return bTime - aTime;
+  });
+
+  // Filter by search query
+  const filteredChannels = searchQuery.trim()
+    ? sortedChannels.filter((ch) => {
+        const name = channelDisplayName(ch, userDid).toLowerCase();
+        const q = searchQuery.toLowerCase();
+        return name.includes(q);
+      })
+    : sortedChannels;
+
+  // Count total unread
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _unreadTrigger = unreadState; // referenced to trigger re-render
+  const totalUnread = channels.reduce((count, ch) => {
+    const lastMsg = lastMessages[ch.id];
+    return count + (lastMsg && isChannelUnread(ch.id, lastMsg.id) ? 1 : 0);
+  }, 0);
+
   return (
     <div className="flex h-[calc(100dvh-3.5rem)] md:h-screen">
       {/* Channel list — full-width on mobile, fixed sidebar on desktop */}
       <div className={cn(
-        "w-full md:w-72 border-r border-white/[0.06] flex flex-col shrink-0",
+        "w-full md:w-80 border-r border-white/[0.06] flex flex-col shrink-0",
         selected ? "hidden md:flex" : "flex"
       )}>
-        <div className="p-4 sm:p-6 pb-4">
-          <h1 className="text-lg font-extralight tracking-[-0.02em]">Messages</h1>
-          <p className="text-[10px] font-mono text-neutral-600 mt-1 uppercase tracking-wider">
-            E2E encrypted
-          </p>
+        <div className="p-4 sm:p-6 pb-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-lg font-extralight tracking-[-0.02em]">Messages</h1>
+              <p className="text-[10px] font-mono text-neutral-600 mt-1 uppercase tracking-wider">
+                E2E encrypted
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {totalUnread > 0 && (
+                <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[#d4af37] text-black text-[10px] font-mono font-medium unread-badge-enter">
+                  {totalUnread}
+                </span>
+              )}
+              <button
+                onClick={() => { setSearchOpen(!searchOpen); if (!searchOpen) setTimeout(() => searchInputRef.current?.focus(), 50); }}
+                className={cn(
+                  "p-1.5 rounded-sm transition-colors duration-150",
+                  searchOpen ? "bg-white/[0.04] text-white" : "text-neutral-600 hover:text-white hover:bg-white/[0.02]"
+                )}
+                aria-label="Search conversations"
+              >
+                <Search className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Search bar */}
+          <div className={cn(
+            "overflow-hidden transition-all duration-200 ease-out",
+            searchOpen ? "max-h-12 opacity-100 mt-3" : "max-h-0 opacity-0 mt-0"
+          )}>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-neutral-700" />
+              <input
+                ref={searchInputRef}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Escape") { setSearchQuery(""); setSearchOpen(false); } }}
+                placeholder="Search conversations..."
+                className="w-full bg-white/[0.02] border border-white/[0.06] text-xs font-light pl-8 pr-8 py-2 rounded-sm outline-none placeholder:text-neutral-700 focus:border-white/10 transition-colors"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-700 hover:text-white transition-colors"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Create channel */}
@@ -284,61 +420,106 @@ export default function MessagesPage() {
               {Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="px-4 sm:px-6 py-3.5 border-b border-white/[0.03]">
                   <div className="flex items-center gap-3">
-                    <Skeleton className="w-7 h-7 rounded-full shrink-0" />
+                    <Skeleton className="w-9 h-9 rounded-full shrink-0" />
                     <div className="flex-1">
-                      <div className="flex justify-between items-baseline mb-1">
+                      <div className="flex justify-between items-baseline mb-1.5">
                         <Skeleton className="h-3 w-28" />
                         <Skeleton className="h-2.5 w-8" />
                       </div>
-                      <Skeleton className="h-2.5 w-16" />
+                      <Skeleton className="h-2.5 w-40" />
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-          ) : channels.length === 0 ? (
+          ) : filteredChannels.length === 0 ? (
             <div className="px-6 py-8 text-center">
-              <MessagesIllustration />
-              <p className="text-xs text-neutral-600 font-light mt-4">No conversations yet</p>
-              <p className="text-[10px] text-neutral-700 font-light mt-1">Start a DM or create a group above</p>
+              {searchQuery ? (
+                <>
+                  <p className="text-xs text-neutral-600 font-light">No conversations match &ldquo;{searchQuery}&rdquo;</p>
+                  <button
+                    onClick={() => { setSearchQuery(""); searchInputRef.current?.focus(); }}
+                    className="text-[10px] font-mono text-[#d4af37] mt-2 hover:underline"
+                  >
+                    Clear search
+                  </button>
+                </>
+              ) : (
+                <>
+                  <MessagesIllustration />
+                  <p className="text-xs text-neutral-600 font-light mt-4">No conversations yet</p>
+                  <p className="text-[10px] text-neutral-700 font-light mt-1">Start a DM or create a group above</p>
+                </>
+              )}
             </div>
           ) : null}
-          {channels.map((ch, i) => {
+          {filteredChannels.map((ch, i) => {
             const isHighlighted = i === highlightedIndex;
             const avatarDid = ch.kind === "direct"
               ? (ch.members.find((m) => m !== userDid) || ch.id)
               : ch.id;
+            const lastMsg = lastMessages[ch.id];
+            const hasUnread = lastMsg && isChannelUnread(ch.id, lastMsg.id);
+            const isFromSelf = lastMsg && lastMsg.sender === userDid;
             return (
             <button
               key={ch.id}
               data-list-item
-              onClick={() => { setSelected(ch.id); setReplyTo(null); setHighlightedIndex(i); }}
+              onClick={() => {
+                setSelected(ch.id);
+                setReplyTo(null);
+                setHighlightedIndex(i);
+                // Mark read on click
+                if (lastMsg) {
+                  markChannelRead(ch.id, lastMsg.id);
+                  setUnreadState((n) => n + 1);
+                }
+              }}
               className={cn(
                 "relative w-full text-left px-4 sm:px-6 py-3.5 transition-colors duration-150 border-b border-white/[0.03]",
-                selected === ch.id ? "bg-white/[0.02]" : "hover:bg-white/[0.01]",
-                isHighlighted && selected !== ch.id && "bg-[#d4af37]/[0.015]"
+                selected === ch.id ? "bg-white/[0.03]" : "hover:bg-white/[0.015]",
+                isHighlighted && selected !== ch.id && "bg-[#d4af37]/[0.015]",
+                hasUnread && selected !== ch.id && "bg-white/[0.01]"
               )}
             >
               {isHighlighted && (
                 <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[#d4af37] rounded-full" />
               )}
               <div className="flex items-center gap-3">
-                <Avatar did={avatarDid} size="sm" />
+                <div className="relative shrink-0">
+                  <Avatar did={avatarDid} size="sm" />
+                  {hasUnread && (
+                    <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#d4af37] border-2 border-black unread-dot-enter" />
+                  )}
+                </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline mb-0.5">
-                    <span className="text-xs font-mono text-neutral-500 truncate">
+                    <span className={cn(
+                      "text-xs truncate",
+                      hasUnread ? "font-medium text-white" : "font-light text-neutral-400"
+                    )}>
                       {channelDisplayName(ch, userDid)}
                     </span>
                     <span className={cn(
-                      "text-[10px] font-mono uppercase tracking-wider shrink-0 ml-2",
-                      ch.kind === "direct" ? "text-neutral-700" : ch.kind === "group" ? "text-[#d4af37]/50" : "text-emerald-700"
+                      "text-[10px] font-mono shrink-0 ml-2",
+                      hasUnread ? "text-[#d4af37]" : "text-neutral-700"
                     )}>
-                      {ch.kind === "direct" ? "DM" : ch.kind === "group" ? "GRP" : "PUB"}
+                      {lastMsg ? timeAgo(lastMsg.timestamp) : timeAgo(ch.created_at)}
                     </span>
                   </div>
-                  <p className="text-[10px] font-mono text-neutral-700">
-                    {ch.members.length} member{ch.members.length !== 1 ? "s" : ""}
-                  </p>
+                  {lastMsg ? (
+                    <p className={cn(
+                      "text-[11px] font-light truncate leading-tight",
+                      hasUnread ? "text-neutral-300" : "text-neutral-600"
+                    )}>
+                      {isFromSelf && <span className="text-neutral-700">You: </span>}
+                      {lastMsg.content}
+                    </p>
+                  ) : (
+                    <p className="text-[10px] font-mono text-neutral-700">
+                      {ch.kind === "direct" ? "DM" : ch.kind === "group" ? "Group" : "Public"} · {ch.members.length} member{ch.members.length !== 1 ? "s" : ""}
+                    </p>
+                  )}
                 </div>
               </div>
             </button>
