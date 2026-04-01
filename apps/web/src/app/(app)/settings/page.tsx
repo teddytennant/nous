@@ -510,6 +510,75 @@ export default function SettingsPage() {
         </Card>
       </section>
 
+      {/* About section */}
+      <section className="mb-16">
+        <h2 className="text-xs font-mono uppercase tracking-[0.2em] text-neutral-500 mb-8">About</h2>
+        <Card className="bg-white/[0.01] border-white/[0.06] rounded-none">
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <p className="text-lg font-extralight tracking-tight mb-1">Nous</p>
+                <p className="text-[10px] font-mono text-neutral-600">
+                  Decentralized social operating system
+                </p>
+              </div>
+              <span className="text-[10px] font-mono text-[#d4af37] border border-[#d4af37]/20 bg-[#d4af37]/[0.04] px-2 py-0.5">
+                v0.1.0
+              </span>
+            </div>
+
+            <div className="space-y-0">
+              {[
+                { label: "Runtime", value: online && nodeInfo ? `Rust · v${nodeInfo.version}` : "Rust" },
+                { label: "Frontend", value: "Next.js · React 19" },
+                { label: "Crypto", value: "Ed25519 · X25519 · AES-256-GCM" },
+                { label: "Network", value: "libp2p · GossipSub · Kademlia" },
+                { label: "Storage", value: "SQLite · CRDTs" },
+              ].map(({ label, value }, i) => (
+                <div
+                  key={label}
+                  className={`flex items-center justify-between py-2.5 ${
+                    i > 0 ? "border-t border-white/[0.04]" : ""
+                  }`}
+                >
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-neutral-600">
+                    {label}
+                  </span>
+                  <span className="text-xs font-light text-neutral-400">{value}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-3 mt-6 pt-6 border-t border-white/[0.04]">
+              <a
+                href="https://github.com/teddytennant/nous"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] font-mono uppercase tracking-wider px-4 py-2 border border-white/10 text-neutral-500 hover:text-[#d4af37] hover:border-[#d4af37]/30 transition-all duration-150"
+              >
+                GitHub
+              </a>
+              <a
+                href="https://github.com/teddytennant/nous/releases"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] font-mono uppercase tracking-wider px-4 py-2 border border-white/10 text-neutral-500 hover:text-[#d4af37] hover:border-[#d4af37]/30 transition-all duration-150"
+              >
+                Releases
+              </a>
+              <a
+                href="https://github.com/teddytennant/nous/blob/main/docs/ARCHITECTURE.md"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] font-mono uppercase tracking-wider px-4 py-2 border border-white/10 text-neutral-500 hover:text-[#d4af37] hover:border-[#d4af37]/30 transition-all duration-150"
+              >
+                Docs
+              </a>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
       {/* Network section */}
       <section className="mb-16">
         <h2 className="text-xs font-mono uppercase tracking-[0.2em] text-neutral-500 mb-8">Network</h2>
