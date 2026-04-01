@@ -13,8 +13,11 @@ import {
 } from "@/lib/api";
 import { EmptyState, AIIllustration, ChatIllustration, ConversationsIllustration } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
+import { Avatar } from "@/components/avatar";
 import { useToast } from "@/components/toast";
 import { usePageShortcuts } from "@/components/keyboard-shortcuts";
+import { Copy, Check, Send, Brain } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type ViewMode = "chat" | "agents" | "conversations";
 
@@ -40,10 +43,28 @@ export default function AIPage() {
   const [newPrompt, setNewPrompt] = useState("");
 
   const messagesEnd = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null);
 
   usePageShortcuts({
     n: () => setShowCreate(true),
   });
+
+  async function copyMessage(msgId: string, content: string) {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedMsgId(msgId);
+      setTimeout(() => setCopiedMsgId(null), 2000);
+    } catch {
+      toast({ title: "Failed to copy", variant: "error" });
+    }
+  }
+
+  // Auto-resize textarea
+  function autoResize(el: HTMLTextAreaElement) {
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 160) + "px";
+  }
 
   const loadAgents = useCallback(async () => {
     try {
@@ -242,7 +263,7 @@ export default function AIPage() {
           </div>
 
           {/* Messages */}
-          <div className="min-h-[400px] max-h-[600px] overflow-y-auto mb-8 space-y-6">
+          <div className="min-h-[400px] max-h-[600px] overflow-y-auto mb-6 space-y-1 scroll-smooth">
             {messages.length === 0 && !loading && (
               <EmptyState
                 icon={<ChatIllustration />}
@@ -255,56 +276,106 @@ export default function AIPage() {
               .map((msg) => (
                 <div
                   key={msg.id}
-                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                  className={cn(
+                    "chat-msg-enter group py-4 px-4 -mx-4 rounded-sm transition-colors duration-100",
+                    msg.role === "user"
+                      ? "bg-white/[0.02]"
+                      : "hover:bg-white/[0.015]"
+                  )}
                 >
-                  <div
-                    className={`max-w-[85%] ${
-                      msg.role === "user"
-                        ? "text-right"
-                        : ""
-                    }`}
-                  >
-                    <div className="flex items-baseline gap-3 mb-1">
-                      <span className="text-[10px] font-mono text-neutral-600 uppercase tracking-wider">
-                        {msg.role === "user" ? "You" : selectedAgent?.name ?? "Assistant"}
-                      </span>
-                      <span className="text-[10px] text-neutral-700">
-                        {formatTime(msg.timestamp)}
-                      </span>
+                  <div className="flex gap-3">
+                    {/* Avatar */}
+                    <div className="shrink-0 pt-0.5">
+                      {msg.role === "user" ? (
+                        <Avatar did={typeof window !== "undefined" ? localStorage.getItem("nous_did") || "" : ""} size="sm" />
+                      ) : (
+                        <div className="w-7 h-7 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/20 flex items-center justify-center">
+                          <Brain size={13} className="text-[#d4af37]" />
+                        </div>
+                      )}
                     </div>
-                    <div
-                      className={`text-sm font-light leading-relaxed ${
-                        msg.role === "user"
-                          ? "text-neutral-300"
-                          : "text-neutral-100"
-                      }`}
-                    >
-                      <p className="whitespace-pre-wrap">{msg.content}</p>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline justify-between mb-1.5">
+                        <div className="flex items-baseline gap-2.5">
+                          <span className={cn(
+                            "text-xs font-medium",
+                            msg.role === "user" ? "text-neutral-300" : "text-[#d4af37]"
+                          )}>
+                            {msg.role === "user" ? "You" : selectedAgent?.name ?? "Assistant"}
+                          </span>
+                          <span className="text-[10px] text-neutral-700 font-mono">
+                            {formatTime(msg.timestamp)}
+                          </span>
+                        </div>
+
+                        {/* Message actions */}
+                        {msg.role === "assistant" && (
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                            <button
+                              onClick={() => copyMessage(msg.id, msg.content)}
+                              className="p-1 text-neutral-700 hover:text-white transition-colors"
+                              title="Copy response"
+                            >
+                              {copiedMsgId === msg.id ? (
+                                <Check size={12} className="text-[#d4af37]" />
+                              ) : (
+                                <Copy size={12} />
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <div className={cn(
+                        "text-sm font-light leading-relaxed",
+                        msg.role === "user" ? "text-neutral-300" : "text-neutral-100"
+                      )}>
+                        <p className="whitespace-pre-wrap">{msg.content}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
               ))}
             {sending && (
-              <div className="flex justify-start">
-                <span className="text-xs text-neutral-600 font-mono animate-pulse">
-                  Thinking...
-                </span>
+              <div className="chat-msg-enter py-4 px-4 -mx-4">
+                <div className="flex gap-3">
+                  <div className="shrink-0 pt-0.5">
+                    <div className="w-7 h-7 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/20 flex items-center justify-center">
+                      <Brain size={13} className="text-[#d4af37]" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 pt-2">
+                    <span className="typing-dot" />
+                    <span className="typing-dot" />
+                    <span className="typing-dot" />
+                  </div>
+                </div>
               </div>
             )}
             <div ref={messagesEnd} />
           </div>
 
           {/* Input */}
-          <div className="border border-white/[0.06] p-4">
-            <div className="flex gap-3">
-              <input
-                type="text"
+          <div className="border border-white/[0.06] rounded-sm overflow-hidden">
+            <div className="flex items-end gap-3 p-4">
+              <textarea
+                ref={inputRef}
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  autoResize(e.target);
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
                     handleSend();
+                    // Reset height after send
+                    requestAnimationFrame(() => {
+                      if (inputRef.current) {
+                        inputRef.current.style.height = "auto";
+                      }
+                    });
                   }
                 }}
                 placeholder={
@@ -313,17 +384,36 @@ export default function AIPage() {
                     : "Create an agent first"
                 }
                 disabled={!selectedAgent || sending}
-                className="flex-1 bg-transparent text-sm font-light outline-none placeholder:text-neutral-700 disabled:opacity-30"
+                className="flex-1 bg-transparent text-sm font-light outline-none placeholder:text-neutral-700 disabled:opacity-30 resize-none min-h-[24px] max-h-[160px]"
+                rows={1}
               />
-              <Button
-                onClick={handleSend}
+              <button
+                onClick={() => {
+                  handleSend();
+                  requestAnimationFrame(() => {
+                    if (inputRef.current) {
+                      inputRef.current.style.height = "auto";
+                    }
+                  });
+                }}
                 disabled={!input.trim() || sending || !selectedAgent}
-                variant="outline"
-                size="sm"
-                className="text-xs font-mono uppercase tracking-wider border-white/10 hover:border-[#d4af37] hover:text-[#d4af37] disabled:opacity-30"
+                className={cn(
+                  "shrink-0 w-8 h-8 flex items-center justify-center rounded-sm transition-all duration-150",
+                  input.trim() && selectedAgent && !sending
+                    ? "bg-[#d4af37] text-black hover:bg-[#c4a030]"
+                    : "bg-white/[0.04] text-neutral-700 cursor-not-allowed"
+                )}
               >
-                Send
-              </Button>
+                <Send size={14} />
+              </button>
+            </div>
+            <div className="flex items-center justify-between px-4 pb-2">
+              <span className="text-[9px] font-mono text-neutral-700">
+                {selectedAgent?.name ?? "No agent"} · {selectedAgent?.model ?? "local"}
+              </span>
+              <kbd className="hidden sm:inline text-[9px] font-mono text-neutral-700 bg-white/[0.03] px-1.5 py-0.5 rounded border border-white/[0.04]">
+                ↵ send · shift+↵ newline
+              </kbd>
             </div>
           </div>
         </div>
