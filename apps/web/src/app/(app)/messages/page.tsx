@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, startTransition } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Send, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { messaging, type ChannelResponse, type MessageResponse } from "@/lib/api";
@@ -45,6 +45,7 @@ export default function MessagesPage() {
   const [newGroupMembers, setNewGroupMembers] = useState("");
   const [replyTo, setReplyTo] = useState<MessageResponse | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const { toast } = useToast();
   const userDid = typeof window !== "undefined" ? localStorage.getItem("nous_did") || "" : "";
@@ -365,10 +366,15 @@ export default function MessagesPage() {
                 <p className="text-sm font-light">
                   {channelDisplayName(selectedChannel, userDid)}
                 </p>
-                <p className="text-[10px] font-mono text-neutral-700 mt-0.5">
-                  {selectedChannel.members.length} members
-                  {selectedChannel.kind !== "direct" && ` \u00b7 ${selectedChannel.kind}`}
-                </p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <Lock size={9} className="text-emerald-600" />
+                  <p className="text-[10px] font-mono text-neutral-700">
+                    {selectedChannel.members.length} members
+                    {selectedChannel.kind !== "direct" && ` \u00b7 ${selectedChannel.kind}`}
+                    {" \u00b7 "}
+                    <span className="text-emerald-700">encrypted</span>
+                  </p>
+                </div>
               </div>
             </div>
           ) : (
@@ -390,7 +396,7 @@ export default function MessagesPage() {
           {messages.map((msg) => {
             const isSelf = msg.sender === userDid;
             return (
-              <div key={msg.id} className={cn("max-w-[70%] group", isSelf ? "ml-auto" : "")}>
+              <div key={msg.id} className={cn("max-w-[70%] group chat-msg-enter", isSelf ? "ml-auto" : "")}>
                 {msg.reply_to && (
                   <div className={cn("text-[10px] font-mono text-neutral-700 mb-1 pl-3 border-l border-white/[0.06]", !isSelf && "ml-9")}>
                     Replying to message
@@ -408,7 +414,7 @@ export default function MessagesPage() {
                     )}
                     <div
                       className={cn(
-                        "px-4 py-3 text-sm font-light rounded-sm",
+                        "px-4 py-3 text-sm font-light rounded-sm whitespace-pre-wrap",
                         isSelf ? "bg-white/[0.04] text-white" : "bg-white/[0.02] text-neutral-300"
                       )}
                     >
@@ -459,25 +465,44 @@ export default function MessagesPage() {
                 </button>
               </div>
             )}
-            <div className="flex gap-4">
-              <input
+            <div className="flex items-end gap-3">
+              <textarea
+                ref={inputRef}
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  e.target.style.height = "auto";
+                  e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
                     sendMessage();
+                    requestAnimationFrame(() => {
+                      if (inputRef.current) inputRef.current.style.height = "auto";
+                    });
                   }
                 }}
                 placeholder="Type a message..."
-                className="flex-1 bg-transparent text-sm font-light outline-none placeholder:text-neutral-700"
+                className="flex-1 bg-transparent text-sm font-light outline-none placeholder:text-neutral-700 resize-none min-h-[24px] max-h-[120px]"
+                rows={1}
               />
               <button
-                onClick={sendMessage}
+                onClick={() => {
+                  sendMessage();
+                  requestAnimationFrame(() => {
+                    if (inputRef.current) inputRef.current.style.height = "auto";
+                  });
+                }}
                 disabled={!input.trim()}
-                className="text-xs font-mono uppercase tracking-wider text-neutral-500 hover:text-[#d4af37] transition-colors duration-150 disabled:opacity-30"
+                className={cn(
+                  "shrink-0 w-8 h-8 flex items-center justify-center rounded-sm transition-all duration-150",
+                  input.trim()
+                    ? "bg-[#d4af37] text-black hover:bg-[#c4a030]"
+                    : "bg-white/[0.04] text-neutral-700 cursor-not-allowed"
+                )}
               >
-                Send
+                <Send size={14} />
               </button>
             </div>
           </div>
