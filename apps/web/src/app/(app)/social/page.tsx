@@ -100,6 +100,8 @@ export default function SocialPage() {
   const [inlineReplyDraft, setInlineReplyDraft] = useState("");
   const [inlinePosting, setInlinePosting] = useState(false);
   const [likedAnimating, setLikedAnimating] = useState<string | null>(null);
+  const [heartBurstId, setHeartBurstId] = useState<string | null>(null);
+  const lastTapRef = useRef<{ id: string; time: number } | null>(null);
   const inlineReplyRef = useRef<HTMLTextAreaElement>(null);
 
   const { toast } = useToast();
@@ -211,6 +213,22 @@ export default function SocialPage() {
       saveLikes(next);
       return next;
     });
+  }
+
+  function handleDoubleTap(eventId: string) {
+    const now = Date.now();
+    const last = lastTapRef.current;
+    if (last && last.id === eventId && now - last.time < 300) {
+      // Double tap — like it (only add, never remove on double-tap)
+      if (!likes.has(eventId)) {
+        toggleLike(eventId);
+      }
+      setHeartBurstId(eventId);
+      setTimeout(() => setHeartBurstId(null), 800);
+      lastTapRef.current = null;
+    } else {
+      lastTapRef.current = { id: eventId, time: now };
+    }
   }
 
   async function handleDelete(eventId: string) {
@@ -519,10 +537,24 @@ export default function SocialPage() {
                       )}
                     </div>
 
-                    {/* Content */}
-                    <p className="text-sm font-light leading-relaxed whitespace-pre-wrap">
-                      {post.content}
-                    </p>
+                    {/* Content — double-tap to like on mobile */}
+                    <div
+                      className="relative select-none"
+                      onTouchEnd={() => handleDoubleTap(post.id)}
+                    >
+                      <p className="text-sm font-light leading-relaxed whitespace-pre-wrap">
+                        {post.content}
+                      </p>
+                      {heartBurstId === post.id && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Heart
+                            size={48}
+                            fill="#d4af37"
+                            className="text-[#d4af37] heart-burst drop-shadow-[0_0_12px_rgba(212,175,55,0.5)]"
+                          />
+                        </div>
+                      )}
+                    </div>
 
                     {/* Tags */}
                     {post.tags.length > 0 && (
@@ -662,10 +694,24 @@ export default function SocialPage() {
                                     )}
                                   </div>
 
-                                  {/* Reply content */}
-                                  <p className="text-[13px] font-light leading-relaxed text-neutral-300 whitespace-pre-wrap">
-                                    {reply.content}
-                                  </p>
+                                  {/* Reply content — double-tap to like */}
+                                  <div
+                                    className="relative select-none"
+                                    onTouchEnd={() => handleDoubleTap(reply.id)}
+                                  >
+                                    <p className="text-[13px] font-light leading-relaxed text-neutral-300 whitespace-pre-wrap">
+                                      {reply.content}
+                                    </p>
+                                    {heartBurstId === reply.id && (
+                                      <div className="absolute inset-0 flex items-center justify-center">
+                                        <Heart
+                                          size={32}
+                                          fill="#d4af37"
+                                          className="text-[#d4af37] heart-burst drop-shadow-[0_0_8px_rgba(212,175,55,0.5)]"
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
 
                                   {/* Reply actions */}
                                   <div className="flex items-center gap-5 mt-2">
