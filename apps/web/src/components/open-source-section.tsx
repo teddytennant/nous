@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { GitHubStats } from "@/components/github-stats";
 
 function GithubIcon({ className }: { className?: string }) {
   return (
@@ -337,6 +338,9 @@ export function OpenSourceSection() {
           Browse the source
         </a>
       </div>
+
+      {/* Live GitHub stats */}
+      <GitHubStats />
     </section>
   );
 }
