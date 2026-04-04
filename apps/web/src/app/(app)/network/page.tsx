@@ -16,6 +16,8 @@ import { PageHeader } from "@/components/page-header";
 import { useToast } from "@/components/toast";
 import { Sparkline } from "@/components/sparkline";
 import { PeerGraph } from "@/components/peer-graph";
+import { DataTable, type Column } from "@/components/ui/data-table";
+import { Tooltip } from "@/components/ui/tooltip";
 
 interface Subsystem {
   name: string;
@@ -190,37 +192,6 @@ function SignalStrength({ latencyMs }: { latencyMs: number | null | undefined })
   );
 }
 
-type PeerSortKey = "peer_id" | "latency" | "sent" | "recv" | "connected";
-type SortDir = "asc" | "desc";
-
-function sortPeers(peers: PeerResponse[], key: PeerSortKey, dir: SortDir): PeerResponse[] {
-  return [...peers].sort((a, b) => {
-    let cmp = 0;
-    switch (key) {
-      case "peer_id":
-        cmp = a.peer_id.localeCompare(b.peer_id);
-        break;
-      case "latency":
-        cmp = (a.latency_ms ?? Infinity) - (b.latency_ms ?? Infinity);
-        break;
-      case "sent":
-        cmp = a.bytes_sent - b.bytes_sent;
-        break;
-      case "recv":
-        cmp = a.bytes_recv - b.bytes_recv;
-        break;
-      case "connected":
-        cmp = new Date(a.connected_at).getTime() - new Date(b.connected_at).getTime();
-        break;
-    }
-    return dir === "asc" ? cmp : -cmp;
-  });
-}
-
-function SortIndicator({ active, dir }: { active: boolean; dir: SortDir }) {
-  if (!active) return <span className="text-neutral-800 ml-1">↕</span>;
-  return <span className="text-[#d4af37] ml-1">{dir === "asc" ? "↑" : "↓"}</span>;
-}
 
 export default function NetworkPage() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
@@ -231,8 +202,6 @@ export default function NetworkPage() {
   const { toast } = useToast();
   const [connectAddr, setConnectAddr] = useState("");
   const [connecting, setConnecting] = useState(false);
-  const [sortKey, setSortKey] = useState<PeerSortKey>("connected");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [latencyHistory, setLatencyHistory] = useState<LatencyHistoryMap>({});
   const [avgLatencyHistory, setAvgLatencyHistory] = useState<number[]>([]);
   const [peerCountHistory, setPeerCountHistory] = useState<number[]>([]);
@@ -312,17 +281,6 @@ export default function NetworkPage() {
     }
   }
 
-  function toggleSort(key: PeerSortKey) {
-    if (sortKey === key) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setSortKey(key);
-      setSortDir(key === "latency" ? "asc" : "desc");
-    }
-  }
-
-  const sortedPeers = sortPeers(peerList, sortKey, sortDir);
-
   const overallStatus =
     health?.status === "ok"
       ? "operational"
@@ -377,6 +335,132 @@ export default function NetworkPage() {
       detail: "avg peer latency",
       sparkData: avgLatencyHistory.length >= 2 ? avgLatencyHistory : null,
       sparkTrend: latencyTrend(avgLatencyHistory),
+    },
+  ];
+
+  const peerColumns: Column<PeerResponse>[] = [
+    {
+      id: "peer_id",
+      header: "Peer ID",
+      sortable: true,
+      compare: (a, b) => a.peer_id.localeCompare(b.peer_id),
+      cell: (peer) => (
+        <div className="flex items-center gap-2.5">
+          <SignalStrength latencyMs={peer.latency_ms} />
+          <Tooltip content={<span className="font-mono text-[11px]">{peer.peer_id}</span>}>
+            <span className="text-xs font-mono text-neutral-400 cursor-default hover:text-neutral-300 transition-colors duration-150">
+              {truncateId(peer.peer_id)}
+            </span>
+          </Tooltip>
+        </div>
+      ),
+    },
+    {
+      id: "address",
+      header: "Address",
+      cell: (peer) => (
+        <span className="text-xs font-mono text-neutral-500">
+          {peer.multiaddr}
+        </span>
+      ),
+    },
+    {
+      id: "latency",
+      header: "Latency",
+      sortable: true,
+      compare: (a, b) => (a.latency_ms ?? Infinity) - (b.latency_ms ?? Infinity),
+      align: "right",
+      cell: (peer) => (
+        <Tooltip content={signalConfig[getSignalLevel(peer.latency_ms)].label}>
+          <span
+            className={cn(
+              "text-xs font-mono cursor-default",
+              (peer.latency_ms ?? 0) < 50
+                ? "text-emerald-600"
+                : (peer.latency_ms ?? 0) < 100
+                  ? "text-neutral-400"
+                  : "text-yellow-600",
+            )}
+          >
+            {peer.latency_ms != null ? `${peer.latency_ms}ms` : "\u2014"}
+          </span>
+        </Tooltip>
+      ),
+    },
+    {
+      id: "trend",
+      header: "Trend",
+      align: "center",
+      hideBelow: "lg",
+      cell: (peer) => {
+        const history = latencyHistory[peer.peer_id];
+        return (history?.length ?? 0) >= 2 ? (
+          <div className="flex justify-center">
+            <Sparkline
+              data={history}
+              width={52}
+              height={18}
+              strokeWidth={1.2}
+              showDot={true}
+              trend={latencyTrend(history)}
+            />
+          </div>
+        ) : (
+          <span className="text-[10px] text-neutral-700 font-mono block text-center">&mdash;</span>
+        );
+      },
+    },
+    {
+      id: "sent",
+      header: "Sent",
+      sortable: true,
+      compare: (a, b) => a.bytes_sent - b.bytes_sent,
+      align: "right",
+      cell: (peer) => (
+        <span className="text-xs font-mono text-neutral-500">
+          {formatBytes(peer.bytes_sent)}
+        </span>
+      ),
+    },
+    {
+      id: "recv",
+      header: "Recv",
+      sortable: true,
+      compare: (a, b) => a.bytes_recv - b.bytes_recv,
+      align: "right",
+      cell: (peer) => (
+        <span className="text-xs font-mono text-neutral-500">
+          {formatBytes(peer.bytes_recv)}
+        </span>
+      ),
+    },
+    {
+      id: "connected",
+      header: "Connected",
+      sortable: true,
+      compare: (a, b) =>
+        new Date(a.connected_at).getTime() - new Date(b.connected_at).getTime(),
+      align: "right",
+      cell: (peer) => (
+        <Tooltip content={new Date(peer.connected_at).toLocaleString()}>
+          <span className="text-xs font-mono text-neutral-600 cursor-default hover:text-neutral-500 transition-colors duration-150">
+            {timeAgo(peer.connected_at)}
+          </span>
+        </Tooltip>
+      ),
+    },
+    {
+      id: "actions",
+      header: "",
+      align: "right",
+      cell: (peer) => (
+        <button
+          onClick={() => handleDisconnect(peer.peer_id)}
+          className="text-[10px] font-mono text-neutral-800 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          disconnect
+        </button>
+      ),
     },
   ];
 
@@ -534,138 +618,21 @@ export default function NetworkPage() {
               </div>
             ))}
           </div>
-        ) : peerList.length === 0 ? (
-          <EmptyState
-            icon={<NetworkIllustration />}
-            title={apiOffline ? "Node offline" : "No peers connected"}
-            description={apiOffline ? "Start the Nous node to connect to the P2P mesh network." : "Enter a multiaddr above to connect to your first peer."}
-          />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-white/[0.06]">
-                  <th
-                    className="text-left text-[10px] font-mono uppercase tracking-wider text-neutral-600 pb-3 pr-6 cursor-pointer select-none hover:text-neutral-400 transition-colors duration-150"
-                    onClick={() => toggleSort("peer_id")}
-                  >
-                    Peer ID
-                    <SortIndicator active={sortKey === "peer_id"} dir={sortDir} />
-                  </th>
-                  <th className="text-left text-[10px] font-mono uppercase tracking-wider text-neutral-600 pb-3 pr-6">
-                    Address
-                  </th>
-                  <th
-                    className="text-right text-[10px] font-mono uppercase tracking-wider text-neutral-600 pb-3 pr-6 cursor-pointer select-none hover:text-neutral-400 transition-colors duration-150"
-                    onClick={() => toggleSort("latency")}
-                  >
-                    Latency
-                    <SortIndicator active={sortKey === "latency"} dir={sortDir} />
-                  </th>
-                  <th className="text-center text-[10px] font-mono uppercase tracking-wider text-neutral-600 pb-3 pr-6 hidden lg:table-cell">
-                    Trend
-                  </th>
-                  <th
-                    className="text-right text-[10px] font-mono uppercase tracking-wider text-neutral-600 pb-3 pr-6 cursor-pointer select-none hover:text-neutral-400 transition-colors duration-150"
-                    onClick={() => toggleSort("sent")}
-                  >
-                    Sent
-                    <SortIndicator active={sortKey === "sent"} dir={sortDir} />
-                  </th>
-                  <th
-                    className="text-right text-[10px] font-mono uppercase tracking-wider text-neutral-600 pb-3 pr-6 cursor-pointer select-none hover:text-neutral-400 transition-colors duration-150"
-                    onClick={() => toggleSort("recv")}
-                  >
-                    Recv
-                    <SortIndicator active={sortKey === "recv"} dir={sortDir} />
-                  </th>
-                  <th
-                    className="text-right text-[10px] font-mono uppercase tracking-wider text-neutral-600 pb-3 pr-6 cursor-pointer select-none hover:text-neutral-400 transition-colors duration-150"
-                    onClick={() => toggleSort("connected")}
-                  >
-                    Connected
-                    <SortIndicator active={sortKey === "connected"} dir={sortDir} />
-                  </th>
-                  <th className="text-right text-[10px] font-mono uppercase tracking-wider text-neutral-600 pb-3" />
-                </tr>
-              </thead>
-              <tbody>
-                {sortedPeers.map((peer) => (
-                  <tr
-                    key={peer.peer_id}
-                    className="border-b border-white/[0.03] hover:bg-white/[0.01] transition-colors duration-100 group"
-                  >
-                    <td className="py-3 pr-6">
-                      <div className="flex items-center gap-2.5">
-                        <SignalStrength latencyMs={peer.latency_ms} />
-                        <span className="text-xs font-mono text-neutral-400">
-                          {truncateId(peer.peer_id)}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-3 pr-6">
-                      <span className="text-xs font-mono text-neutral-500">
-                        {peer.multiaddr}
-                      </span>
-                    </td>
-                    <td className="py-3 pr-6 text-right">
-                      <span
-                        className={cn(
-                          "text-xs font-mono",
-                          (peer.latency_ms ?? 0) < 50
-                            ? "text-emerald-600"
-                            : (peer.latency_ms ?? 0) < 100
-                              ? "text-neutral-400"
-                              : "text-yellow-600",
-                        )}
-                      >
-                        {peer.latency_ms != null ? `${peer.latency_ms}ms` : "\u2014"}
-                      </span>
-                    </td>
-                    <td className="py-3 pr-6 hidden lg:table-cell">
-                      {(latencyHistory[peer.peer_id]?.length ?? 0) >= 2 ? (
-                        <div className="flex justify-center">
-                          <Sparkline
-                            data={latencyHistory[peer.peer_id]}
-                            width={52}
-                            height={18}
-                            strokeWidth={1.2}
-                            showDot={true}
-                            trend={latencyTrend(latencyHistory[peer.peer_id])}
-                          />
-                        </div>
-                      ) : (
-                        <span className="text-[10px] text-neutral-700 font-mono block text-center">&mdash;</span>
-                      )}
-                    </td>
-                    <td className="py-3 pr-6 text-right">
-                      <span className="text-xs font-mono text-neutral-500">
-                        {formatBytes(peer.bytes_sent)}
-                      </span>
-                    </td>
-                    <td className="py-3 pr-6 text-right">
-                      <span className="text-xs font-mono text-neutral-500">
-                        {formatBytes(peer.bytes_recv)}
-                      </span>
-                    </td>
-                    <td className="py-3 pr-6 text-right">
-                      <span className="text-xs font-mono text-neutral-600">
-                        {timeAgo(peer.connected_at)}
-                      </span>
-                    </td>
-                    <td className="py-3 text-right">
-                      <button
-                        onClick={() => handleDisconnect(peer.peer_id)}
-                        className="text-[10px] font-mono text-neutral-800 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        disconnect
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            columns={peerColumns}
+            data={peerList}
+            rowKey={(peer) => peer.peer_id}
+            defaultSortId="connected"
+            defaultSortDir="desc"
+            emptyState={
+              <EmptyState
+                icon={<NetworkIllustration />}
+                title={apiOffline ? "Node offline" : "No peers connected"}
+                description={apiOffline ? "Start the Nous node to connect to the P2P mesh network." : "Enter a multiaddr above to connect to your first peer."}
+              />
+            }
+          />
         )}
       </section>
 
