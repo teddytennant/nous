@@ -1497,3 +1497,21 @@ select option {
   transition: top 300ms ease-out, left 300ms ease-out, width 300ms ease-out,
     height 300ms ease-out;
 }
+
+/* ── Wallet Chart ─────────────────────────────────────────────────────── */
+
+.wallet-chart-dot-pulse {
+  animation: wallet-dot-pulse 2s ease-in-out infinite;
+}
+
+@keyframes wallet-dot-pulse {
+  0%,
+  100% {
+    r: 5;
+    opacity: 0.15;
+  }
+  50% {
+    r: 8;
+    opacity: 0.06;
+  }
+}
