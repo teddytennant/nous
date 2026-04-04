@@ -21,6 +21,7 @@ import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogBody, Dialo
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, type SelectOption } from "@/components/ui/select";
+import { Tooltip } from "@/components/ui/tooltip";
 
 const TOKEN_OPTIONS: SelectOption[] = [
   { value: "ETH", label: "ETH" },
@@ -471,7 +472,11 @@ export default function WalletPage() {
                         </p>
                         <p className="text-[10px] font-mono text-neutral-700 mt-0.5">
                           {isSend ? "to" : "from"}{" "}
-                          {truncateDid(isSend ? tx.to_did : tx.from_did)}
+                          <Tooltip content={isSend ? tx.to_did : tx.from_did} side="bottom">
+                            <span className="cursor-default hover:text-neutral-500 transition-colors">
+                              {truncateDid(isSend ? tx.to_did : tx.from_did)}
+                            </span>
+                          </Tooltip>
                         </p>
                         {tx.memo && (
                           <p className="text-[10px] text-neutral-600 mt-1 italic">
@@ -653,9 +658,12 @@ export default function WalletPage() {
                           </span>
                         </div>
                         <p className="text-[10px] font-mono text-neutral-700">
-                          {isIssuer
-                            ? `To: ${truncateDid(inv.to_did)}`
-                            : `From: ${truncateDid(inv.from_did)}`}
+                          {isIssuer ? "To: " : "From: "}
+                          <Tooltip content={isIssuer ? inv.to_did : inv.from_did} side="bottom">
+                            <span className="cursor-default hover:text-neutral-500 transition-colors">
+                              {truncateDid(isIssuer ? inv.to_did : inv.from_did)}
+                            </span>
+                          </Tooltip>
                         </p>
                         {inv.memo && (
                           <p className="text-[10px] text-neutral-600 mt-1 italic">
@@ -816,9 +824,12 @@ export default function WalletPage() {
                           </span>
                         </div>
                         <p className="text-[10px] font-mono text-neutral-700">
-                          {isBuyer
-                            ? `Seller: ${truncateDid(esc.seller_did)}`
-                            : `Buyer: ${truncateDid(esc.buyer_did)}`}
+                          {isBuyer ? "Seller: " : "Buyer: "}
+                          <Tooltip content={isBuyer ? esc.seller_did : esc.buyer_did} side="bottom">
+                            <span className="cursor-default hover:text-neutral-500 transition-colors">
+                              {truncateDid(isBuyer ? esc.seller_did : esc.buyer_did)}
+                            </span>
+                          </Tooltip>
                         </p>
                         <p className="text-[10px] text-neutral-600 mt-1">
                           {esc.description}
