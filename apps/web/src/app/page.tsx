@@ -34,6 +34,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArchitectureDiagram } from "@/components/architecture-diagram";
 import { TerminalDemo } from "@/components/terminal-demo";
 import { OpenSourceSection } from "@/components/open-source-section";
+import { HeroNetwork } from "@/components/hero-network";
 import {
   RevealOnScroll,
   ScrollProgress,
@@ -441,6 +442,10 @@ export default function Home() {
 
       {/* Hero */}
       <section className="relative flex flex-col items-center justify-center px-6 pt-40 pb-32 overflow-hidden">
+        {/* Network constellation background */}
+        <div className="absolute inset-0 pointer-events-none">
+          <HeroNetwork />
+        </div>
         {/* Animated gradient orb */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] opacity-[0.07] pointer-events-none">
           <div className="w-full h-full rounded-full bg-[radial-gradient(circle,#d4af37_0%,transparent_70%)] animate-[pulse_6s_ease-in-out_infinite]" />
