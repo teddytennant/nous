@@ -1398,3 +1398,47 @@ select option {
   stroke-dashoffset: 200;
   animation: app-preview-sparkline-draw 1.5s ease-out 1s forwards;
 }
+
+/* ── Peer Graph Animations ───────────────────────────────────────────────── */
+
+.peer-graph-breathe {
+  animation: peer-graph-breathe 3s ease-in-out infinite;
+}
+
+@keyframes peer-graph-breathe {
+  0%, 100% {
+    opacity: 0.4;
+    r: inherit;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.peer-graph-center-pulse {
+  animation: peer-graph-center-pulse 4s ease-in-out infinite;
+}
+
+@keyframes peer-graph-center-pulse {
+  0%, 100% {
+    opacity: 0.6;
+    r: 36;
+  }
+  50% {
+    opacity: 1;
+    r: 44;
+  }
+}
+
+.peer-graph-tooltip-enter {
+  animation: peer-graph-tooltip-fade 0.15s ease-out forwards;
+}
+
+@keyframes peer-graph-tooltip-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
