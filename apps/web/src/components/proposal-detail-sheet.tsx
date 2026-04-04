@@ -4,14 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import { Sheet, SheetHeader, SheetBody } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import {
-  governance,
   type ProposalResponse,
   type VoteResultResponse,
   type DaoResponse,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/toast";
-import { Copy, Check, ExternalLink } from "lucide-react";
+import { Copy, Check } from "lucide-react";
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
