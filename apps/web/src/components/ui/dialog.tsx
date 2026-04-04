@@ -10,8 +10,6 @@ import { X } from "lucide-react";
 const DialogRoot = DialogPrimitive.Root;
 const DialogTrigger = DialogPrimitive.Trigger;
 const DialogClose = DialogPrimitive.Close;
-const DialogTitle = DialogPrimitive.Title;
-const DialogDescription = DialogPrimitive.Description;
 const DialogPortal = DialogPrimitive.Portal;
 
 // ── Backdrop ────────────────────────────────────────────────────────────
