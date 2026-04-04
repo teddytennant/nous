@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useState,
+  useSyncExternalStore,
 } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
@@ -13,6 +14,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useConnection } from "@/components/connection-status";
 import { NotificationBell } from "@/components/notification-panel";
+import { DidAvatar } from "@/components/did-avatar";
 import {
   LayoutDashboard,
   Users,
@@ -30,6 +32,22 @@ import {
   X,
   ChevronDown,
 } from "lucide-react";
+
+// Read user identity from localStorage for sidebar avatar
+const noopSubscribe = () => () => {};
+function getStoredDid(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("nous_did");
+}
+function getStoredName(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("nous_display_name");
+}
+function useStoredIdentity() {
+  const did = useSyncExternalStore(noopSubscribe, getStoredDid, () => null);
+  const name = useSyncExternalStore(noopSubscribe, getStoredName, () => null);
+  return { did, name };
+}
 
 const sections = [
   {
@@ -141,6 +159,64 @@ export function MobileSidebarProvider({ children }: { children: ReactNode }) {
 
 export function useMobileSidebar() {
   return useContext(MobileSidebarContext);
+}
+
+// --- Sidebar footer with identity avatar ---
+
+function SidebarFooter({ status, onNavigate }: { status: string; onNavigate?: () => void }) {
+  const { did, name } = useStoredIdentity();
+
+  return (
+    <div className="px-4 py-4 border-t border-white/[0.04]">
+      {did ? (
+        <Link
+          href="/identity"
+          onClick={onNavigate}
+          className="flex items-center gap-3 px-2 py-2 -mx-2 rounded-sm hover:bg-white/[0.02] transition-colors duration-150 group"
+        >
+          <DidAvatar did={did} size={28} />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-light text-neutral-400 group-hover:text-white transition-colors duration-150 truncate">
+              {name || "Anonymous"}
+            </p>
+            <p className="text-[10px] font-mono text-neutral-700 truncate">
+              {did.slice(-12)}
+            </p>
+          </div>
+          <span
+            className={cn(
+              "inline-block w-1.5 h-1.5 rounded-full shrink-0",
+              status === "online"
+                ? "bg-emerald-500"
+                : status === "connecting"
+                  ? "bg-yellow-500 animate-pulse"
+                  : "bg-red-500",
+            )}
+          />
+        </Link>
+      ) : (
+        <div className="flex items-center gap-2 px-2">
+          <span
+            className={cn(
+              "inline-block w-1.5 h-1.5 rounded-full",
+              status === "online"
+                ? "bg-emerald-500"
+                : status === "connecting"
+                  ? "bg-yellow-500 animate-pulse"
+                  : "bg-red-500",
+            )}
+          />
+          <p className="text-[10px] font-mono text-neutral-700 tracking-wider uppercase">
+            {status === "online"
+              ? "connected"
+              : status === "connecting"
+                ? "connecting"
+                : "offline"}
+          </p>
+        </div>
+      )}
+    </div>
+  );
 }
 
 // --- Sidebar navigation content (shared between desktop and mobile) ---
@@ -291,27 +367,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         })}
       </nav>
 
-      <div className="px-6 py-6 border-t border-white/[0.04]">
-        <div className="flex items-center gap-2">
-          <span
-            className={cn(
-              "inline-block w-1.5 h-1.5 rounded-full",
-              status === "online"
-                ? "bg-emerald-500"
-                : status === "connecting"
-                  ? "bg-yellow-500 animate-pulse"
-                  : "bg-red-500",
-            )}
-          />
-          <p className="text-[10px] font-mono text-neutral-700 tracking-wider uppercase">
-            {status === "online"
-              ? "connected"
-              : status === "connecting"
-                ? "connecting"
-                : "offline"}
-          </p>
-        </div>
-      </div>
+      <SidebarFooter status={status} onNavigate={onNavigate} />
     </>
   );
 }
