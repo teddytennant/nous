@@ -22,6 +22,7 @@ import { PageHeader } from "@/components/page-header";
 import { Avatar } from "@/components/avatar";
 import { useToast } from "@/components/toast";
 import { usePageShortcuts, useListNavigation } from "@/components/keyboard-shortcuts";
+import { ProposalDetailSheet } from "@/components/proposal-detail-sheet";
 
 type Tab = "analytics" | "proposals" | "daos" | "delegation";
 type StatusFilter = "all" | "active" | "passed" | "rejected";
@@ -161,6 +162,7 @@ export default function GovernancePage() {
     {}
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [sheetProposal, setSheetProposal] = useState<ProposalResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortKey, setSortKey] = useState<SortKey>("newest");
@@ -231,7 +233,10 @@ export default function GovernancePage() {
     enabled: tab === "proposals" && !showProposalForm,
     onActivate: (index) => {
       const p = filteredProposals[index];
-      if (p) setSelectedId(selectedId === p.id ? null : p.id);
+      if (p) {
+        setSelectedId(p.id);
+        setSheetProposal(p);
+      }
     },
   });
 
@@ -674,9 +679,10 @@ export default function GovernancePage() {
                         ? "bg-white/[0.02]"
                         : !isNavSelected && "hover:bg-white/[0.01]"
                     )}
-                    onClick={() =>
-                      setSelectedId(selectedId === p.id ? null : p.id)
-                    }
+                    onClick={() => {
+                      setSelectedId(p.id);
+                      setSheetProposal(p);
+                    }}
                   >
                     {isNavSelected && (
                       <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[#d4af37] rounded-full" />
@@ -703,54 +709,6 @@ export default function GovernancePage() {
                           {formatDeadline(p.voting_ends)}
                         </span>
                       </div>
-
-                      {selectedId === p.id && (
-                        <div className="mt-4 pt-4 border-t border-white/[0.04]">
-                          <p className="text-xs text-neutral-500 font-light leading-relaxed mb-4">
-                            {p.description}
-                          </p>
-                          <p className="text-[10px] font-mono text-neutral-700 mb-2">
-                            Proposed by{" "}
-                            {p.proposer_did.length > 30
-                              ? `${p.proposer_did.slice(0, 24)}...`
-                              : p.proposer_did}
-                          </p>
-                          <p className="text-[10px] font-mono text-neutral-700 mb-5">
-                            Quorum: {(p.quorum * 100).toFixed(0)}% | Threshold:{" "}
-                            {(p.threshold * 100).toFixed(0)}%
-                          </p>
-
-                          {/* Proposal lifecycle timeline */}
-                          <ProposalTimeline proposal={p} />
-
-                          {p.status === "Active" && (
-                            <div className="flex gap-3">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleVote(p.id, "for");
-                                }}
-                                className="text-xs font-mono uppercase tracking-wider border-emerald-900 text-emerald-600 hover:bg-emerald-950"
-                              >
-                                Vote For
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleVote(p.id, "against");
-                                }}
-                                className="text-xs font-mono uppercase tracking-wider border-red-900 text-red-700 hover:bg-red-950"
-                              >
-                                Vote Against
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      )}
 
                       {/* Voting progress bar */}
                       <div className="mt-4">
