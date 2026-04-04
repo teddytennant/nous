@@ -35,6 +35,7 @@ import { ArchitectureDiagram } from "@/components/architecture-diagram";
 import { TerminalDemo } from "@/components/terminal-demo";
 import { OpenSourceSection } from "@/components/open-source-section";
 import { HeroNetwork } from "@/components/hero-network";
+import { AppPreview } from "@/components/app-preview";
 import {
   RevealOnScroll,
   ScrollProgress,
@@ -676,6 +677,35 @@ export default function Home() {
             );
           })}
         </div>
+        </RevealOnScroll>
+      </section>
+
+      {/* Divider */}
+      <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
+      {/* App Preview */}
+      <section className="px-6 py-28 max-w-6xl mx-auto w-full">
+        <RevealOnScroll>
+          <div className="mb-16 text-center">
+            <h2 className="text-xs font-mono uppercase tracking-[0.25em] text-neutral-600 mb-4">
+              The App
+            </h2>
+            <p className="text-2xl sm:text-3xl font-extralight tracking-[-0.02em] text-neutral-300 max-w-xl mx-auto">
+              Everything you need.{" "}
+              <span className="text-white">Nothing you don&apos;t.</span>
+            </p>
+          </div>
+        </RevealOnScroll>
+
+        <RevealOnScroll delay={100} variant="scale">
+          <AppPreview />
+        </RevealOnScroll>
+
+        <RevealOnScroll delay={200}>
+          <p className="text-center text-xs text-neutral-700 font-light mt-8 max-w-md mx-auto">
+            One unified dashboard. Identity, messaging, governance, payments, AI
+            — all local-first, all encrypted, all yours.
+          </p>
         </RevealOnScroll>
       </section>
 
