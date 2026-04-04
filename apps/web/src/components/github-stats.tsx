@@ -104,15 +104,12 @@ const FALLBACK_STATS: RepoStats = {
 };
 
 export function GitHubStats() {
-  const [stats, setStats] = useState<RepoStats | null>(null);
+  const [stats, setStats] = useState<RepoStats | null>(() => getCached()?.data ?? null);
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    const cached = getCached();
-    if (cached) {
-      setStats(cached.data);
-      return;
-    }
+    // Skip fetch if we initialized with cached data
+    if (stats) return;
 
     fetch(`https://api.github.com/repos/${GITHUB_REPO}`, {
       headers: { Accept: "application/vnd.github.v3+json" },
@@ -138,6 +135,7 @@ export function GitHubStats() {
       .catch(() => {
         setError(true);
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Don't render if we have no data and hit an error (private repo, rate limited)
