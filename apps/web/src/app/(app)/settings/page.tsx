@@ -13,6 +13,7 @@ import {
 } from "@/lib/api";
 import { useToast } from "@/components/toast";
 import { PageHeader } from "@/components/page-header";
+import { resetTour } from "@/components/product-tour";
 
 type Theme = "dark" | "light";
 
@@ -549,7 +550,7 @@ export default function SettingsPage() {
               ))}
             </div>
 
-            <div className="flex gap-3 mt-6 pt-6 border-t border-white/[0.04]">
+            <div className="flex flex-wrap gap-3 mt-6 pt-6 border-t border-white/[0.04]">
               <a
                 href="https://github.com/teddytennant/nous"
                 target="_blank"
@@ -574,6 +575,15 @@ export default function SettingsPage() {
               >
                 Docs
               </a>
+              <button
+                onClick={() => {
+                  resetTour();
+                  toast({ title: "Tour reset", description: "The guided tour will appear on your next visit to the dashboard" });
+                }}
+                className="text-[10px] font-mono uppercase tracking-wider px-4 py-2 border border-white/10 text-neutral-500 hover:text-[#d4af37] hover:border-[#d4af37]/30 transition-all duration-150"
+              >
+                Restart Tour
+              </button>
             </div>
           </CardContent>
         </Card>
