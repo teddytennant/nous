@@ -4,6 +4,10 @@ import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, type SelectOption } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import {
   governance,
@@ -372,17 +376,17 @@ export default function GovernancePage() {
               variant="outline"
               size="sm"
               onClick={() => {
-                setShowProposalForm(!showProposalForm);
                 if (daos.length > 0 && !propDaoId) setPropDaoId(daos[0].id);
+                setShowProposalForm(true);
               }}
               className="text-xs font-mono uppercase tracking-wider border-white/10 hover:border-[#d4af37] hover:text-[#d4af37]"
             >
-              {showProposalForm ? "Cancel" : "New Proposal"}
+              New Proposal
             </Button>
           </div>
 
           {/* Filter + Sort controls */}
-          {proposals.length > 0 && !showProposalForm && (
+          {proposals.length > 0 && (
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
               {/* Status filters */}
               <div className="flex items-center gap-1">
@@ -438,63 +442,56 @@ export default function GovernancePage() {
             </div>
           )}
 
-          {/* New Proposal Form */}
-          {showProposalForm && (
-            <Card className="bg-white/[0.02] border-white/[0.06] mb-8">
-              <CardContent className="p-6 space-y-4">
-                <div>
-                  <label className="text-[10px] font-mono uppercase tracking-wider text-neutral-600 block mb-2">
-                    DAO
-                  </label>
-                  <select
-                    value={propDaoId}
-                    onChange={(e) => setPropDaoId(e.target.value)}
-                    className="w-full bg-black/40 border border-white/[0.08] rounded px-3 py-2 text-sm font-light focus:outline-none focus:border-[#d4af37]/40"
-                  >
-                    {daos.length === 0 && (
-                      <option value="">No DAOs — create one first</option>
-                    )}
-                    {daos.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[10px] font-mono uppercase tracking-wider text-neutral-600 block mb-2">
-                    Title
-                  </label>
-                  <input
-                    type="text"
-                    value={propTitle}
-                    onChange={(e) => setPropTitle(e.target.value)}
-                    placeholder="Proposal title"
-                    className="w-full bg-black/40 border border-white/[0.08] rounded px-3 py-2 text-sm font-light placeholder:text-neutral-700 focus:outline-none focus:border-[#d4af37]/40"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-mono uppercase tracking-wider text-neutral-600 block mb-2">
-                    Description
-                  </label>
-                  <textarea
-                    value={propDesc}
-                    onChange={(e) => setPropDesc(e.target.value)}
-                    placeholder="Describe the proposal"
-                    rows={3}
-                    className="w-full bg-black/40 border border-white/[0.08] rounded px-3 py-2 text-sm font-light placeholder:text-neutral-700 focus:outline-none focus:border-[#d4af37]/40 resize-none"
-                  />
-                </div>
-                <Button
-                  onClick={handleCreateProposal}
-                  disabled={submitting || !propTitle.trim() || !propDaoId}
-                  className="bg-[#d4af37] text-black hover:bg-[#c4a030] text-xs font-mono uppercase tracking-wider disabled:opacity-30"
-                >
-                  {submitting ? "Submitting..." : "Submit Proposal"}
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+          {/* New Proposal Dialog */}
+          <Dialog open={showProposalForm} onOpenChange={setShowProposalForm}>
+            <DialogHeader>
+              <DialogTitle>New Proposal</DialogTitle>
+              <DialogDescription>
+                Submit a proposal for your DAO. Members vote with quadratic credits.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogBody className="space-y-4">
+              <Select
+                label="DAO"
+                value={propDaoId}
+                onValueChange={setPropDaoId}
+                placeholder={daos.length === 0 ? "No DAOs — create one first" : "Select DAO..."}
+                options={daos.map((d): SelectOption => ({ value: d.id, label: d.name }))}
+              />
+              <Input
+                label="Title"
+                value={propTitle}
+                onChange={(e) => setPropTitle(e.target.value)}
+                placeholder="Proposal title"
+              />
+              <Textarea
+                label="Description"
+                value={propDesc}
+                onChange={(e) => setPropDesc(e.target.value)}
+                placeholder="Describe the proposal"
+                rows={3}
+              />
+            </DialogBody>
+            <DialogFooter>
+              <Button
+                variant="ghost-dark"
+                size="sm"
+                onClick={() => setShowProposalForm(false)}
+                className="text-xs font-mono uppercase tracking-wider"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="gold"
+                size="sm"
+                onClick={handleCreateProposal}
+                disabled={submitting || !propTitle.trim() || !propDaoId}
+                className="text-xs font-mono uppercase tracking-wider disabled:opacity-30"
+              >
+                {submitting ? "Submitting..." : "Submit Proposal"}
+              </Button>
+            </DialogFooter>
+          </Dialog>
 
           {loading ? (
             <div className="space-y-px">
@@ -684,51 +681,56 @@ export default function GovernancePage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setShowDaoForm(!showDaoForm)}
+              onClick={() => setShowDaoForm(true)}
               className="text-xs font-mono uppercase tracking-wider border-white/10 hover:border-[#d4af37] hover:text-[#d4af37]"
             >
-              {showDaoForm ? "Cancel" : "Create DAO"}
+              Create DAO
             </Button>
           </div>
 
-          {/* Create DAO Form */}
-          {showDaoForm && (
-            <Card className="bg-white/[0.02] border-white/[0.06] mb-8">
-              <CardContent className="p-6 space-y-4">
-                <div>
-                  <label className="text-[10px] font-mono uppercase tracking-wider text-neutral-600 block mb-2">
-                    Name
-                  </label>
-                  <input
-                    type="text"
-                    value={daoName}
-                    onChange={(e) => setDaoName(e.target.value)}
-                    placeholder="DAO name"
-                    className="w-full bg-black/40 border border-white/[0.08] rounded px-3 py-2 text-sm font-light placeholder:text-neutral-700 focus:outline-none focus:border-[#d4af37]/40"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-mono uppercase tracking-wider text-neutral-600 block mb-2">
-                    Description
-                  </label>
-                  <textarea
-                    value={daoDesc}
-                    onChange={(e) => setDaoDesc(e.target.value)}
-                    placeholder="What is this DAO about?"
-                    rows={3}
-                    className="w-full bg-black/40 border border-white/[0.08] rounded px-3 py-2 text-sm font-light placeholder:text-neutral-700 focus:outline-none focus:border-[#d4af37]/40 resize-none"
-                  />
-                </div>
-                <Button
-                  onClick={handleCreateDao}
-                  disabled={submitting || !daoName.trim()}
-                  className="bg-[#d4af37] text-black hover:bg-[#c4a030] text-xs font-mono uppercase tracking-wider disabled:opacity-30"
-                >
-                  {submitting ? "Creating..." : "Create DAO"}
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+          {/* Create DAO Dialog */}
+          <Dialog open={showDaoForm} onOpenChange={setShowDaoForm}>
+            <DialogHeader>
+              <DialogTitle>Create DAO</DialogTitle>
+              <DialogDescription>
+                Launch a decentralized autonomous organization with quadratic voting.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogBody className="space-y-4">
+              <Input
+                label="Name"
+                value={daoName}
+                onChange={(e) => setDaoName(e.target.value)}
+                placeholder="DAO name"
+              />
+              <Textarea
+                label="Description"
+                value={daoDesc}
+                onChange={(e) => setDaoDesc(e.target.value)}
+                placeholder="What is this DAO about?"
+                rows={3}
+              />
+            </DialogBody>
+            <DialogFooter>
+              <Button
+                variant="ghost-dark"
+                size="sm"
+                onClick={() => setShowDaoForm(false)}
+                className="text-xs font-mono uppercase tracking-wider"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="gold"
+                size="sm"
+                onClick={handleCreateDao}
+                disabled={submitting || !daoName.trim()}
+                className="text-xs font-mono uppercase tracking-wider disabled:opacity-30"
+              >
+                {submitting ? "Creating..." : "Create DAO"}
+              </Button>
+            </DialogFooter>
+          </Dialog>
 
           {daos.length === 0 ? (
             <EmptyState
@@ -823,64 +825,64 @@ export default function GovernancePage() {
               Vote Delegation
             </h2>
             <Button
+              variant="outline"
+              size="sm"
               onClick={() => {
-                setShowDelegateForm((v) => !v);
+                setShowDelegateForm(true);
                 loadDelegations();
               }}
-              className="text-xs"
+              className="text-xs font-mono uppercase tracking-wider border-white/10 hover:border-[#d4af37] hover:text-[#d4af37]"
             >
-              {showDelegateForm ? "Cancel" : "Delegate"}
+              Delegate
             </Button>
           </div>
 
-          {showDelegateForm && (
-            <Card className="bg-white/[0.02] border-white/[0.06] mb-8">
-              <CardContent className="p-6 space-y-4">
-                <p className="text-xs text-neutral-500 font-light mb-4">
-                  Delegate your voting power to another member. They will vote
-                  on your behalf with your credits.
-                </p>
-                <div>
-                  <label className="block text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-600 mb-1.5">
-                    Delegate to (DID)
-                  </label>
-                  <input
-                    value={delegateTo}
-                    onChange={(e) => setDelegateTo(e.target.value)}
-                    placeholder="did:key:z..."
-                    className="w-full bg-white/[0.03] border border-white/[0.06] px-3 py-2 text-sm font-mono placeholder:text-neutral-700 focus:border-[#d4af37]/40 focus:outline-none transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-600 mb-1.5">
-                    DAO Scope
-                  </label>
-                  <select
-                    value={delegateScope}
-                    onChange={(e) => {
-                      setDelegateScope(e.target.value);
-                      if (e.target.value) loadPower(e.target.value);
-                    }}
-                    className="w-full bg-white/[0.03] border border-white/[0.06] px-3 py-2 text-sm font-mono focus:border-[#d4af37]/40 focus:outline-none transition-colors"
-                  >
-                    <option value="">Select DAO...</option>
-                    {daos.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <Button
-                  onClick={handleDelegate}
-                  disabled={submitting || !delegateTo.trim() || !delegateScope}
-                  className="text-xs"
-                >
-                  {submitting ? "Delegating..." : "Confirm Delegation"}
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+          <Dialog open={showDelegateForm} onOpenChange={setShowDelegateForm}>
+            <DialogHeader>
+              <DialogTitle>Delegate Votes</DialogTitle>
+              <DialogDescription>
+                Delegate your voting power to another member. They will vote on your behalf with your credits.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogBody className="space-y-4">
+              <Input
+                label="Delegate to (DID)"
+                value={delegateTo}
+                onChange={(e) => setDelegateTo(e.target.value)}
+                placeholder="did:key:z..."
+                className="font-mono"
+              />
+              <Select
+                label="DAO Scope"
+                value={delegateScope}
+                onValueChange={(val) => {
+                  setDelegateScope(val);
+                  if (val) loadPower(val);
+                }}
+                placeholder="Select DAO..."
+                options={daos.map((d): SelectOption => ({ value: d.id, label: d.name }))}
+              />
+            </DialogBody>
+            <DialogFooter>
+              <Button
+                variant="ghost-dark"
+                size="sm"
+                onClick={() => setShowDelegateForm(false)}
+                className="text-xs font-mono uppercase tracking-wider"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="gold"
+                size="sm"
+                onClick={handleDelegate}
+                disabled={submitting || !delegateTo.trim() || !delegateScope}
+                className="text-xs font-mono uppercase tracking-wider disabled:opacity-30"
+              >
+                {submitting ? "Delegating..." : "Confirm Delegation"}
+              </Button>
+            </DialogFooter>
+          </Dialog>
 
           {/* Active Delegations */}
           <div className="mb-10">
