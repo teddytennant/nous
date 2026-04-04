@@ -106,6 +106,7 @@ export default function SocialPage() {
 
   const { toast } = useToast();
   const userDid = typeof window !== "undefined" ? localStorage.getItem("nous_did") || "" : "";
+  const userDisplayName = typeof window !== "undefined" ? localStorage.getItem("nous_display_name") || "" : "";
 
   const loadFeed = useCallback(async () => {
     try {
@@ -370,6 +371,17 @@ export default function SocialPage() {
       {/* Compose */}
       <section className="mb-12">
         <div className="border border-white/[0.06] p-5">
+          {userDid && (
+            <div className="flex items-center gap-2.5 mb-3 pb-3 border-b border-white/[0.04]">
+              <Avatar did={userDid} size="xs" />
+              <span className="text-xs font-light text-neutral-500">
+                {userDisplayName || "Anonymous"}
+              </span>
+              <span className="text-[10px] font-mono text-neutral-700">
+                posting as
+              </span>
+            </div>
+          )}
           <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value.slice(0, MAX_POST_LENGTH))}
@@ -384,15 +396,20 @@ export default function SocialPage() {
             <span className="text-[10px] font-mono text-neutral-700">
               {draft.length}/{MAX_POST_LENGTH}
             </span>
-            <Button
-              onClick={handlePost}
-              disabled={posting || !draft.trim() || !userDid}
-              variant="outline"
-              size="sm"
-              className="text-xs font-mono uppercase tracking-wider border-white/10 hover:border-[#d4af37] hover:text-[#d4af37] disabled:opacity-30"
-            >
-              {posting ? "Posting..." : "Post"}
-            </Button>
+            <div className="flex items-center gap-3">
+              <kbd className="hidden sm:inline text-[9px] font-mono text-neutral-700 bg-white/[0.03] px-1.5 py-0.5 rounded border border-white/[0.04]">
+                ⌘↵
+              </kbd>
+              <Button
+                onClick={handlePost}
+                disabled={posting || !draft.trim() || !userDid}
+                variant="outline"
+                size="sm"
+                className="text-xs font-mono uppercase tracking-wider border-white/10 hover:border-[#d4af37] hover:text-[#d4af37] disabled:opacity-30"
+              >
+                {posting ? "Posting..." : "Post"}
+              </Button>
+            </div>
           </div>
           {!userDid && (
             <p className="text-[10px] text-red-500/60 font-mono mt-2">
@@ -511,10 +528,23 @@ export default function SocialPage() {
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
                         <Avatar did={post.pubkey} size="sm" />
-                        <span className="text-xs font-mono text-neutral-500 truncate max-w-[200px]">
-                          {truncateDid(post.pubkey)}
-                        </span>
-                        <span className="text-[10px] text-neutral-700">
+                        <div className="flex items-center gap-2 min-w-0">
+                          {isOwn && userDisplayName ? (
+                            <>
+                              <span className="text-xs font-light text-neutral-300 truncate">
+                                {userDisplayName}
+                              </span>
+                              <span className="text-[10px] font-mono text-neutral-700 truncate max-w-[100px] hidden sm:inline">
+                                {truncateDid(post.pubkey)}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-xs font-mono text-neutral-500 truncate max-w-[200px]">
+                              {truncateDid(post.pubkey)}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-neutral-700 shrink-0">
                           {formatTime(post.created_at)}
                         </span>
                       </div>
