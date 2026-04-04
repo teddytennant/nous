@@ -1,13 +1,40 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { BalanceEntry, TransactionResponse } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
-// ── SVG Path Generation ──────────────────────────────────────────────────
+// ── Chart Dimensions ────────────────────────────────────────────────────
 
-const CHART_W = 600;
-const CHART_H = 120;
-const PAD = { top: 8, right: 8, bottom: 8, left: 8 };
+const CHART_W = 700;
+const CHART_H = 200;
+const PAD = { top: 16, right: 56, bottom: 32, left: 56 };
+
+const INNER_W = CHART_W - PAD.left - PAD.right;
+const INNER_H = CHART_H - PAD.top - PAD.bottom;
+
+// ── Time Ranges ─────────────────────────────────────────────────────────
+
+type TimeRange = "7D" | "30D" | "90D" | "1Y" | "All";
+
+const TIME_RANGES: TimeRange[] = ["7D", "30D", "90D", "1Y", "All"];
+
+function rangeToMs(range: TimeRange): number | null {
+  switch (range) {
+    case "7D":
+      return 7 * 86_400_000;
+    case "30D":
+      return 30 * 86_400_000;
+    case "90D":
+      return 90 * 86_400_000;
+    case "1Y":
+      return 365 * 86_400_000;
+    case "All":
+      return null;
+  }
+}
+
+// ── SVG Path Generation ─────────────────────────────────────────────────
 
 interface ChartMeta {
   line: string;
@@ -19,6 +46,7 @@ interface ChartMeta {
   maxY: number;
   rangeX: number;
   rangeY: number;
+  pathLength: number;
 }
 
 const EMPTY_META: ChartMeta = {
@@ -31,6 +59,7 @@ const EMPTY_META: ChartMeta = {
   maxY: 0,
   rangeX: 1,
   rangeY: 1,
+  pathLength: 0,
 };
 
 function buildPaths(points: { x: number; y: number }[]): ChartMeta {
@@ -40,19 +69,22 @@ function buildPaths(points: { x: number; y: number }[]): ChartMeta {
   const ys = points.map((p) => p.y);
   const minX = Math.min(...xs);
   const maxX = Math.max(...xs);
-  const minY = Math.min(...ys, 0);
-  const maxY = Math.max(...ys, 1);
+  const rawMinY = Math.min(...ys);
+  const rawMaxY = Math.max(...ys);
+
+  // Add 10% padding to Y range
+  const yPadding = (rawMaxY - rawMinY) * 0.1 || 1;
+  const minY = rawMinY - yPadding;
+  const maxY = rawMaxY + yPadding;
   const rangeX = maxX - minX || 1;
   const rangeY = maxY - minY || 1;
 
-  const cw = CHART_W - PAD.left - PAD.right;
-  const ch = CHART_H - PAD.top - PAD.bottom;
-
   const scaled = points.map((p) => ({
-    x: PAD.left + ((p.x - minX) / rangeX) * cw,
-    y: PAD.top + ch - ((p.y - minY) / rangeY) * ch,
+    x: PAD.left + ((p.x - minX) / rangeX) * INNER_W,
+    y: PAD.top + INNER_H - ((p.y - minY) / rangeY) * INNER_H,
   }));
 
+  // Smooth cubic bezier path
   let line = `M ${scaled[0].x} ${scaled[0].y}`;
   for (let i = 1; i < scaled.length; i++) {
     const prev = scaled[i - 1];
@@ -61,10 +93,18 @@ function buildPaths(points: { x: number; y: number }[]): ChartMeta {
     line += ` C ${cpx} ${prev.y}, ${cpx} ${curr.y}, ${curr.x} ${curr.y}`;
   }
 
-  const baseY = PAD.top + ch;
+  const baseY = PAD.top + INNER_H;
   const area = `${line} L ${scaled[scaled.length - 1].x} ${baseY} L ${scaled[0].x} ${baseY} Z`;
 
-  return { line, area, scaled, minX, maxX, minY, maxY, rangeX, rangeY };
+  // Estimate path length for stroke animation
+  let pathLength = 0;
+  for (let i = 1; i < scaled.length; i++) {
+    const dx = scaled[i].x - scaled[i - 1].x;
+    const dy = scaled[i].y - scaled[i - 1].y;
+    pathLength += Math.sqrt(dx * dx + dy * dy);
+  }
+
+  return { line, area, scaled, minX, maxX, minY, maxY, rangeX, rangeY, pathLength };
 }
 
 // ── Hover Interpolation ─────────────────────────────────────────────────
@@ -76,10 +116,7 @@ function interpolateAtX(
 ): { dataX: number; dataY: number; svgY: number } | null {
   if (points.length < 2) return null;
 
-  const cw = CHART_W - PAD.left - PAD.right;
-  const ch = CHART_H - PAD.top - PAD.bottom;
-
-  const dataX = meta.minX + ((svgX - PAD.left) / cw) * meta.rangeX;
+  const dataX = meta.minX + ((svgX - PAD.left) / INNER_W) * meta.rangeX;
   if (dataX < meta.minX || dataX > meta.maxX) return null;
 
   let i = 0;
@@ -87,7 +124,7 @@ function interpolateAtX(
 
   if (i >= points.length - 1) {
     const last = points[points.length - 1];
-    const svgY = PAD.top + ch - ((last.y - meta.minY) / meta.rangeY) * ch;
+    const svgY = PAD.top + INNER_H - ((last.y - meta.minY) / meta.rangeY) * INNER_H;
     return { dataX: last.x, dataY: last.y, svgY };
   }
 
@@ -95,10 +132,12 @@ function interpolateAtX(
   const p1 = points[i + 1];
   const t = p1.x === p0.x ? 0 : (dataX - p0.x) / (p1.x - p0.x);
   const dataY = p0.y + t * (p1.y - p0.y);
-  const svgY = PAD.top + ch - ((dataY - meta.minY) / meta.rangeY) * ch;
+  const svgY = PAD.top + INNER_H - ((dataY - meta.minY) / meta.rangeY) * INNER_H;
 
   return { dataX, dataY, svgY };
 }
+
+// ── Formatting ──────────────────────────────────────────────────────────
 
 function formatTooltipDate(ts: number): string {
   return new Date(ts).toLocaleDateString("en-US", {
@@ -108,7 +147,26 @@ function formatTooltipDate(ts: number): string {
   });
 }
 
-// ── Token Colors ─────────────────────────────────────────────────────────
+function formatAxisDate(ts: number, range: TimeRange): string {
+  const d = new Date(ts);
+  if (range === "7D") {
+    return d.toLocaleDateString("en-US", { weekday: "short" });
+  }
+  if (range === "30D" || range === "90D") {
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  }
+  return d.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+}
+
+function formatYAxis(value: number): string {
+  if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
+  if (Math.abs(value) >= 100) return value.toFixed(0);
+  if (Math.abs(value) >= 1) return value.toFixed(1);
+  return value.toFixed(2);
+}
+
+// ── Token Colors ────────────────────────────────────────────────────────
 
 const TOKEN_COLORS: Record<string, string> = {
   ETH: "#627eea",
@@ -122,7 +180,7 @@ function tokenColor(token: string, index: number): string {
   return fallback[index % fallback.length];
 }
 
-// ── Component ────────────────────────────────────────────────────────────
+// ── Component ───────────────────────────────────────────────────────────
 
 interface WalletChartProps {
   balances: BalanceEntry[];
@@ -135,6 +193,11 @@ export function WalletChart({
   transactions,
   userDid,
 }: WalletChartProps) {
+  const [timeRange, setTimeRange] = useState<TimeRange>("All");
+  const [drawAnimated, setDrawAnimated] = useState(false);
+  const lineRef = useRef<SVGPathElement>(null);
+  const prevRangeRef = useRef<TimeRange>(timeRange);
+
   const { chartPoints, totalIn, totalOut, txCount } = useMemo(() => {
     if (transactions.length === 0) {
       return {
@@ -150,25 +213,53 @@ export function WalletChart({
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
     );
 
+    // Filter by time range
+    const rangeMs = rangeToMs(timeRange);
+    const now = Date.now();
+    const filtered = rangeMs
+      ? sorted.filter((tx) => now - new Date(tx.timestamp).getTime() <= rangeMs)
+      : sorted;
+
+    // If no transactions in range, still show the period
+    const txsToUse = filtered.length > 0 ? filtered : sorted;
+
     let cumulative = 0;
     let inflow = 0;
     let outflow = 0;
 
+    // Compute cumulative balance up to the start of filtered period
+    if (rangeMs && filtered.length > 0) {
+      const cutoff = now - rangeMs;
+      for (const tx of sorted) {
+        if (new Date(tx.timestamp).getTime() >= cutoff) break;
+        const amount = Number(tx.amount);
+        if (tx.to_did === userDid) {
+          cumulative += amount;
+        } else {
+          cumulative -= amount;
+        }
+      }
+    }
+
+    const startCumulative = cumulative;
     const points: { x: number; y: number }[] = [];
 
-    const firstTime = new Date(sorted[0].timestamp).getTime();
-    points.push({ x: firstTime - 86_400_000, y: 0 });
+    // Add starting point
+    if (txsToUse.length > 0) {
+      const firstTime = new Date(txsToUse[0].timestamp).getTime();
+      points.push({ x: firstTime - 86_400_000, y: cumulative });
+    }
 
-    for (const tx of sorted) {
+    for (const tx of txsToUse) {
       const amount = Number(tx.amount);
       const isReceive = tx.to_did === userDid;
 
       if (isReceive) {
         cumulative += amount;
-        inflow += amount;
+        if (rangeMs ? filtered.includes(tx) : true) inflow += amount;
       } else {
         cumulative -= amount;
-        outflow += amount;
+        if (rangeMs ? filtered.includes(tx) : true) outflow += amount;
       }
 
       points.push({ x: new Date(tx.timestamp).getTime(), y: cumulative });
@@ -178,9 +269,10 @@ export function WalletChart({
       chartPoints: points,
       totalIn: inflow,
       totalOut: outflow,
-      txCount: sorted.length,
+      txCount: rangeMs ? filtered.length : sorted.length,
+      startCumulative,
     };
-  }, [transactions, userDid]);
+  }, [transactions, userDid, timeRange]);
 
   const totalValue = useMemo(
     () => balances.reduce((sum, b) => sum + Number(b.amount), 0),
@@ -201,12 +293,63 @@ export function WalletChart({
     }));
   }, [balances]);
 
+  // Percentage change
+  const pctChange = useMemo(() => {
+    if (chartPoints.length < 2) return null;
+    const startVal = chartPoints[0].y;
+    const endVal = chartPoints[chartPoints.length - 1].y;
+    if (startVal === 0) return endVal > 0 ? 100 : endVal < 0 ? -100 : 0;
+    return ((endVal - startVal) / Math.abs(startVal)) * 100;
+  }, [chartPoints]);
+
   const meta = useMemo(() => buildPaths(chartPoints), [chartPoints]);
 
   const { line, area, scaled } = meta;
   const hasChart = chartPoints.length > 1;
 
-  // ── Hover state ──────────────────────────────────────────────────
+  // Trigger draw animation when range changes or on mount
+  useEffect(() => {
+    if (!hasChart) return;
+    setDrawAnimated(false);
+    // Force a reflow then start animation
+    const raf = requestAnimationFrame(() => {
+      setDrawAnimated(true);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [hasChart, timeRange]);
+
+  // Track range changes
+  useEffect(() => {
+    prevRangeRef.current = timeRange;
+  }, [timeRange]);
+
+  // ── Y-axis labels ─────────────────────────────────────────────────
+  const yLabels = useMemo(() => {
+    if (!hasChart) return [];
+    const steps = 4;
+    const labels: { value: number; y: number }[] = [];
+    for (let i = 0; i <= steps; i++) {
+      const value = meta.minY + (meta.rangeY * i) / steps;
+      const y = PAD.top + INNER_H - (INNER_H * i) / steps;
+      labels.push({ value, y });
+    }
+    return labels;
+  }, [hasChart, meta]);
+
+  // ── X-axis labels ─────────────────────────────────────────────────
+  const xLabels = useMemo(() => {
+    if (!hasChart) return [];
+    const count = timeRange === "7D" ? 7 : 5;
+    const labels: { ts: number; x: number }[] = [];
+    for (let i = 0; i <= count; i++) {
+      const ts = meta.minX + (meta.rangeX * i) / count;
+      const x = PAD.left + (INNER_W * i) / count;
+      labels.push({ ts, x });
+    }
+    return labels;
+  }, [hasChart, meta, timeRange]);
+
+  // ── Hover state ───────────────────────────────────────────────────
   const svgRef = useRef<SVGSVGElement>(null);
   const [hover, setHover] = useState<{
     pctX: number;
@@ -259,45 +402,70 @@ export function WalletChart({
 
   const clearHover = useCallback(() => setHover(null), []);
 
+  // Determine line/area color based on performance
+  const isPositive = pctChange === null || pctChange >= 0;
+  const lineColor = isPositive ? "#d4af37" : "#ef4444";
+  const gradientId = isPositive ? "wc-grad-pos" : "wc-grad-neg";
+
   return (
     <section className="mb-16">
-      {/* ── Stats Row ─────────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-8 mb-6">
-        <div>
-          <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-600">
-            Portfolio
-          </p>
-          <p className="text-xl font-extralight mt-1 tabular-nums">
-            {totalValue.toFixed(2)}
-          </p>
+      {/* ── Stats Row + Time Range ────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-8 flex-1">
+          <div>
+            <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-600">
+              Portfolio
+            </p>
+            <p className="text-xl font-extralight mt-1 tabular-nums">
+              {totalValue.toFixed(2)}
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-600">
+              Inflows
+            </p>
+            <p className="text-xl font-extralight mt-1 tabular-nums text-emerald-500/80">
+              +{totalIn.toFixed(2)}
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-600">
+              Outflows
+            </p>
+            <p className="text-xl font-extralight mt-1 tabular-nums text-red-400/80">
+              -{totalOut.toFixed(2)}
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-600">
+              Transactions
+            </p>
+            <p className="text-xl font-extralight mt-1 tabular-nums">
+              {txCount}
+            </p>
+          </div>
         </div>
-        <div>
-          <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-600">
-            Inflows
-          </p>
-          <p className="text-xl font-extralight mt-1 tabular-nums text-emerald-500/80">
-            +{totalIn.toFixed(2)}
-          </p>
-        </div>
-        <div>
-          <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-600">
-            Outflows
-          </p>
-          <p className="text-xl font-extralight mt-1 tabular-nums text-red-400/80">
-            -{totalOut.toFixed(2)}
-          </p>
-        </div>
-        <div>
-          <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-600">
-            Transactions
-          </p>
-          <p className="text-xl font-extralight mt-1 tabular-nums">
-            {txCount}
-          </p>
+
+        {/* Time range selector */}
+        <div className="flex gap-1 shrink-0">
+          {TIME_RANGES.map((range) => (
+            <button
+              key={range}
+              onClick={() => setTimeRange(range)}
+              className={cn(
+                "text-[10px] font-mono uppercase tracking-wider px-3 py-1.5 transition-all duration-150",
+                timeRange === range
+                  ? "text-white bg-white/[0.08]"
+                  : "text-neutral-700 hover:text-neutral-400"
+              )}
+            >
+              {range}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* ── Sparkline Chart ───────────────────────────────── */}
+      {/* ── Chart ────────────────────────────────────────── */}
       <div className="relative w-full mb-6">
         <div className="border border-white/[0.04] rounded-sm overflow-hidden">
           {hasChart ? (
@@ -305,49 +473,95 @@ export function WalletChart({
               ref={svgRef}
               viewBox={`0 0 ${CHART_W} ${CHART_H}`}
               preserveAspectRatio="none"
-              className="w-full h-[120px] block cursor-crosshair"
+              className="w-full h-[200px] block cursor-crosshair"
               onMouseMove={handleMouseMove}
               onMouseLeave={clearHover}
               onTouchMove={handleTouchMove}
               onTouchEnd={clearHover}
             >
               <defs>
-                <linearGradient id="wc-grad" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id="wc-grad-pos" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#d4af37" stopOpacity="0.12" />
                   <stop offset="100%" stopColor="#d4af37" stopOpacity="0" />
                 </linearGradient>
+                <linearGradient id="wc-grad-neg" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#ef4444" stopOpacity="0.12" />
+                  <stop offset="100%" stopColor="#ef4444" stopOpacity="0" />
+                </linearGradient>
               </defs>
 
-              {/* Subtle grid lines */}
-              {[0.25, 0.5, 0.75].map((pct) => (
-                <line
-                  key={pct}
-                  x1={PAD.left}
-                  y1={PAD.top + (CHART_H - PAD.top - PAD.bottom) * pct}
-                  x2={CHART_W - PAD.right}
-                  y2={PAD.top + (CHART_H - PAD.top - PAD.bottom) * pct}
-                  stroke="white"
-                  strokeOpacity="0.04"
-                  strokeWidth="1"
-                />
+              {/* Horizontal grid lines + Y-axis labels */}
+              {yLabels.map((label, i) => (
+                <g key={i}>
+                  <line
+                    x1={PAD.left}
+                    y1={label.y}
+                    x2={CHART_W - PAD.right}
+                    y2={label.y}
+                    stroke="white"
+                    strokeOpacity="0.04"
+                    strokeWidth="1"
+                  />
+                  <text
+                    x={PAD.left - 8}
+                    y={label.y + 3}
+                    textAnchor="end"
+                    className="fill-neutral-700"
+                    style={{ fontSize: "9px", fontFamily: "var(--font-mono)" }}
+                  >
+                    {formatYAxis(label.value)}
+                  </text>
+                </g>
+              ))}
+
+              {/* X-axis labels */}
+              {xLabels.map((label, i) => (
+                <text
+                  key={i}
+                  x={label.x}
+                  y={CHART_H - 6}
+                  textAnchor="middle"
+                  className="fill-neutral-700"
+                  style={{ fontSize: "9px", fontFamily: "var(--font-mono)" }}
+                >
+                  {formatAxisDate(label.ts, timeRange)}
+                </text>
               ))}
 
               {/* Area fill */}
-              <path d={area} fill="url(#wc-grad)" />
-
-              {/* Line */}
               <path
+                d={area}
+                fill={`url(#${gradientId})`}
+                className={cn(
+                  "transition-opacity duration-500",
+                  drawAnimated ? "opacity-100" : "opacity-0"
+                )}
+              />
+
+              {/* Animated line */}
+              <path
+                ref={lineRef}
                 d={line}
                 fill="none"
-                stroke="#d4af37"
+                stroke={lineColor}
                 strokeWidth="1.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                style={
+                  meta.pathLength > 0
+                    ? {
+                        strokeDasharray: meta.pathLength,
+                        strokeDashoffset: drawAnimated ? 0 : meta.pathLength,
+                        transition: "stroke-dashoffset 800ms ease-out, opacity 200ms ease-out",
+                      }
+                    : undefined
+                }
               />
 
               {/* End dot — hidden during hover */}
               {scaled.length > 0 &&
                 !hover &&
+                drawAnimated &&
                 (() => {
                   const last = scaled[scaled.length - 1];
                   return (
@@ -355,11 +569,12 @@ export function WalletChart({
                       <circle
                         cx={last.x}
                         cy={last.y}
-                        r="4"
-                        fill="#d4af37"
-                        opacity="0.2"
+                        r="5"
+                        fill={lineColor}
+                        opacity="0.15"
+                        className="wallet-chart-dot-pulse"
                       />
-                      <circle cx={last.x} cy={last.y} r="2" fill="#d4af37" />
+                      <circle cx={last.x} cy={last.y} r="2.5" fill={lineColor} />
                     </>
                   );
                 })()}
@@ -367,34 +582,46 @@ export function WalletChart({
               {/* Hover crosshair + dot */}
               {hover && (
                 <>
+                  {/* Vertical line */}
                   <line
                     x1={hover.svgX}
                     y1={PAD.top}
                     x2={hover.svgX}
-                    y2={CHART_H - PAD.bottom}
+                    y2={PAD.top + INNER_H}
                     stroke="white"
                     strokeOpacity="0.08"
+                    strokeWidth="1"
+                    strokeDasharray="2 2"
+                  />
+                  {/* Horizontal line */}
+                  <line
+                    x1={PAD.left}
+                    y1={hover.svgY}
+                    x2={CHART_W - PAD.right}
+                    y2={hover.svgY}
+                    stroke="white"
+                    strokeOpacity="0.04"
                     strokeWidth="1"
                     strokeDasharray="2 2"
                   />
                   <circle
                     cx={hover.svgX}
                     cy={hover.svgY}
-                    r="5"
-                    fill="#d4af37"
-                    opacity="0.15"
+                    r="6"
+                    fill={lineColor}
+                    opacity="0.12"
                   />
                   <circle
                     cx={hover.svgX}
                     cy={hover.svgY}
-                    r="2.5"
-                    fill="#d4af37"
+                    r="3"
+                    fill={lineColor}
                   />
                 </>
               )}
             </svg>
           ) : (
-            <div className="h-[120px] flex items-center justify-center">
+            <div className="h-[200px] flex items-center justify-center">
               <p className="text-xs text-neutral-700 font-light">
                 Transaction history will appear here
               </p>
@@ -409,10 +636,10 @@ export function WalletChart({
             style={{
               left: `${hover.pctX * 100}%`,
               top: `${(hover.svgY / CHART_H) * 100}%`,
-              transform: "translate(-50%, calc(-100% - 12px))",
+              transform: "translate(-50%, calc(-100% - 14px))",
             }}
           >
-            <div className="bg-neutral-900 border border-white/[0.08] rounded-sm px-2.5 py-1.5 shadow-xl whitespace-nowrap">
+            <div className="bg-neutral-900 border border-white/[0.08] rounded-sm px-3 py-2 shadow-xl whitespace-nowrap">
               <p className="text-xs font-light tabular-nums text-white">
                 {hover.dataY.toFixed(2)}
               </p>
@@ -422,9 +649,30 @@ export function WalletChart({
             </div>
           </div>
         )}
+
+        {/* Change indicator */}
+        {pctChange !== null && hasChart && (
+          <div className="absolute top-3 right-3">
+            <div className={cn(
+              "flex items-center gap-1 px-2 py-1 rounded-sm text-[10px] font-mono tabular-nums",
+              isPositive
+                ? "text-[#d4af37] bg-[#d4af37]/[0.06]"
+                : "text-red-400 bg-red-400/[0.06]"
+            )}>
+              <svg
+                viewBox="0 0 10 10"
+                className={cn("w-2.5 h-2.5", !isPositive && "rotate-180")}
+                fill="currentColor"
+              >
+                <path d="M5 1L9 7H1L5 1Z" />
+              </svg>
+              {Math.abs(pctChange).toFixed(1)}%
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* ── Token Allocation Bar ──────────────────────────── */}
+      {/* ── Token Allocation Bar ─────────────────────────── */}
       {balances.length > 0 && (
         <div>
           <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-600 mb-3">
