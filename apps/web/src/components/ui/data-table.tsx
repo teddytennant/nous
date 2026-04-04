@@ -48,10 +48,6 @@ interface DataTableProps<T> {
   emptyState?: ReactNode;
   /** Optional className for the table wrapper */
   className?: string;
-  /** Optional: render expanded content below a row */
-  expandedRow?: (row: T) => ReactNode;
-  /** Optional: determine if a row is expanded */
-  isRowExpanded?: (row: T) => boolean;
   /** Whether to show a subtle stagger animation on mount */
   stagger?: boolean;
 }
@@ -99,8 +95,6 @@ function DataTable<T>({
   isRowSelected,
   emptyState,
   className,
-  expandedRow,
-  isRowExpanded,
   stagger = true,
 }: DataTableProps<T>) {
   const [sortId, setSortId] = useState<string | undefined>(defaultSortId);
@@ -166,7 +160,6 @@ function DataTable<T>({
           {sortedData.map((row, i) => {
             const key = rowKey(row, i);
             const selected = isRowSelected?.(row) ?? false;
-            const expanded = isRowExpanded?.(row) ?? false;
 
             return (
               <tr
