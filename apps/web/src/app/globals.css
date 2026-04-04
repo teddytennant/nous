@@ -1141,6 +1141,107 @@ select option {
   background: rgba(212, 175, 55, 0.2);
 }
 
+/* ── Syntax highlighting — Nous dark theme ────────────────────────────── */
+/* Custom highlight.js theme matching Infinite Minimalism design system.  */
+/* Gold accent for keywords, muted tones for everything else.            */
+
+.hljs {
+  color: #c9d1d9;
+  background: transparent;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-built_in {
+  color: #d4af37;
+}
+
+.hljs-string,
+.hljs-attr {
+  color: #a5d6a7;
+}
+
+.hljs-number,
+.hljs-literal {
+  color: #ce93d8;
+}
+
+.hljs-comment,
+.hljs-doctag {
+  color: #525252;
+  font-style: italic;
+}
+
+.hljs-title,
+.hljs-title.function_,
+.hljs-title.class_ {
+  color: #e0c080;
+}
+
+.hljs-type,
+.hljs-class .hljs-title {
+  color: #b8860b;
+}
+
+.hljs-variable,
+.hljs-template-variable {
+  color: #c9d1d9;
+}
+
+.hljs-params {
+  color: #a0a0a0;
+}
+
+.hljs-property {
+  color: #90caf9;
+}
+
+.hljs-regexp {
+  color: #f48fb1;
+}
+
+.hljs-meta,
+.hljs-meta .hljs-keyword {
+  color: #80cbc4;
+}
+
+.hljs-tag {
+  color: #737373;
+}
+
+.hljs-name,
+.hljs-tag .hljs-attr {
+  color: #d4af37;
+}
+
+.hljs-selector-id,
+.hljs-selector-class {
+  color: #ce93d8;
+}
+
+.hljs-symbol,
+.hljs-bullet {
+  color: #a5d6a7;
+}
+
+.hljs-addition {
+  color: #a5d6a7;
+  background: rgba(165, 214, 167, 0.1);
+}
+
+.hljs-deletion {
+  color: #ef9a9a;
+  background: rgba(239, 154, 154, 0.1);
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: 600;
+}
+
 /* Scrollbar for code blocks */
 .markdown-body pre::-webkit-scrollbar {
   height: 4px;
@@ -1154,4 +1255,70 @@ select option {
 }
 .markdown-body pre::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.15);
+}
+
+/* ── Sheet / Slide-over panel ────────────────────────────────────── */
+
+@keyframes sheet-backdrop-enter {
+  from { background-color: transparent; }
+  to { background-color: rgba(0, 0, 0, 0.5); }
+}
+
+@keyframes sheet-slide-in-left {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes sheet-slide-in-right {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+.sheet-backdrop {
+  animation: sheet-backdrop-enter 0.2s ease-out forwards;
+}
+
+.sheet-panel {
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.4);
+}
+
+.sheet-slide-left {
+  animation: sheet-slide-in-left 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.sheet-slide-right {
+  animation: sheet-slide-in-right 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Sheet content stagger — children animate in after the panel slides */
+@keyframes sheet-content-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.sheet-content-stagger > * {
+  opacity: 0;
+  animation: sheet-content-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.sheet-content-stagger > *:nth-child(1) { animation-delay: 80ms; }
+.sheet-content-stagger > *:nth-child(2) { animation-delay: 120ms; }
+.sheet-content-stagger > *:nth-child(3) { animation-delay: 160ms; }
+.sheet-content-stagger > *:nth-child(4) { animation-delay: 200ms; }
+.sheet-content-stagger > *:nth-child(5) { animation-delay: 240ms; }
+.sheet-content-stagger > *:nth-child(6) { animation-delay: 280ms; }
+.sheet-content-stagger > *:nth-child(n+7) { animation-delay: 300ms; }
+
+/* Sheet scrollbar */
+.sheet-panel::-webkit-scrollbar {
+  width: 4px;
+}
+.sheet-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sheet-panel::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+}
+.sheet-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.12);
 }
