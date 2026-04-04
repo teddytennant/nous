@@ -1442,3 +1442,58 @@ select option {
     opacity: 1;
   }
 }
+
+/* ── Product Tour ──────────────────────────────────────────────────── */
+
+.tour-enter {
+  animation: tour-fade-in 200ms ease-out forwards;
+}
+
+.tour-exit {
+  animation: tour-fade-out 200ms ease-in forwards;
+}
+
+@keyframes tour-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes tour-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.tour-popover-enter {
+  animation: tour-popover-in 250ms ease-out forwards;
+}
+
+@keyframes tour-popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tour-spotlight-rect {
+  transition: x 300ms ease-out, y 300ms ease-out, width 300ms ease-out,
+    height 300ms ease-out;
+}
+
+.tour-spotlight-glow {
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.15),
+    0 0 24px rgba(212, 175, 55, 0.06);
+  transition: top 300ms ease-out, left 300ms ease-out, width 300ms ease-out,
+    height 300ms ease-out;
+}
