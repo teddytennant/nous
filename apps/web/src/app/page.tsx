@@ -34,6 +34,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArchitectureDiagram } from "@/components/architecture-diagram";
 import { TerminalDemo } from "@/components/terminal-demo";
 import { OpenSourceSection } from "@/components/open-source-section";
+import { CommunitySection } from "@/components/community-section";
 import { HeroNetwork } from "@/components/hero-network";
 import { AppPreview } from "@/components/app-preview";
 import {
@@ -948,6 +949,14 @@ export default function Home() {
         </div>
         </RevealOnScroll>
       </section>
+
+      {/* Divider */}
+      <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
+      {/* Community */}
+      <RevealOnScroll>
+        <CommunitySection />
+      </RevealOnScroll>
 
       {/* Divider */}
       <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
