@@ -3,6 +3,7 @@
 import { useState, useCallback, type ComponentPropsWithoutRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeHighlight from "rehype-highlight";
 import { Copy, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -224,6 +225,7 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
     <div className={cn("markdown-body", className)}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
+        rehypePlugins={[rehypeHighlight]}
         components={components}
       >
         {content}
