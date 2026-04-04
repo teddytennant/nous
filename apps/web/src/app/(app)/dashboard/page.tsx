@@ -406,7 +406,7 @@ export default function DashboardPage() {
       </header>
 
       {/* Stats */}
-      <section className="mb-12">
+      <section className="mb-12" data-tour="stats">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-white/[0.03] rounded-sm overflow-hidden">
           {stats.map((stat) => {
             const Icon = stat.icon;
@@ -594,7 +594,7 @@ export default function DashboardPage() {
       </section>
 
       {/* Quick Actions */}
-      <section className="mb-12">
+      <section className="mb-12" data-tour="shortcuts">
         <h2 className="text-xs font-mono uppercase tracking-[0.2em] text-neutral-500 mb-6">
           Quick Actions
         </h2>
