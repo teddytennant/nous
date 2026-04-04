@@ -167,7 +167,7 @@ function SidebarFooter({ status, onNavigate }: { status: string; onNavigate?: ()
   const { did, name } = useStoredIdentity();
 
   return (
-    <div className="px-4 py-4 border-t border-white/[0.04]">
+    <div className="px-4 py-4 border-t border-white/[0.04]" data-tour="user">
       {did ? (
         <Link
           href="/identity"
@@ -271,7 +271,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         <NotificationBell />
       </div>
 
-      <div className="px-3 mb-4">
+      <div className="px-3 mb-4" data-tour="search">
         <button
           type="button"
           onClick={() => {
@@ -290,7 +290,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         </button>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 space-y-1">
+      <nav className="flex-1 overflow-y-auto px-3 space-y-1" data-tour="sidebar">
         {sections.map((section) => {
           const isCollapsed = collapsed.has(section.label);
           const hasActiveItem = section.items.some((i) => pathname === i.href);
