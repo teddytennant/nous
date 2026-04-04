@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { BalanceEntry, TransactionResponse } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -194,9 +194,10 @@ export function WalletChart({
   userDid,
 }: WalletChartProps) {
   const [timeRange, setTimeRange] = useState<TimeRange>("All");
-  const [drawAnimated, setDrawAnimated] = useState(false);
   const lineRef = useRef<SVGPathElement>(null);
-  const prevRangeRef = useRef<TimeRange>(timeRange);
+
+  // Animation key: changes on timeRange to trigger CSS re-mount
+  const animKey = `chart-${timeRange}`;
 
   const { chartPoints, totalIn, totalOut, txCount } = useMemo(() => {
     if (transactions.length === 0) {
@@ -213,11 +214,12 @@ export function WalletChart({
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
     );
 
-    // Filter by time range
+    // Filter by time range — use the most recent transaction as the reference
+    // point rather than Date.now() to keep this computation pure.
     const rangeMs = rangeToMs(timeRange);
-    const now = Date.now();
+    const refTs = new Date(sorted[sorted.length - 1].timestamp).getTime();
     const filtered = rangeMs
-      ? sorted.filter((tx) => now - new Date(tx.timestamp).getTime() <= rangeMs)
+      ? sorted.filter((tx) => refTs - new Date(tx.timestamp).getTime() <= rangeMs)
       : sorted;
 
     // If no transactions in range, still show the period
@@ -229,7 +231,7 @@ export function WalletChart({
 
     // Compute cumulative balance up to the start of filtered period
     if (rangeMs && filtered.length > 0) {
-      const cutoff = now - rangeMs;
+      const cutoff = refTs - rangeMs;
       for (const tx of sorted) {
         if (new Date(tx.timestamp).getTime() >= cutoff) break;
         const amount = Number(tx.amount);
@@ -306,22 +308,6 @@ export function WalletChart({
 
   const { line, area, scaled } = meta;
   const hasChart = chartPoints.length > 1;
-
-  // Trigger draw animation when range changes or on mount
-  useEffect(() => {
-    if (!hasChart) return;
-    setDrawAnimated(false);
-    // Force a reflow then start animation
-    const raf = requestAnimationFrame(() => {
-      setDrawAnimated(true);
-    });
-    return () => cancelAnimationFrame(raf);
-  }, [hasChart, timeRange]);
-
-  // Track range changes
-  useEffect(() => {
-    prevRangeRef.current = timeRange;
-  }, [timeRange]);
 
   // ── Y-axis labels ─────────────────────────────────────────────────
   const yLabels = useMemo(() => {
@@ -470,6 +456,7 @@ export function WalletChart({
         <div className="border border-white/[0.04] rounded-sm overflow-hidden">
           {hasChart ? (
             <svg
+              key={animKey}
               ref={svgRef}
               viewBox={`0 0 ${CHART_W} ${CHART_H}`}
               preserveAspectRatio="none"
@@ -528,17 +515,14 @@ export function WalletChart({
                 </text>
               ))}
 
-              {/* Area fill */}
+              {/* Area fill — fades in via CSS */}
               <path
                 d={area}
                 fill={`url(#${gradientId})`}
-                className={cn(
-                  "transition-opacity duration-500",
-                  drawAnimated ? "opacity-100" : "opacity-0"
-                )}
+                className="wallet-chart-area-enter"
               />
 
-              {/* Animated line */}
+              {/* Animated line — stroke draws in via CSS */}
               <path
                 ref={lineRef}
                 d={line}
@@ -547,12 +531,12 @@ export function WalletChart({
                 strokeWidth="1.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                className="wallet-chart-line-draw"
                 style={
                   meta.pathLength > 0
                     ? {
                         strokeDasharray: meta.pathLength,
-                        strokeDashoffset: drawAnimated ? 0 : meta.pathLength,
-                        transition: "stroke-dashoffset 800ms ease-out, opacity 200ms ease-out",
+                        strokeDashoffset: meta.pathLength,
                       }
                     : undefined
                 }
@@ -561,7 +545,6 @@ export function WalletChart({
               {/* End dot — hidden during hover */}
               {scaled.length > 0 &&
                 !hover &&
-                drawAnimated &&
                 (() => {
                   const last = scaled[scaled.length - 1];
                   return (
