@@ -8,6 +8,7 @@ import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogBody, Dialo
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, type SelectOption } from "@/components/ui/select";
+import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import {
   governance,
@@ -579,9 +580,11 @@ export default function GovernancePage() {
                       <div className="flex items-start justify-between mb-3">
                         <div>
                           <div className="flex items-center gap-3 mb-1">
-                            <span className="text-[10px] font-mono text-neutral-700">
-                              {p.id.slice(0, 12)}...
-                            </span>
+                            <Tooltip content={p.id} side="bottom">
+                              <span className="text-[10px] font-mono text-neutral-700 cursor-default hover:text-neutral-500 transition-colors">
+                                {p.id.slice(0, 12)}...
+                              </span>
+                            </Tooltip>
                             <span
                               className={cn(
                                 "text-[10px] font-mono uppercase tracking-wider",
@@ -908,11 +911,13 @@ export default function GovernancePage() {
                         <div className="space-y-1">
                         <p className="text-sm font-mono">
                           <span className="text-neutral-600">to </span>
-                          <span className="text-[#d4af37]">
-                            {d.to_did.length > 24
-                              ? `${d.to_did.slice(0, 12)}...${d.to_did.slice(-8)}`
-                              : d.to_did}
-                          </span>
+                          <Tooltip content={d.to_did} side="bottom">
+                            <span className="text-[#d4af37] cursor-default hover:text-[#c4a030] transition-colors">
+                              {d.to_did.length > 24
+                                ? `${d.to_did.slice(0, 12)}...${d.to_did.slice(-8)}`
+                                : d.to_did}
+                            </span>
+                          </Tooltip>
                         </p>
                         <p className="text-[10px] text-neutral-600 font-mono">
                           {d.scope_type}:{d.scope_id.length > 20 ? `${d.scope_id.slice(0, 20)}...` : d.scope_id}
@@ -960,12 +965,14 @@ export default function GovernancePage() {
                             <div key={p.did}>
                               {/* Member row */}
                               <div className="flex items-center justify-between mb-2">
-                                <span className="flex items-center gap-2 font-mono text-xs truncate">
-                                  <Avatar did={p.did} size="xs" />
-                                  {p.did.length > 20
-                                    ? `${p.did.slice(0, 10)}...${p.did.slice(-6)}`
-                                    : p.did}
-                                </span>
+                                <Tooltip content={p.did} side="right">
+                                  <span className="flex items-center gap-2 font-mono text-xs truncate cursor-default">
+                                    <Avatar did={p.did} size="xs" />
+                                    {p.did.length > 20
+                                      ? `${p.did.slice(0, 10)}...${p.did.slice(-6)}`
+                                      : p.did}
+                                  </span>
+                                </Tooltip>
                                 <div className="flex items-baseline gap-3">
                                   <span className="text-[10px] font-mono text-neutral-600">
                                     base {p.base_credits}
