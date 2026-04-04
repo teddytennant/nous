@@ -336,7 +336,7 @@ export function NotificationBell() {
   }
 
   return (
-    <div className="relative">
+    <div className="relative" data-tour="notifications">
       {/* Bell button */}
       <button
         ref={buttonRef}
