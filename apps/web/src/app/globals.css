@@ -1360,3 +1360,41 @@ select option {
 .sheet-panel::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.12);
 }
+
+/* ── App Preview mockup animations ──────────────────────────────────── */
+
+@keyframes app-preview-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes app-preview-sparkline-draw {
+  from {
+    stroke-dashoffset: 200;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.app-preview-card {
+  opacity: 0;
+  animation: app-preview-fade-up 0.5s ease-out forwards;
+}
+
+.app-preview-row {
+  opacity: 0;
+  animation: app-preview-fade-up 0.3s ease-out forwards;
+}
+
+.app-preview-sparkline {
+  stroke-dasharray: 200;
+  stroke-dashoffset: 200;
+  animation: app-preview-sparkline-draw 1.5s ease-out 1s forwards;
+}
