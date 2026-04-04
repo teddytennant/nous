@@ -1515,3 +1515,26 @@ select option {
     opacity: 0.06;
   }
 }
+
+.wallet-chart-line-draw {
+  animation: wallet-line-draw 800ms ease-out forwards;
+}
+
+@keyframes wallet-line-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.wallet-chart-area-enter {
+  animation: wallet-area-fade 500ms ease-out 300ms both;
+}
+
+@keyframes wallet-area-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
