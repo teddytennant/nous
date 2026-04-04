@@ -10,6 +10,7 @@ import { useToast } from "@/components/toast";
 import { EmptyState, MessagesIllustration } from "@/components/empty-state";
 import { usePageShortcuts, useListNavigation } from "@/components/keyboard-shortcuts";
 import { Avatar } from "@/components/avatar";
+import { DidAvatar } from "@/components/did-avatar";
 
 type CreateMode = "dm" | "group" | null;
 
@@ -80,6 +81,7 @@ export default function MessagesPage() {
 
   const { toast } = useToast();
   const userDid = typeof window !== "undefined" ? localStorage.getItem("nous_did") || "" : "";
+  const userDisplayName = typeof window !== "undefined" ? localStorage.getItem("nous_display_name") || "" : "";
 
   usePageShortcuts({
     n: () => setCreateMode("dm"),
@@ -258,6 +260,11 @@ export default function MessagesPage() {
     } catch (e) {
       toast({ title: "Failed to delete", description: e instanceof Error ? e.message : undefined, variant: "error" });
     }
+  }
+
+  function senderName(did: string): string {
+    if (did === userDid && userDisplayName) return userDisplayName;
+    return truncateDid(did);
   }
 
   const selectedChannel = channels.find((c) => c.id === selected);
@@ -591,7 +598,7 @@ export default function MessagesPage() {
                   <div className="flex-1 min-w-0">
                     {!isSelf && (
                       <p className="text-[10px] font-mono text-neutral-700 mb-1">
-                        {truncateDid(msg.sender)}
+                        {senderName(msg.sender)}
                       </p>
                     )}
                     <div
@@ -633,10 +640,21 @@ export default function MessagesPage() {
         {/* Input */}
         {selected && (
           <div className="px-4 sm:px-8 py-4 sm:py-5 border-t border-white/[0.06]">
+            {userDid && (
+              <div className="flex items-center gap-2 mb-3 pb-3 border-b border-white/[0.04]">
+                <DidAvatar did={userDid} size={18} />
+                <span className="text-[10px] font-mono text-neutral-700">
+                  {userDisplayName || "Anonymous"}
+                </span>
+                <span className="text-[10px] font-mono text-neutral-800">
+                  messaging as
+                </span>
+              </div>
+            )}
             {replyTo && (
               <div className="flex items-center justify-between mb-3 pb-3 border-b border-white/[0.04]">
                 <span className="text-[10px] font-mono text-neutral-600 truncate">
-                  Replying to {truncateDid(replyTo.sender)}: {replyTo.content.slice(0, 50)}
+                  Replying to {replyTo.sender === userDid ? "yourself" : senderName(replyTo.sender)}: {replyTo.content.slice(0, 50)}
                   {replyTo.content.length > 50 ? "..." : ""}
                 </span>
                 <button
