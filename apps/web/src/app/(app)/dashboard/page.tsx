@@ -16,6 +16,7 @@ import { useConnection } from "@/components/connection-status";
 import { SubsystemsWidget } from "@/components/subsystems";
 import { ActivityTimeline } from "@/components/activity-timeline";
 import { Sparkline, MiniBarChart } from "@/components/sparkline";
+import { DidAvatar } from "@/components/did-avatar";
 import {
   Users,
   MessageSquare,
@@ -377,6 +378,7 @@ export default function DashboardPage() {
     month: "long",
     day: "numeric",
   });
+  const did = useSyncExternalStore(emptySubscribe, getDid, () => null);
 
   return (
     <div className="p-6 sm:p-8 max-w-5xl">
@@ -385,15 +387,22 @@ export default function DashboardPage() {
         <p className="text-xs font-mono uppercase tracking-[0.2em] text-neutral-600 mb-3">
           {dateStr}
         </p>
-        <h1 className="text-3xl sm:text-4xl font-extralight tracking-[-0.03em] mb-2">
-          {greeting}
-          {displayName && (
-            <span className="text-[#d4af37]">, {displayName}</span>
+        <div className="flex items-center gap-4">
+          {did && (
+            <DidAvatar did={did} size={48} className="shrink-0 hidden sm:block" />
           )}
-        </h1>
-        <p className="text-sm text-neutral-500 font-light">
-          Your sovereign digital infrastructure, at a glance.
-        </p>
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-extralight tracking-[-0.03em] mb-1">
+              {greeting}
+              {displayName && (
+                <span className="text-[#d4af37]">, {displayName}</span>
+              )}
+            </h1>
+            <p className="text-sm text-neutral-500 font-light">
+              Your sovereign digital infrastructure, at a glance.
+            </p>
+          </div>
+        </div>
       </header>
 
       {/* Stats */}
