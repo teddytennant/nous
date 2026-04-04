@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DataTable, type Column } from "@/components/ui/data-table";
+import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import {
   files,
@@ -15,15 +16,6 @@ import { EmptyState, FilesIllustration } from "@/components/empty-state";
 import { useToast } from "@/components/toast";
 import { PageHeader } from "@/components/page-header";
 import { usePageShortcuts } from "@/components/keyboard-shortcuts";
-
-type FileSortKey = "name" | "newest" | "oldest" | "size" | "type";
-
-const FILE_SORT_OPTIONS: { key: FileSortKey; label: string }[] = [
-  { key: "newest", label: "Newest" },
-  { key: "name", label: "Name A–Z" },
-  { key: "size", label: "Size" },
-  { key: "type", label: "Type" },
-];
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -58,7 +50,6 @@ export default function FilesPage() {
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [sortKey, setSortKey] = useState<FileSortKey>("newest");
   const fileInput = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -183,11 +174,21 @@ export default function FilesPage() {
         </div>
       )}
 
-      {/* Upload + search + sort */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xs font-mono uppercase tracking-[0.2em] text-neutral-500">
-          {fileList.length} File{fileList.length !== 1 ? "s" : ""}
-        </h2>
+      {/* Upload + search */}
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between mb-6">
+        <div className="flex items-center gap-4">
+          <h2 className="text-xs font-mono uppercase tracking-[0.2em] text-neutral-500">
+            {fileList.length} File{fileList.length !== 1 ? "s" : ""}
+          </h2>
+          {fileList.length > 0 && (
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Filter by name..."
+              className="bg-white/[0.02] border border-white/[0.06] rounded-sm text-sm font-light px-3 py-1.5 outline-none placeholder:text-neutral-700 focus:border-[#d4af37]/40 transition-colors duration-200 w-48"
+            />
+          )}
+        </div>
         <div className="flex gap-3">
           <input
             ref={fileInput}
@@ -211,33 +212,6 @@ export default function FilesPage() {
         </div>
       </div>
 
-      {fileList.length > 0 && (
-        <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between mb-8">
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Filter by name..."
-            className="flex-1 sm:max-w-xs bg-white/[0.02] text-sm font-light px-4 py-2.5 outline-none placeholder:text-neutral-700"
-          />
-          <div className="flex gap-2">
-            {FILE_SORT_OPTIONS.map((opt) => (
-              <button
-                key={opt.key}
-                onClick={() => setSortKey(opt.key)}
-                className={cn(
-                  "text-[10px] font-mono uppercase tracking-wider px-3 py-2 transition-all duration-150",
-                  sortKey === opt.key
-                    ? "text-white bg-white/[0.06]"
-                    : "text-neutral-700 hover:text-neutral-400"
-                )}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {!userDid ? (
         <div className="text-sm text-neutral-600 font-light">
           <button
@@ -254,17 +228,13 @@ export default function FilesPage() {
       ) : loading ? (
         <div className="space-y-px">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="p-4">
+            <div key={i} className="py-3">
               <div className="flex items-center gap-4">
                 <Skeleton className="h-4 w-6" />
-                <div className="flex-1 min-w-0">
-                  <Skeleton className="h-3.5 w-48 mb-2" />
-                  <div className="flex gap-4">
-                    <Skeleton className="h-2.5 w-12" />
-                    <Skeleton className="h-2.5 w-8" />
-                    <Skeleton className="h-2.5 w-24" />
-                  </div>
-                </div>
+                <Skeleton className="h-3.5 w-48 flex-1 max-w-[200px]" />
+                <Skeleton className="h-2.5 w-16" />
+                <Skeleton className="h-2.5 w-20 hidden sm:block" />
+                <Skeleton className="h-2.5 w-12 hidden md:block" />
                 <Skeleton className="h-2.5 w-24" />
               </div>
             </div>
@@ -288,23 +258,102 @@ export default function FilesPage() {
         const filtered = fileList.filter((f) =>
           !search || f.name.toLowerCase().includes(search.toLowerCase())
         );
-        const sorted = [...filtered].sort((a, b) => {
-          switch (sortKey) {
-            case "name":
-              return a.name.localeCompare(b.name);
-            case "newest":
-              return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-            case "oldest":
-              return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-            case "size":
-              return b.total_size - a.total_size;
-            case "type":
-              return a.mime_type.localeCompare(b.mime_type);
-            default:
-              return 0;
-          }
-        });
-        return sorted.length === 0 ? (
+
+        const fileColumns: Column<FileManifestResponse>[] = [
+          {
+            id: "name",
+            header: "Name",
+            sortable: true,
+            compare: (a, b) => a.name.localeCompare(b.name),
+            cell: (f) => (
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="text-neutral-600 font-mono text-sm w-5 text-center shrink-0">
+                  {mimeIcon(f.mime_type)}
+                </span>
+                <span className="text-sm font-light truncate">{f.name}</span>
+              </div>
+            ),
+          },
+          {
+            id: "size",
+            header: "Size",
+            align: "right",
+            sortable: true,
+            compare: (a, b) => a.total_size - b.total_size,
+            cell: (f) => (
+              <span className="text-xs font-mono text-neutral-500">
+                {formatBytes(f.total_size)}
+              </span>
+            ),
+          },
+          {
+            id: "type",
+            header: "Type",
+            sortable: true,
+            compare: (a, b) => a.mime_type.localeCompare(b.mime_type),
+            hideBelow: "sm",
+            cell: (f) => (
+              <Tooltip content={f.mime_type}>
+                <span className="text-xs font-mono text-neutral-600 cursor-default">
+                  {f.mime_type.split("/")[1] ?? f.mime_type}
+                </span>
+              </Tooltip>
+            ),
+          },
+          {
+            id: "version",
+            header: "Ver",
+            align: "center",
+            hideBelow: "md",
+            cell: (f) => (
+              <span className="text-xs font-mono text-neutral-600">
+                v{f.version}
+              </span>
+            ),
+          },
+          {
+            id: "date",
+            header: "Date",
+            align: "right",
+            sortable: true,
+            compare: (a, b) =>
+              new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+            cell: (f) => (
+              <span className="text-[11px] font-mono text-neutral-600">
+                {formatDate(f.created_at)}
+              </span>
+            ),
+          },
+          {
+            id: "actions",
+            header: "",
+            align: "right",
+            cell: (f) => (
+              <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDownload(f);
+                  }}
+                  className="text-[10px] font-mono text-neutral-600 hover:text-[#d4af37] transition-colors duration-150"
+                >
+                  download
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(f.name);
+                  }}
+                  className="text-[10px] font-mono text-neutral-600 hover:text-red-400 transition-colors duration-150"
+                >
+                  delete
+                </button>
+              </div>
+            ),
+          },
+        ];
+
+        return filtered.length === 0 ? (
           <EmptyState
             icon={<FilesIllustration />}
             title="No matching files"
@@ -319,68 +368,42 @@ export default function FilesPage() {
             }
           />
         ) : (
-        <div className="space-y-px stagger-in">
-          {sorted.map((f) => (
-            <Card
-              key={f.id["0"]}
-              className={cn(
-                "bg-transparent border-0 rounded-none cursor-pointer transition-colors duration-150",
-                selectedFile === f.id["0"]
-                  ? "bg-white/[0.02]"
-                  : "hover:bg-white/[0.01]"
-              )}
-              onClick={() =>
+          <>
+            <DataTable
+              columns={fileColumns}
+              data={filtered}
+              rowKey={(f) => f.id["0"]}
+              defaultSortId="date"
+              defaultSortDir="desc"
+              onRowClick={(f) =>
                 setSelectedFile(selectedFile === f.id["0"] ? null : f.id["0"])
               }
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <span className="text-neutral-600 font-mono text-sm w-6 text-center">
-                    {mimeIcon(f.mime_type)}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-light truncate">{f.name}</p>
-                    <div className="flex gap-4 mt-0.5">
-                      <span className="text-[10px] font-mono text-neutral-700">
-                        {formatBytes(f.total_size)}
-                      </span>
-                      <span className="text-[10px] font-mono text-neutral-700">
-                        v{f.version}
-                      </span>
-                      <span className="text-[10px] font-mono text-neutral-700">
-                        {f.mime_type}
-                      </span>
+              isRowSelected={(f) => selectedFile === f.id["0"]}
+            />
+            {/* Expanded detail panel below table */}
+            {selectedFile && (() => {
+              const f = fileList.find((x) => x.id["0"] === selectedFile);
+              if (!f) return null;
+              return (
+                <div className="mt-0 border-t border-white/[0.04] bg-white/[0.01] px-4 py-4">
+                  <div className="flex items-start justify-between gap-6">
+                    <div className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5">
+                      <span className="text-[10px] font-mono text-neutral-600">Content ID</span>
+                      <Tooltip content={f.content_hash}>
+                        <span className="text-[10px] font-mono text-neutral-500 truncate max-w-[240px] cursor-default">
+                          {f.content_hash.slice(0, 32)}...
+                        </span>
+                      </Tooltip>
+                      <span className="text-[10px] font-mono text-neutral-600">Chunks</span>
+                      <span className="text-[10px] font-mono text-neutral-500">{f.chunk_count}</span>
+                      <span className="text-[10px] font-mono text-neutral-600">Full type</span>
+                      <span className="text-[10px] font-mono text-neutral-500">{f.mime_type}</span>
                     </div>
-                  </div>
-                  <span className="text-[10px] font-mono text-neutral-700 shrink-0">
-                    {formatDate(f.created_at)}
-                  </span>
-                </div>
-
-                {selectedFile === f.id["0"] && (
-                  <div className="mt-4 pt-4 border-t border-white/[0.04] ml-10">
-                    <div className="grid grid-cols-2 gap-y-2 mb-4">
-                      <p className="text-[10px] font-mono text-neutral-600">
-                        Content ID
-                      </p>
-                      <p className="text-[10px] font-mono text-neutral-500 truncate">
-                        {f.content_hash.slice(0, 32)}...
-                      </p>
-                      <p className="text-[10px] font-mono text-neutral-600">
-                        Chunks
-                      </p>
-                      <p className="text-[10px] font-mono text-neutral-500">
-                        {f.chunk_count}
-                      </p>
-                    </div>
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 shrink-0">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDownload(f);
-                        }}
+                        onClick={() => handleDownload(f)}
                         className="text-xs font-mono uppercase tracking-wider border-white/10 hover:border-[#d4af37] hover:text-[#d4af37]"
                       >
                         Download
@@ -388,21 +411,17 @@ export default function FilesPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(f.name);
-                        }}
+                        onClick={() => handleDelete(f.name)}
                         className="text-xs font-mono uppercase tracking-wider border-red-900/30 text-red-700 hover:bg-red-950"
                       >
                         Delete
                       </Button>
                     </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </div>
+              );
+            })()}
+          </>
         );
       })()}
     </div>
