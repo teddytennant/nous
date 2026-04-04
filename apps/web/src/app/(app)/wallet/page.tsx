@@ -17,6 +17,16 @@ import { useToast } from "@/components/toast";
 import { PageHeader } from "@/components/page-header";
 import { usePageShortcuts } from "@/components/keyboard-shortcuts";
 import { WalletChart } from "@/components/wallet-chart";
+import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, type SelectOption } from "@/components/ui/select";
+
+const TOKEN_OPTIONS: SelectOption[] = [
+  { value: "ETH", label: "ETH" },
+  { value: "NOUS", label: "NOUS" },
+  { value: "USDC", label: "USDC" },
+];
 
 type WalletTab = "balances" | "invoices" | "escrow";
 
@@ -385,64 +395,56 @@ export default function WalletPage() {
             </div>
           </section>
 
-          {sendModal && (
-            <section className="mb-16">
-              <Card className="bg-white/[0.01] border-white/[0.06] rounded-none max-w-md">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <p className="text-xs font-mono uppercase tracking-[0.2em] text-neutral-500">
-                      Send
-                    </p>
-                    <button
-                      onClick={() => setSendModal(false)}
-                      className="text-[10px] font-mono text-neutral-600 hover:text-white"
-                    >
-                      Close
-                    </button>
-                  </div>
-                  <div className="space-y-4">
-                    <input
-                      value={sendTo}
-                      onChange={(e) => setSendTo(e.target.value)}
-                      placeholder="Recipient DID"
-                      className="w-full bg-white/[0.02] text-sm font-light px-4 py-3 outline-none placeholder:text-neutral-700"
-                    />
-                    <div className="flex gap-3">
-                      <input
-                        value={sendAmount}
-                        onChange={(e) => setSendAmount(e.target.value)}
-                        placeholder="Amount"
-                        type="number"
-                        className="flex-1 bg-white/[0.02] text-sm font-light px-4 py-3 outline-none placeholder:text-neutral-700"
-                      />
-                      <select
-                        value={sendToken}
-                        onChange={(e) => setSendToken(e.target.value)}
-                        className="bg-white/[0.02] text-xs font-mono px-4 py-3 outline-none text-neutral-400"
-                      >
-                        <option value="ETH">ETH</option>
-                        <option value="NOUS">NOUS</option>
-                        <option value="USDC">USDC</option>
-                      </select>
-                    </div>
-                    <input
-                      value={sendMemo}
-                      onChange={(e) => setSendMemo(e.target.value)}
-                      placeholder="Memo (optional)"
-                      className="w-full bg-white/[0.02] text-sm font-light px-4 py-3 outline-none placeholder:text-neutral-700"
-                    />
-                    <button
-                      onClick={handleSend}
-                      disabled={sending || !sendTo || !sendAmount}
-                      className="w-full text-xs font-mono uppercase tracking-wider py-3 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150 disabled:opacity-30"
-                    >
-                      {sending ? "Sending..." : "Confirm Send"}
-                    </button>
-                  </div>
-                </CardContent>
-              </Card>
-            </section>
-          )}
+          <Dialog open={sendModal} onOpenChange={setSendModal}>
+            <DialogHeader>
+              <DialogTitle>Send</DialogTitle>
+              <DialogDescription>Transfer tokens to another identity</DialogDescription>
+            </DialogHeader>
+            <DialogBody className="space-y-4">
+              <Input
+                value={sendTo}
+                onChange={(e) => setSendTo(e.target.value)}
+                placeholder="did:key:z6Mk..."
+                label="Recipient DID"
+              />
+              <div className="grid grid-cols-[1fr_auto] gap-3">
+                <Input
+                  value={sendAmount}
+                  onChange={(e) => setSendAmount(e.target.value)}
+                  placeholder="0.00"
+                  type="number"
+                  label="Amount"
+                />
+                <Select
+                  value={sendToken}
+                  onValueChange={setSendToken}
+                  options={TOKEN_OPTIONS}
+                  label="Token"
+                />
+              </div>
+              <Input
+                value={sendMemo}
+                onChange={(e) => setSendMemo(e.target.value)}
+                placeholder="Optional note"
+                label="Memo"
+              />
+            </DialogBody>
+            <DialogFooter>
+              <button
+                onClick={() => setSendModal(false)}
+                className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 text-neutral-500 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSend}
+                disabled={sending || !sendTo || !sendAmount}
+                className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150 disabled:opacity-30"
+              >
+                {sending ? "Sending..." : "Confirm Send"}
+              </button>
+            </DialogFooter>
+          </Dialog>
 
           <section>
             <h2 className="text-xs font-mono uppercase tracking-[0.2em] text-neutral-500 mb-8">
@@ -504,113 +506,116 @@ export default function WalletPage() {
               Invoices
             </h2>
             <button
-              onClick={() => setShowInvoiceForm(!showInvoiceForm)}
+              onClick={() => setShowInvoiceForm(true)}
               className="text-[10px] font-mono uppercase tracking-wider text-neutral-600 hover:text-[#d4af37] transition-colors"
             >
-              {showInvoiceForm ? "Cancel" : "Create Invoice"}
+              Create Invoice
             </button>
           </div>
 
-          {showInvoiceForm && (
-            <Card className="bg-white/[0.01] border-white/[0.06] rounded-none mb-12">
-              <CardContent className="p-6 space-y-4">
-                <p className="text-xs font-mono uppercase tracking-[0.2em] text-neutral-500 mb-2">
-                  New Invoice
+          <Dialog open={showInvoiceForm} onOpenChange={setShowInvoiceForm}>
+            <DialogHeader>
+              <DialogTitle>New Invoice</DialogTitle>
+              <DialogDescription>Request payment with itemized line items and due date</DialogDescription>
+            </DialogHeader>
+            <DialogBody className="space-y-4">
+              <Input
+                value={invoiceTo}
+                onChange={(e) => setInvoiceTo(e.target.value)}
+                placeholder="did:key:z6Mk..."
+                label="Recipient DID"
+              />
+              <div className="grid grid-cols-[1fr_auto] gap-3">
+                <Select
+                  value={invoiceToken}
+                  onValueChange={setInvoiceToken}
+                  options={TOKEN_OPTIONS}
+                  label="Token"
+                />
+                <Input
+                  value={invoiceDueDays}
+                  onChange={(e) => setInvoiceDueDays(e.target.value)}
+                  placeholder="30"
+                  type="number"
+                  label="Due in days"
+                  className="w-28"
+                />
+              </div>
+              <Input
+                value={invoiceMemo}
+                onChange={(e) => setInvoiceMemo(e.target.value)}
+                placeholder="Optional note"
+                label="Memo"
+              />
+              <div className="space-y-3">
+                <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-600">
+                  Line Items
                 </p>
-                <input
-                  value={invoiceTo}
-                  onChange={(e) => setInvoiceTo(e.target.value)}
-                  placeholder="Recipient DID"
-                  className="w-full bg-white/[0.02] text-sm font-light px-4 py-3 outline-none placeholder:text-neutral-700"
-                />
-                <div className="flex gap-3">
-                  <select
-                    value={invoiceToken}
-                    onChange={(e) => setInvoiceToken(e.target.value)}
-                    className="bg-white/[0.02] text-xs font-mono px-4 py-3 outline-none text-neutral-400"
-                  >
-                    <option value="NOUS">NOUS</option>
-                    <option value="ETH">ETH</option>
-                    <option value="USDC">USDC</option>
-                  </select>
-                  <input
-                    value={invoiceDueDays}
-                    onChange={(e) => setInvoiceDueDays(e.target.value)}
-                    placeholder="Due in days"
-                    type="number"
-                    className="w-32 bg-white/[0.02] text-sm font-light px-4 py-3 outline-none placeholder:text-neutral-700"
-                  />
-                </div>
-                <input
-                  value={invoiceMemo}
-                  onChange={(e) => setInvoiceMemo(e.target.value)}
-                  placeholder="Memo (optional)"
-                  className="w-full bg-white/[0.02] text-sm font-light px-4 py-3 outline-none placeholder:text-neutral-700"
-                />
-
-                <div className="space-y-3">
-                  <p className="text-[10px] font-mono uppercase tracking-wider text-neutral-600">
-                    Line Items
-                  </p>
-                  {invoiceItems.map((item, idx) => (
-                    <div key={idx} className="flex gap-2 items-center">
-                      <input
-                        value={item.description}
-                        onChange={(e) =>
-                          updateInvoiceItem(idx, "description", e.target.value)
-                        }
-                        placeholder="Description"
-                        className="flex-1 bg-white/[0.02] text-sm font-light px-3 py-2 outline-none placeholder:text-neutral-700"
-                      />
-                      <input
-                        value={item.quantity}
-                        onChange={(e) =>
-                          updateInvoiceItem(idx, "quantity", e.target.value)
-                        }
-                        placeholder="Qty"
-                        type="number"
-                        className="w-16 bg-white/[0.02] text-sm font-light px-3 py-2 outline-none placeholder:text-neutral-700"
-                      />
-                      <input
-                        value={item.unit_price}
-                        onChange={(e) =>
-                          updateInvoiceItem(idx, "unit_price", e.target.value)
-                        }
-                        placeholder="Price"
-                        type="number"
-                        className="w-24 bg-white/[0.02] text-sm font-light px-3 py-2 outline-none placeholder:text-neutral-700"
-                      />
-                      {invoiceItems.length > 1 && (
-                        <button
-                          onClick={() => removeInvoiceItem(idx)}
-                          className="text-[10px] font-mono text-neutral-700 hover:text-red-400"
-                        >
-                          x
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  <button
-                    onClick={addInvoiceItem}
-                    className="text-[10px] font-mono text-neutral-600 hover:text-white"
-                  >
-                    + Add item
-                  </button>
-                </div>
-
+                {invoiceItems.map((item, idx) => (
+                  <div key={idx} className="flex gap-2 items-center">
+                    <Input
+                      value={item.description}
+                      onChange={(e) =>
+                        updateInvoiceItem(idx, "description", e.target.value)
+                      }
+                      placeholder="Description"
+                      className="flex-1"
+                    />
+                    <Input
+                      value={item.quantity}
+                      onChange={(e) =>
+                        updateInvoiceItem(idx, "quantity", e.target.value)
+                      }
+                      placeholder="Qty"
+                      type="number"
+                      className="w-16"
+                    />
+                    <Input
+                      value={item.unit_price}
+                      onChange={(e) =>
+                        updateInvoiceItem(idx, "unit_price", e.target.value)
+                      }
+                      placeholder="Price"
+                      type="number"
+                      className="w-24"
+                    />
+                    {invoiceItems.length > 1 && (
+                      <button
+                        onClick={() => removeInvoiceItem(idx)}
+                        className="text-[10px] font-mono text-neutral-700 hover:text-red-400 p-1"
+                      >
+                        x
+                      </button>
+                    )}
+                  </div>
+                ))}
                 <button
-                  onClick={handleCreateInvoice}
-                  disabled={
-                    !invoiceTo ||
-                    invoiceItems.every((i) => !i.description)
-                  }
-                  className="w-full text-xs font-mono uppercase tracking-wider py-3 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150 disabled:opacity-30"
+                  onClick={addInvoiceItem}
+                  className="text-[10px] font-mono text-neutral-600 hover:text-white"
                 >
-                  Create Invoice
+                  + Add item
                 </button>
-              </CardContent>
-            </Card>
-          )}
+              </div>
+            </DialogBody>
+            <DialogFooter>
+              <button
+                onClick={() => setShowInvoiceForm(false)}
+                className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 text-neutral-500 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateInvoice}
+                disabled={
+                  !invoiceTo ||
+                  invoiceItems.every((i) => !i.description)
+                }
+                className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150 disabled:opacity-30"
+              >
+                Create Invoice
+              </button>
+            </DialogFooter>
+          </Dialog>
 
           {invoices.length === 0 ? (
             <EmptyState
@@ -702,73 +707,78 @@ export default function WalletPage() {
               Escrow
             </h2>
             <button
-              onClick={() => setShowEscrowForm(!showEscrowForm)}
+              onClick={() => setShowEscrowForm(true)}
               className="text-[10px] font-mono uppercase tracking-wider text-neutral-600 hover:text-[#d4af37] transition-colors"
             >
-              {showEscrowForm ? "Cancel" : "Create Escrow"}
+              Create Escrow
             </button>
           </div>
 
-          {showEscrowForm && (
-            <Card className="bg-white/[0.01] border-white/[0.06] rounded-none mb-12">
-              <CardContent className="p-6 space-y-4">
-                <p className="text-xs font-mono uppercase tracking-[0.2em] text-neutral-500 mb-2">
-                  New Escrow
-                </p>
-                <input
-                  value={escrowSeller}
-                  onChange={(e) => setEscrowSeller(e.target.value)}
-                  placeholder="Seller DID"
-                  className="w-full bg-white/[0.02] text-sm font-light px-4 py-3 outline-none placeholder:text-neutral-700"
+          <Dialog open={showEscrowForm} onOpenChange={setShowEscrowForm}>
+            <DialogHeader>
+              <DialogTitle>New Escrow</DialogTitle>
+              <DialogDescription>Lock funds until conditions are met — trustless and automatic</DialogDescription>
+            </DialogHeader>
+            <DialogBody className="space-y-4">
+              <Input
+                value={escrowSeller}
+                onChange={(e) => setEscrowSeller(e.target.value)}
+                placeholder="did:key:z6Mk..."
+                label="Seller DID"
+              />
+              <div className="grid grid-cols-[1fr_auto_auto] gap-3">
+                <Input
+                  value={escrowAmount}
+                  onChange={(e) => setEscrowAmount(e.target.value)}
+                  placeholder="0.00"
+                  type="number"
+                  label="Amount"
                 />
-                <div className="flex gap-3">
-                  <input
-                    value={escrowAmount}
-                    onChange={(e) => setEscrowAmount(e.target.value)}
-                    placeholder="Amount"
-                    type="number"
-                    className="flex-1 bg-white/[0.02] text-sm font-light px-4 py-3 outline-none placeholder:text-neutral-700"
-                  />
-                  <select
-                    value={escrowToken}
-                    onChange={(e) => setEscrowToken(e.target.value)}
-                    className="bg-white/[0.02] text-xs font-mono px-4 py-3 outline-none text-neutral-400"
-                  >
-                    <option value="NOUS">NOUS</option>
-                    <option value="ETH">ETH</option>
-                    <option value="USDC">USDC</option>
-                  </select>
-                  <input
-                    value={escrowHours}
-                    onChange={(e) => setEscrowHours(e.target.value)}
-                    placeholder="Hours"
-                    type="number"
-                    className="w-24 bg-white/[0.02] text-sm font-light px-4 py-3 outline-none placeholder:text-neutral-700"
-                  />
-                </div>
-                <input
-                  value={escrowDesc}
-                  onChange={(e) => setEscrowDesc(e.target.value)}
-                  placeholder="Description"
-                  className="w-full bg-white/[0.02] text-sm font-light px-4 py-3 outline-none placeholder:text-neutral-700"
+                <Select
+                  value={escrowToken}
+                  onValueChange={setEscrowToken}
+                  options={TOKEN_OPTIONS}
+                  label="Token"
                 />
-                <textarea
-                  value={escrowConditions}
-                  onChange={(e) => setEscrowConditions(e.target.value)}
-                  placeholder="Release conditions (one per line)"
-                  className="w-full bg-white/[0.02] text-sm font-light px-4 py-3 outline-none placeholder:text-neutral-700 resize-none"
-                  rows={3}
+                <Input
+                  value={escrowHours}
+                  onChange={(e) => setEscrowHours(e.target.value)}
+                  placeholder="72"
+                  type="number"
+                  label="Hours"
+                  className="w-20"
                 />
-                <button
-                  onClick={handleCreateEscrow}
-                  disabled={!escrowSeller || !escrowAmount}
-                  className="w-full text-xs font-mono uppercase tracking-wider py-3 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150 disabled:opacity-30"
-                >
-                  Create Escrow
-                </button>
-              </CardContent>
-            </Card>
-          )}
+              </div>
+              <Input
+                value={escrowDesc}
+                onChange={(e) => setEscrowDesc(e.target.value)}
+                placeholder="What is this escrow for?"
+                label="Description"
+              />
+              <Textarea
+                value={escrowConditions}
+                onChange={(e) => setEscrowConditions(e.target.value)}
+                placeholder="Release conditions (one per line)"
+                label="Conditions"
+                rows={3}
+              />
+            </DialogBody>
+            <DialogFooter>
+              <button
+                onClick={() => setShowEscrowForm(false)}
+                className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 text-neutral-500 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateEscrow}
+                disabled={!escrowSeller || !escrowAmount}
+                className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150 disabled:opacity-30"
+              >
+                Create Escrow
+              </button>
+            </DialogFooter>
+          </Dialog>
 
           {escrows.length === 0 ? (
             <EmptyState
