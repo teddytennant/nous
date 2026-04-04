@@ -137,6 +137,44 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+/* ── Hero network constellation ────────────────────────────────────── */
+
+@keyframes hero-node-breathe {
+  0%, 100% { opacity: inherit; transform: scale(1); }
+  50% { opacity: calc(inherit * 1.5); transform: scale(1.15); }
+}
+
+@keyframes hero-edge-pulse {
+  0%, 100% { stroke-opacity: 0.04; }
+  50% { stroke-opacity: 0.08; }
+}
+
+@keyframes hero-pulse-ring-expand {
+  0% { r: 3; opacity: 0.15; }
+  100% { r: 16; opacity: 0; }
+}
+
+@keyframes hero-glow-pulse {
+  0%, 100% { opacity: 0.03; }
+  50% { opacity: 0.06; }
+}
+
+.hero-node {
+  animation: hero-node-breathe 6s ease-in-out infinite;
+}
+
+.hero-node-glow {
+  animation: hero-glow-pulse 8s ease-in-out infinite;
+}
+
+.hero-edge {
+  animation: hero-edge-pulse 5s ease-in-out infinite;
+}
+
+.hero-pulse-ring {
+  animation: hero-pulse-ring-expand 4s ease-out infinite;
+}
+
 /* Toast animations — slide up on mobile, slide from right on desktop */
 @keyframes toast-enter-mobile {
   from {
