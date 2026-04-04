@@ -16,6 +16,7 @@ import { CommandPalette } from "@/components/command-palette";
 import { KeyboardShortcutsProvider } from "@/components/keyboard-shortcuts";
 import { Onboarding } from "@/components/onboarding";
 import { OfflineState, ConnectingState } from "@/components/offline-state";
+import { ProductTour } from "@/components/product-tour";
 
 function PageTransition({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -101,6 +102,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
             <CommandPalette />
             <KeyboardShortcutsProvider />
+            <ProductTour />
           </MobileSidebarProvider>
         </OnboardingGate>
       </ToastProvider>
