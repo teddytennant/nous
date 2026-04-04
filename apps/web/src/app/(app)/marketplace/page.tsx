@@ -21,6 +21,25 @@ import { PageHeader } from "@/components/page-header";
 import { useToast } from "@/components/toast";
 import { usePageShortcuts } from "@/components/keyboard-shortcuts";
 import { ChevronDown, ShoppingCart, MessageSquare, Star, Clock, Package, User } from "lucide-react";
+import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, type SelectOption } from "@/components/ui/select";
+
+const CATEGORY_OPTIONS: SelectOption[] = [
+  { value: "physical", label: "Physical" },
+  { value: "digital", label: "Digital" },
+  { value: "service", label: "Service" },
+  { value: "nft", label: "NFT" },
+  { value: "data", label: "Data" },
+  { value: "other", label: "Other" },
+];
+
+const PRICE_TOKEN_OPTIONS: SelectOption[] = [
+  { value: "USDC", label: "USDC" },
+  { value: "ETH", label: "ETH" },
+  { value: "NOUS", label: "NOUS" },
+];
 
 type Tab = "listings" | "orders" | "disputes" | "offers";
 type SortKey = "newest" | "price-low" | "price-high" | "title";
@@ -295,97 +314,95 @@ function ListingsTab() {
     <>
       <div className="flex justify-end mb-8">
         <button
-          onClick={() => setCreating(!creating)}
+          onClick={() => setCreating(true)}
           className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-white/10 text-neutral-500 hover:text-[#d4af37] hover:border-[#d4af37]/30 transition-all duration-150"
         >
-          {creating ? "Cancel" : "New Listing"}
+          New Listing
         </button>
       </div>
 
-      {creating && (
-        <Card className="bg-white/[0.01] border-white/[0.06] rounded-none mb-12">
-          <CardContent className="p-6">
-            <p className="text-xs font-mono uppercase tracking-[0.2em] text-neutral-500 mb-6">
-              Create Listing
-            </p>
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <input
-                value={newListing.title}
-                onChange={(e) =>
-                  setNewListing((p) => ({ ...p, title: e.target.value }))
-                }
-                placeholder="Title"
-                className="bg-white/[0.02] text-sm font-light px-4 py-3 outline-none placeholder:text-neutral-700"
-              />
-              <select
-                value={newListing.category}
-                onChange={(e) =>
-                  setNewListing((p) => ({ ...p, category: e.target.value }))
-                }
-                className="bg-white/[0.02] text-xs font-mono px-4 py-3 outline-none text-neutral-400"
-              >
-                <option value="physical">Physical</option>
-                <option value="digital">Digital</option>
-                <option value="service">Service</option>
-                <option value="nft">NFT</option>
-                <option value="data">Data</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-            <textarea
-              value={newListing.description}
+      <Dialog open={creating} onOpenChange={setCreating}>
+        <DialogHeader>
+          <DialogTitle>Create Listing</DialogTitle>
+          <DialogDescription>Publish to the decentralized marketplace — escrow-backed, reputation-gated</DialogDescription>
+        </DialogHeader>
+        <DialogBody className="space-y-4">
+          <div className="grid grid-cols-[1fr_auto] gap-3">
+            <Input
+              value={newListing.title}
               onChange={(e) =>
-                setNewListing((p) => ({ ...p, description: e.target.value }))
+                setNewListing((p) => ({ ...p, title: e.target.value }))
               }
-              placeholder="Description"
-              rows={3}
-              className="w-full bg-white/[0.02] text-sm font-light px-4 py-3 outline-none placeholder:text-neutral-700 mb-4 resize-none"
+              placeholder="What are you selling?"
+              label="Title"
             />
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-              <input
-                value={newListing.price_amount}
-                onChange={(e) =>
-                  setNewListing((p) => ({
-                    ...p,
-                    price_amount: e.target.value,
-                  }))
-                }
-                placeholder="Price (minor units)"
-                type="number"
-                className="bg-white/[0.02] text-sm font-light px-4 py-3 outline-none placeholder:text-neutral-700"
-              />
-              <select
-                value={newListing.price_token}
-                onChange={(e) =>
-                  setNewListing((p) => ({
-                    ...p,
-                    price_token: e.target.value,
-                  }))
-                }
-                className="bg-white/[0.02] text-xs font-mono px-4 py-3 outline-none text-neutral-400"
-              >
-                <option value="USDC">USDC</option>
-                <option value="ETH">ETH</option>
-                <option value="NOUS">NOUS</option>
-              </select>
-              <input
-                value={newListing.tags}
-                onChange={(e) =>
-                  setNewListing((p) => ({ ...p, tags: e.target.value }))
-                }
-                placeholder="Tags (comma-separated)"
-                className="bg-white/[0.02] text-sm font-light px-4 py-3 outline-none placeholder:text-neutral-700"
-              />
-            </div>
-            <button
-              onClick={createListing}
-              className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150"
-            >
-              Publish
-            </button>
-          </CardContent>
-        </Card>
-      )}
+            <Select
+              value={newListing.category}
+              onValueChange={(val) =>
+                setNewListing((p) => ({ ...p, category: val }))
+              }
+              options={CATEGORY_OPTIONS}
+              label="Category"
+            />
+          </div>
+          <Textarea
+            value={newListing.description}
+            onChange={(e) =>
+              setNewListing((p) => ({ ...p, description: e.target.value }))
+            }
+            placeholder="Describe your listing in detail..."
+            label="Description"
+            rows={3}
+          />
+          <div className="grid grid-cols-3 gap-3">
+            <Input
+              value={newListing.price_amount}
+              onChange={(e) =>
+                setNewListing((p) => ({
+                  ...p,
+                  price_amount: e.target.value,
+                }))
+              }
+              placeholder="0"
+              type="number"
+              label="Price (minor units)"
+            />
+            <Select
+              value={newListing.price_token}
+              onValueChange={(val) =>
+                setNewListing((p) => ({
+                  ...p,
+                  price_token: val,
+                }))
+              }
+              options={PRICE_TOKEN_OPTIONS}
+              label="Token"
+            />
+            <Input
+              value={newListing.tags}
+              onChange={(e) =>
+                setNewListing((p) => ({ ...p, tags: e.target.value }))
+              }
+              placeholder="art, digital"
+              label="Tags"
+            />
+          </div>
+        </DialogBody>
+        <DialogFooter>
+          <button
+            onClick={() => setCreating(false)}
+            className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 text-neutral-500 hover:text-white transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={createListing}
+            className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150"
+          >
+            Publish
+          </button>
+        </DialogFooter>
+      </Dialog>
 
       <section className="mb-8">
         <div className="flex gap-4 items-center mb-6">
