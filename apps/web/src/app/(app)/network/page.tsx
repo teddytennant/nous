@@ -15,6 +15,7 @@ import { EmptyState, NetworkIllustration } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { useToast } from "@/components/toast";
 import { Sparkline } from "@/components/sparkline";
+import { PeerGraph } from "@/components/peer-graph";
 
 interface Subsystem {
   name: string;
@@ -432,6 +433,24 @@ export default function NetworkPage() {
           </div>
         )}
       </section>
+
+      {/* Peer topology graph */}
+      {!loading && peerList.length > 0 && (
+        <section className="mb-16">
+          <h2 className="text-xs font-mono uppercase tracking-[0.2em] text-neutral-500 mb-8">
+            Topology
+          </h2>
+          <div className="border border-white/[0.04] rounded-sm bg-white/[0.01] overflow-hidden">
+            <PeerGraph
+              peers={peerList}
+              latencyHistory={latencyHistory}
+            />
+          </div>
+          <p className="text-[10px] font-mono text-neutral-700 mt-3 text-center">
+            Hover peers to inspect. Distance from center reflects latency.
+          </p>
+        </section>
+      )}
 
       {/* Subsystem health */}
       <section className="mb-16">
