@@ -26,6 +26,7 @@ import { EmptyState, GovernanceIllustration, DelegationIllustration } from "@/co
 import { PageHeader } from "@/components/page-header";
 import { Avatar } from "@/components/avatar";
 import { useToast } from "@/components/toast";
+import { setNavBadge } from "@/components/sidebar";
 import { usePageShortcuts, useListNavigation } from "@/components/keyboard-shortcuts";
 import { ProposalDetailSheet } from "@/components/proposal-detail-sheet";
 
@@ -175,6 +176,15 @@ export default function GovernancePage() {
     loadDaos();
     loadProposals();
   }, [loadDaos, loadProposals]);
+
+  // Update sidebar badge with active proposal count
+  useEffect(() => {
+    const activeCount = proposals.filter(
+      (p) => p.status.toLowerCase() === "active"
+    ).length;
+    setNavBadge("/governance", activeCount);
+    return () => { setNavBadge("/governance", 0); };
+  }, [proposals]);
 
   async function ensureIdentity(): Promise<string> {
     if (userDid) return userDid;
