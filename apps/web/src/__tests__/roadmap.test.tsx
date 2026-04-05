@@ -132,4 +132,61 @@ describe("RoadmapSection", () => {
     // No "planned" or "in progress" should be in the summary for Foundation
     expect(screen.queryByText(/\d+ planned/)).not.toBeInTheDocument();
   });
+
+  it("navigates phases with ArrowDown key", () => {
+    render(<RoadmapSection />);
+    // Platform (index 1) is default active — focus its button
+    const platformButton = screen
+      .getAllByText("Platform")[0]
+      .closest("button")!;
+    platformButton.focus();
+
+    fireEvent.keyDown(platformButton, { key: "ArrowDown" });
+
+    // Intelligence should now be active
+    expect(
+      screen.getByText("Local LLM inference"),
+    ).toBeInTheDocument();
+  });
+
+  it("wraps from last phase to first with ArrowDown", () => {
+    render(<RoadmapSection />);
+    // Navigate to Network (last phase)
+    const networkButton = screen
+      .getByText("Network")
+      .closest("button")!;
+    fireEvent.click(networkButton);
+    networkButton.focus();
+
+    fireEvent.keyDown(networkButton, { key: "ArrowDown" });
+
+    // Foundation should now be active
+    expect(
+      screen.getByText("20-crate Rust workspace"),
+    ).toBeInTheDocument();
+  });
+
+  it("navigates phases with Home and End keys", () => {
+    render(<RoadmapSection />);
+    const platformButton = screen
+      .getAllByText("Platform")[0]
+      .closest("button")!;
+    platformButton.focus();
+
+    // Home → Foundation
+    fireEvent.keyDown(platformButton, { key: "Home" });
+    expect(
+      screen.getByText("20-crate Rust workspace"),
+    ).toBeInTheDocument();
+
+    // End → Network
+    const foundationButton = screen
+      .getAllByText("Foundation")[0]
+      .closest("button")!;
+    foundationButton.focus();
+    fireEvent.keyDown(foundationButton, { key: "End" });
+    expect(
+      screen.getByText("Federated node discovery"),
+    ).toBeInTheDocument();
+  });
 });
