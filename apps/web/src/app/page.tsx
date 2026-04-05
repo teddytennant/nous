@@ -324,8 +324,47 @@ export default function Home() {
     setTimeout(() => setCopied(false), 2000);
   }
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "Nous",
+    description:
+      "The sovereign everything-app. Identity, messaging, governance, payments, AI — unified under one encrypted, decentralized protocol.",
+    applicationCategory: "UtilitiesApplication",
+    operatingSystem: "macOS, Windows, Linux, Android",
+    url: "https://nous.sh",
+    downloadUrl: "https://nous.sh/download",
+    softwareVersion: "0.1.0",
+    author: {
+      "@type": "Person",
+      name: "Teddy Tennant",
+      url: "https://github.com/teddytennant",
+    },
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
+    },
+    license: "https://opensource.org/licenses/MIT",
+    isAccessibleForFree: true,
+    featureList: [
+      "Self-sovereign DID:key identity",
+      "End-to-end encrypted messaging",
+      "Quadratic voting governance",
+      "Multi-chain wallet and payments",
+      "Decentralized social feeds",
+      "Content-addressed encrypted storage",
+      "Local AI inference",
+      "Decentralized browser",
+    ],
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <ScrollProgress />
       <ScrollToTop />
 
