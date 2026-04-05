@@ -14,6 +14,7 @@ import {
 import { useToast } from "@/components/toast";
 import { PageHeader } from "@/components/page-header";
 import { resetTour } from "@/components/product-tour";
+import { Tooltip } from "@/components/ui/tooltip";
 
 type Theme = "dark" | "light";
 
@@ -297,9 +298,18 @@ export default function SettingsPage() {
                   </span>
                 </div>
                 <p className="text-[10px] font-mono text-neutral-700">
-                  Issued by {cred.issuer.length > 30 ? `${cred.issuer.slice(0, 16)}...${cred.issuer.slice(-6)}` : cred.issuer}
+                  Issued by{" "}
+                  <Tooltip content={cred.issuer}>
+                    <span className="cursor-default hover:text-neutral-500 transition-colors duration-150">
+                      {cred.issuer.length > 30 ? `${cred.issuer.slice(0, 16)}...${cred.issuer.slice(-6)}` : cred.issuer}
+                    </span>
+                  </Tooltip>
                   {" · "}
-                  {new Date(cred.issuance_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  <Tooltip content={new Date(cred.issuance_date).toLocaleString()}>
+                    <span className="cursor-default hover:text-neutral-500 transition-colors duration-150">
+                      {new Date(cred.issuance_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                    </span>
+                  </Tooltip>
                 </p>
                 {Object.keys(cred.claims).length > 0 && (
                   <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1">
