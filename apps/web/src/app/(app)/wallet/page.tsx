@@ -14,6 +14,7 @@ import {
 } from "@/lib/api";
 import { EmptyState, WalletIllustration, TransactionsIllustration, InvoiceIllustration, EscrowIllustration } from "@/components/empty-state";
 import { useToast } from "@/components/toast";
+import { setNavBadge } from "@/components/sidebar";
 import { PageHeader } from "@/components/page-header";
 import { usePageShortcuts } from "@/components/keyboard-shortcuts";
 import { WalletChart } from "@/components/wallet-chart";
@@ -113,6 +114,15 @@ export default function WalletPage() {
       loadInvoices();
     });
   }, [loadWallet, loadInvoices]);
+
+  // Update sidebar badge with pending invoice count
+  useEffect(() => {
+    const pendingCount = invoices.filter(
+      (inv) => inv.status.toLowerCase() === "pending" || inv.status.toLowerCase() === "unpaid"
+    ).length;
+    setNavBadge("/wallet", pendingCount);
+    return () => { setNavBadge("/wallet", 0); };
+  }, [invoices]);
 
   const handleCreateWallet = async () => {
     if (!userDid) {
