@@ -1,6 +1,12 @@
 package com.nous.app.ui
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AccountBalanceWallet
+import androidx.compose.material.icons.outlined.Chat
+import androidx.compose.material.icons.outlined.Dashboard
+import androidx.compose.material.icons.outlined.Fingerprint
+import androidx.compose.material.icons.outlined.People
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -20,20 +26,23 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.nous.app.data.NousViewModel
+import com.nous.app.ui.screens.AIScreen
 import com.nous.app.ui.screens.DashboardScreen
+import com.nous.app.ui.screens.FilesScreen
 import com.nous.app.ui.screens.GovernanceScreen
 import com.nous.app.ui.screens.IdentityScreen
+import com.nous.app.ui.screens.MarketplaceScreen
 import com.nous.app.ui.screens.MessagesScreen
+import com.nous.app.ui.screens.SettingsScreen
 import com.nous.app.ui.screens.SocialScreen
 import com.nous.app.ui.screens.WalletScreen
 
-sealed class Screen(val route: String, val label: String) {
-    data object Dashboard : Screen("dashboard", "Home")
-    data object Social : Screen("social", "Social")
-    data object Messages : Screen("messages", "Messages")
-    data object Governance : Screen("governance", "Govern")
-    data object Wallet : Screen("wallet", "Wallet")
-    data object Identity : Screen("identity", "Identity")
+sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
+    data object Dashboard : Screen("dashboard", "Home", Icons.Outlined.Dashboard)
+    data object Social : Screen("social", "Social", Icons.Outlined.People)
+    data object Messages : Screen("messages", "Messages", Icons.Outlined.Chat)
+    data object Wallet : Screen("wallet", "Wallet", Icons.Outlined.AccountBalanceWallet)
+    data object Identity : Screen("identity", "Identity", Icons.Outlined.Fingerprint)
 }
 
 val screens = listOf(
@@ -77,10 +86,17 @@ fun NousApp() {
                                 style = MaterialTheme.typography.labelSmall,
                             )
                         },
-                        icon = {},
+                        icon = {
+                            Icon(
+                                imageVector = screen.icon,
+                                contentDescription = screen.label,
+                            )
+                        },
                         colors = NavigationBarItemDefaults.colors(
                             selectedTextColor = MaterialTheme.colorScheme.primary,
+                            selectedIconColor = MaterialTheme.colorScheme.primary,
                             unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             indicatorColor = MaterialTheme.colorScheme.primaryContainer,
                         ),
                     )
@@ -96,9 +112,13 @@ fun NousApp() {
             composable(Screen.Dashboard.route) { DashboardScreen(viewModel = sharedViewModel) }
             composable(Screen.Social.route) { SocialScreen(viewModel = sharedViewModel) }
             composable(Screen.Messages.route) { MessagesScreen(viewModel = sharedViewModel) }
-            composable(Screen.Governance.route) { GovernanceScreen(viewModel = sharedViewModel) }
+            composable("governance") { GovernanceScreen(viewModel = sharedViewModel) }
             composable(Screen.Wallet.route) { WalletScreen(viewModel = sharedViewModel) }
             composable(Screen.Identity.route) { IdentityScreen(viewModel = sharedViewModel) }
+            composable("ai") { AIScreen(viewModel = sharedViewModel) }
+            composable("marketplace") { MarketplaceScreen(viewModel = sharedViewModel) }
+            composable("files") { FilesScreen(viewModel = sharedViewModel) }
+            composable("settings") { SettingsScreen(viewModel = sharedViewModel) }
         }
     }
 }
