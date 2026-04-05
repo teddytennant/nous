@@ -203,10 +203,10 @@ export function CommunitySection() {
         >
           {/* Quote */}
           <div className="border border-white/[0.06] rounded-sm p-8 sm:p-10 min-h-[180px] flex flex-col justify-between">
-            <blockquote className="text-sm sm:text-base font-light text-neutral-300 leading-relaxed mb-6 max-w-3xl">
-              &ldquo;{testimonials[activeTestimonial].quote}&rdquo;
-            </blockquote>
-            <div className="flex items-center justify-between">
+            <div key={activeTestimonial} className="testimonial-fade">
+              <blockquote className="text-sm sm:text-base font-light text-neutral-300 leading-relaxed mb-6 max-w-3xl">
+                &ldquo;{testimonials[activeTestimonial].quote}&rdquo;
+              </blockquote>
               <div>
                 <p className="text-xs font-medium text-neutral-400">
                   {testimonials[activeTestimonial].author}
@@ -215,38 +215,38 @@ export function CommunitySection() {
                   {testimonials[activeTestimonial].context}
                 </p>
               </div>
+            </div>
 
-              {/* Navigation dots + progress */}
-              <div className="flex items-center gap-3">
-                <div className="flex gap-2">
-                  {testimonials.map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => {
-                        setActiveTestimonial(i);
-                        // Reset timer on manual selection
-                        if (timerRef.current) clearInterval(timerRef.current);
-                        if (!paused) {
-                          timerRef.current = setInterval(() => {
-                            setActiveTestimonial((prev) => (prev + 1) % testimonials.length);
-                          }, 6000);
-                        }
-                      }}
-                      className={`w-1.5 h-1.5 rounded-full transition-all duration-200 ${
-                        i === activeTestimonial
-                          ? "bg-[#d4af37] scale-125"
-                          : "bg-white/[0.1] hover:bg-white/[0.2]"
-                      }`}
-                      aria-label={`Testimonial ${i + 1}`}
-                    />
-                  ))}
-                </div>
-                {paused && (
-                  <span className="text-[9px] font-mono text-neutral-700">
-                    paused
-                  </span>
-                )}
+            {/* Navigation dots + progress */}
+            <div className="flex items-center justify-end gap-3 mt-4">
+              <div className="flex gap-2">
+                {testimonials.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      setActiveTestimonial(i);
+                      // Reset timer on manual selection
+                      if (timerRef.current) clearInterval(timerRef.current);
+                      if (!paused) {
+                        timerRef.current = setInterval(() => {
+                          setActiveTestimonial((prev) => (prev + 1) % testimonials.length);
+                        }, 6000);
+                      }
+                    }}
+                    className={`w-1.5 h-1.5 rounded-full transition-all duration-200 ${
+                      i === activeTestimonial
+                        ? "bg-[#d4af37] scale-125"
+                        : "bg-white/[0.1] hover:bg-white/[0.2]"
+                    }`}
+                    aria-label={`Testimonial ${i + 1}`}
+                  />
+                ))}
               </div>
+              {paused && (
+                <span className="text-[9px] font-mono text-neutral-700">
+                  paused
+                </span>
+              )}
             </div>
           </div>
         </div>
