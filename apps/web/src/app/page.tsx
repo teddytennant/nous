@@ -1161,6 +1161,11 @@ export default function Home() {
                     FAQ
                   </a>
                 </li>
+                <li>
+                  <Link href="/changelog" className="text-xs text-neutral-500 hover:text-white transition-colors duration-200 font-light">
+                    Changelog
+                  </Link>
+                </li>
               </ul>
             </div>
 
