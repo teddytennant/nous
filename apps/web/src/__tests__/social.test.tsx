@@ -198,9 +198,15 @@ describe("Social page", () => {
       expect(screen.getByText("Post")).toBeInTheDocument();
     });
 
-    it("shows character count", async () => {
+    it("shows character progress ring when typing", async () => {
+      const user = userEvent.setup();
       await renderSocial(MOCK_DID);
-      expect(screen.getByText("0/500")).toBeInTheDocument();
+      // No ring visible when empty (CharacterProgress returns null for 0 chars)
+      const textarea = screen.getByPlaceholderText("What's on your mind?");
+      await user.type(textarea, "A");
+      // Ring SVG should now be present
+      const svg = document.querySelector("svg circle");
+      expect(svg).toBeTruthy();
     });
 
     it("shows user display name when DID is set", async () => {
@@ -222,12 +228,15 @@ describe("Social page", () => {
       expect(postBtn.closest("button")).toBeDisabled();
     });
 
-    it("updates character count as user types", async () => {
+    it("shows remaining count near limit", async () => {
       const user = userEvent.setup();
       await renderSocial(MOCK_DID);
       const textarea = screen.getByPlaceholderText("What's on your mind?");
-      await user.type(textarea, "Hello");
-      expect(screen.getByText("5/500")).toBeInTheDocument();
+      // Type enough to get within 50 chars of limit (500 - 50 = 450 chars needed)
+      const longText = "a".repeat(460);
+      await user.type(textarea, longText);
+      // Should show remaining count (40)
+      expect(screen.getByText("40")).toBeInTheDocument();
     });
 
     it("calls createPost API on submit", async () => {
