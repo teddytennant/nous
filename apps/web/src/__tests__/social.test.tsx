@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor, within, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 // ── Mocks ────────────────────────────────────────────────────────────────
@@ -229,12 +229,12 @@ describe("Social page", () => {
     });
 
     it("shows remaining count near limit", async () => {
-      const user = userEvent.setup();
       await renderSocial(MOCK_DID);
       const textarea = screen.getByPlaceholderText("What's on your mind?");
-      // Type enough to get within 50 chars of limit (500 - 50 = 450 chars needed)
+      // Use fireEvent.change for long text — user.type simulates 460 keystrokes
+      // which is too slow under parallel test execution
       const longText = "a".repeat(460);
-      await user.type(textarea, longText);
+      fireEvent.change(textarea, { target: { value: longText } });
       // Should show remaining count (40)
       expect(screen.getByText("40")).toBeInTheDocument();
     });
