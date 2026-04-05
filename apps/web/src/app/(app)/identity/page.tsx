@@ -13,6 +13,7 @@ import { PageHeader } from "@/components/page-header";
 import { useToast } from "@/components/toast";
 import { EmptyState, CredentialIllustration, IdentityKeyIllustration } from "@/components/empty-state";
 import { DidAvatar, DidAvatarLarge } from "@/components/did-avatar";
+import { Tooltip } from "@/components/ui/tooltip";
 import { Copy, Check, Key, ArrowRight, Pencil, Shield, Repeat, Star } from "lucide-react";
 
 export default function IdentityPage() {
@@ -312,9 +313,11 @@ export default function IdentityPage() {
                     onClick={copyDid}
                     className="group inline-flex items-center gap-2 mb-4"
                   >
-                    <code className="text-xs font-mono text-neutral-600 group-hover:text-neutral-400 transition-colors duration-150">
-                      {truncateDid(currentIdentity.did)}
-                    </code>
+                    <Tooltip content={currentIdentity.did}>
+                      <code className="text-xs font-mono text-neutral-600 group-hover:text-neutral-400 transition-colors duration-150">
+                        {truncateDid(currentIdentity.did)}
+                      </code>
+                    </Tooltip>
                     {copied ? (
                       <Check className="w-3 h-3 text-emerald-500" />
                     ) : (
@@ -534,13 +537,17 @@ export default function IdentityPage() {
                       {JSON.stringify(cred.claims, null, 2)}
                     </pre>
                     <div className="flex gap-6 text-[10px] font-mono text-neutral-700">
-                      <span>
-                        Issuer: {cred.issuer.slice(0, 16)}...
-                        {cred.issuer.slice(-8)}
-                      </span>
-                      <span>
-                        Issued: {new Date(cred.issuance_date).toLocaleDateString()}
-                      </span>
+                      <Tooltip content={cred.issuer}>
+                        <span className="cursor-default hover:text-neutral-500 transition-colors duration-150">
+                          Issuer: {cred.issuer.slice(0, 16)}...
+                          {cred.issuer.slice(-8)}
+                        </span>
+                      </Tooltip>
+                      <Tooltip content={new Date(cred.issuance_date).toLocaleString()}>
+                        <span className="cursor-default hover:text-neutral-500 transition-colors duration-150">
+                          Issued: {new Date(cred.issuance_date).toLocaleDateString()}
+                        </span>
+                      </Tooltip>
                     </div>
                   </CardContent>
                 </Card>
