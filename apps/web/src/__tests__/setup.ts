@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom/vitest";
+import { createElement, type ReactNode } from "react";
 
 // Mock next/navigation
 vi.mock("next/navigation", () => ({
@@ -21,13 +22,10 @@ vi.mock("next/link", () => ({
     href,
     ...props
   }: {
-    children: React.ReactNode;
+    children: ReactNode;
     href: string;
     [key: string]: unknown;
-  }) => {
-    const { createElement } = require("react");
-    return createElement("a", { href, ...props }, children);
-  },
+  }) => createElement("a", { href, ...props }, children),
 }));
 
 // Mock localStorage
