@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { EmptyState, MarketplaceIllustration, OrdersIllustration, DisputeIllustration, OffersIllustration } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { useToast } from "@/components/toast";
+import { setNavBadge } from "@/components/sidebar";
 import { usePageShortcuts } from "@/components/keyboard-shortcuts";
 import { ChevronDown, ShoppingCart, MessageSquare, Star, Clock, Package, User } from "lucide-react";
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter } from "@/components/ui/dialog";
@@ -1092,6 +1093,25 @@ function OffersTab() {
 
 export default function MarketplacePage() {
   const [tab, setTab] = useState<Tab>("listings");
+
+  // Fetch open dispute count for sidebar badge
+  useEffect(() => {
+    let active = true;
+    disputes
+      .list()
+      .then((res) => {
+        if (!active) return;
+        const openCount = (res.disputes || []).filter(
+          (d: DisputeResponse) => d.status === "Open" || d.status === "Escalated"
+        ).length;
+        setNavBadge("/marketplace", openCount);
+      })
+      .catch(() => { /* offline */ });
+    return () => {
+      active = false;
+      setNavBadge("/marketplace", 0);
+    };
+  }, []);
 
   usePageShortcuts({
     n: () => {
