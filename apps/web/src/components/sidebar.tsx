@@ -93,6 +93,21 @@ export function setNavBadge(href: string, count: number) {
   navBadgeStore.set(href, count);
 }
 
+// Keyboard shortcut hints for each nav item (G + key)
+const navShortcuts: Record<string, string> = {
+  "/dashboard": "D",
+  "/social": "S",
+  "/messages": "M",
+  "/wallet": "W",
+  "/marketplace": "K",
+  "/governance": "G",
+  "/ai": "A",
+  "/files": "F",
+  "/network": "N",
+  "/identity": "I",
+  "/settings": "E",
+};
+
 const sections = [
   {
     label: "Overview",
@@ -390,13 +405,14 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                     const active = pathname === item.href;
                     const Icon = item.icon;
                     const badgeCount = badges.get(item.href) ?? 0;
+                    const shortcutKey = navShortcuts[item.href];
                     return (
                       <Link
                         key={item.href}
                         href={item.href}
                         onClick={onNavigate}
                         className={cn(
-                          "relative flex items-center gap-3 px-3 py-2 text-sm font-light tracking-wide transition-all duration-150 rounded-sm",
+                          "group/nav relative flex items-center gap-3 px-3 py-2 text-sm font-light tracking-wide transition-all duration-150 rounded-sm",
                           active
                             ? "text-[#d4af37] bg-[#d4af37]/[0.04]"
                             : "text-neutral-500 hover:text-white hover:bg-white/[0.02]",
@@ -419,9 +435,13 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                           )}
                         </div>
                         <span className="flex-1">{item.name}</span>
-                        {badgeCount > 0 && !active && (
+                        {badgeCount > 0 && !active ? (
                           <span className="w-1.5 h-1.5 rounded-full bg-[#d4af37] shrink-0" />
-                        )}
+                        ) : shortcutKey ? (
+                          <kbd className="hidden group-hover/nav:inline text-[9px] font-mono text-neutral-700 tracking-wider">
+                            G {shortcutKey}
+                          </kbd>
+                        ) : null}
                       </Link>
                     );
                   })}
