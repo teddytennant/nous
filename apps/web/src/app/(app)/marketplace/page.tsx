@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState, startTransition } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DataTable, type Column } from "@/components/ui/data-table";
+import { Tooltip } from "@/components/ui/tooltip";
 import { Avatar } from "@/components/avatar";
 import {
   marketplace,
@@ -43,9 +45,6 @@ const PRICE_TOKEN_OPTIONS: SelectOption[] = [
 
 type Tab = "listings" | "orders" | "disputes" | "offers";
 type SortKey = "newest" | "price-low" | "price-high" | "title";
-type OrderSortKey = "newest" | "oldest" | "amount-high" | "amount-low" | "status";
-type DisputeSortKey = "newest" | "oldest" | "evidence" | "status";
-type OfferSortKey = "newest" | "oldest" | "amount-high" | "amount-low" | "expires";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "listings", label: "Listings" },
@@ -71,28 +70,6 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "title", label: "Title A–Z" },
 ];
 
-const ORDER_SORT_OPTIONS: { key: OrderSortKey; label: string }[] = [
-  { key: "newest", label: "Newest" },
-  { key: "oldest", label: "Oldest" },
-  { key: "amount-high", label: "Amount ↓" },
-  { key: "amount-low", label: "Amount ↑" },
-  { key: "status", label: "Status" },
-];
-
-const DISPUTE_SORT_OPTIONS: { key: DisputeSortKey; label: string }[] = [
-  { key: "newest", label: "Newest" },
-  { key: "oldest", label: "Oldest" },
-  { key: "evidence", label: "Evidence" },
-  { key: "status", label: "Status" },
-];
-
-const OFFER_SORT_OPTIONS: { key: OfferSortKey; label: string }[] = [
-  { key: "newest", label: "Newest" },
-  { key: "oldest", label: "Oldest" },
-  { key: "amount-high", label: "Amount ↓" },
-  { key: "amount-low", label: "Amount ↑" },
-  { key: "expires", label: "Expires soon" },
-];
 
 // ── Category icons (inline SVG) ─────────────────────────────────────────
 
@@ -704,100 +681,12 @@ function ListingsTab() {
   );
 }
 
-// ── Sort Bar (shared) ────────────────────────────────────────────────────
-
-function SortBar<K extends string>({
-  options,
-  active,
-  onChange,
-}: {
-  options: { key: K; label: string }[];
-  active: K;
-  onChange: (key: K) => void;
-}) {
-  return (
-    <div className="flex gap-2 mb-6 flex-wrap">
-      {options.map((opt) => (
-        <button
-          key={opt.key}
-          onClick={() => onChange(opt.key)}
-          className={cn(
-            "text-[10px] font-mono uppercase tracking-wider px-3 py-2 transition-all duration-150",
-            active === opt.key
-              ? "text-white bg-white/[0.06]"
-              : "text-neutral-700 hover:text-neutral-400",
-          )}
-        >
-          {opt.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// ── Sort helpers ─────────────────────────────────────────────────────────
-
-function sortOrders(list: OrderResponse[], key: OrderSortKey): OrderResponse[] {
-  return [...list].sort((a, b) => {
-    switch (key) {
-      case "newest":
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      case "oldest":
-        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-      case "amount-high":
-        return b.amount - a.amount;
-      case "amount-low":
-        return a.amount - b.amount;
-      case "status":
-        return a.status.localeCompare(b.status);
-      default:
-        return 0;
-    }
-  });
-}
-
-function sortDisputes(list: DisputeResponse[], key: DisputeSortKey): DisputeResponse[] {
-  return [...list].sort((a, b) => {
-    switch (key) {
-      case "newest":
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      case "oldest":
-        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-      case "evidence":
-        return b.evidence_count - a.evidence_count;
-      case "status":
-        return a.status.localeCompare(b.status);
-      default:
-        return 0;
-    }
-  });
-}
-
-function sortOffers(list: OfferResponse[], key: OfferSortKey): OfferResponse[] {
-  return [...list].sort((a, b) => {
-    switch (key) {
-      case "newest":
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      case "oldest":
-        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-      case "amount-high":
-        return b.amount - a.amount;
-      case "amount-low":
-        return a.amount - b.amount;
-      case "expires":
-        return new Date(a.expires_at).getTime() - new Date(b.expires_at).getTime();
-      default:
-        return 0;
-    }
-  });
-}
 
 // ── Orders Tab ────────────────────────────────────────────────────────────
 
 function OrdersTab() {
   const [ordersList, setOrders] = useState<OrderResponse[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sortKey, setSortKey] = useState<OrderSortKey>("newest");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -811,107 +700,110 @@ function OrdersTab() {
       .finally(() => setLoading(false));
   }, [toast]);
 
-  const sorted = sortOrders(ordersList, sortKey);
+  const columns: Column<OrderResponse>[] = [
+    {
+      id: "id",
+      header: "Order",
+      cell: (row) => (
+        <Tooltip content={row.id}>
+          <span className="text-xs font-mono text-neutral-500 cursor-default hover:text-neutral-300 transition-colors duration-150">
+            {row.id.slice(0, 8)}...
+          </span>
+        </Tooltip>
+      ),
+    },
+    {
+      id: "amount",
+      header: "Amount",
+      sortable: true,
+      compare: (a, b) => a.amount - b.amount,
+      cell: (row) => (
+        <span className="text-sm font-light">
+          {row.quantity}x @ {formatPrice(row.amount, row.token)}
+        </span>
+      ),
+    },
+    {
+      id: "buyer",
+      header: "Buyer",
+      hideBelow: "md",
+      cell: (row) => (
+        <Tooltip content={row.buyer_did}>
+          <span className="text-xs text-neutral-500 font-light cursor-default hover:text-neutral-300 transition-colors duration-150">
+            {truncateDid(row.buyer_did)}
+          </span>
+        </Tooltip>
+      ),
+    },
+    {
+      id: "seller",
+      header: "Seller",
+      hideBelow: "md",
+      cell: (row) => (
+        <Tooltip content={row.seller_did}>
+          <span className="text-xs text-neutral-500 font-light cursor-default hover:text-neutral-300 transition-colors duration-150">
+            {truncateDid(row.seller_did)}
+          </span>
+        </Tooltip>
+      ),
+    },
+    {
+      id: "status",
+      header: "Status",
+      sortable: true,
+      compare: (a, b) => a.status.localeCompare(b.status),
+      cell: (row) => (
+        <span className={cn("text-[10px] font-mono uppercase tracking-wider", statusColor(row.status))}>
+          {row.status}
+        </span>
+      ),
+    },
+    {
+      id: "created",
+      header: "Created",
+      sortable: true,
+      compare: (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      hideBelow: "lg",
+      cell: (row) => (
+        <Tooltip content={new Date(row.created_at).toLocaleString()}>
+          <span className="text-xs font-mono text-neutral-700 cursor-default hover:text-neutral-500 transition-colors duration-150">
+            {formatRelativeTime(row.created_at)}
+          </span>
+        </Tooltip>
+      ),
+    },
+  ];
 
   return (
     <>
       {loading ? (
         <div className="space-y-px">
           {Array.from({ length: 3 }).map((_, i) => (
-            <Card key={i} className="bg-white/[0.01] border-white/[0.06] rounded-none">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <Skeleton className="h-2.5 w-32 mb-2" />
-                    <Skeleton className="h-3.5 w-24" />
-                  </div>
-                  <Skeleton className="h-2.5 w-16" />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Skeleton className="h-2.5 w-10 mb-1.5" />
-                    <Skeleton className="h-3 w-36" />
-                  </div>
-                  <div>
-                    <Skeleton className="h-2.5 w-10 mb-1.5" />
-                    <Skeleton className="h-3 w-36" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <div key={i} className="flex items-center gap-4 py-3">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-3 w-32" />
+              <Skeleton className="h-3 w-24 hidden md:block" />
+              <Skeleton className="h-3 w-24 hidden md:block" />
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-3 w-14 hidden lg:block" />
+            </div>
           ))}
         </div>
-      ) : ordersList.length === 0 ? (
-        <EmptyState
-          icon={<OrdersIllustration />}
-          title="No orders yet"
-          description="Purchase a listing to create your first order. All transactions are escrow-backed for safety."
-        />
       ) : (
-        <>
-        <SortBar options={ORDER_SORT_OPTIONS} active={sortKey} onChange={setSortKey} />
-        <div className="space-y-px">
-          {sorted.map((order) => (
-            <Card
-              key={order.id}
-              className="bg-white/[0.01] border-white/[0.06] rounded-none"
-            >
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <p className="text-xs font-mono text-neutral-600 mb-1">
-                      {order.id}
-                    </p>
-                    <p className="text-sm font-light">
-                      {order.quantity}x @ {formatPrice(order.amount, order.token)}
-                    </p>
-                  </div>
-                  <span
-                    className={cn(
-                      "text-[10px] font-mono uppercase tracking-wider",
-                      statusColor(order.status)
-                    )}
-                  >
-                    {order.status}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 text-xs text-neutral-500 font-light">
-                  <div>
-                    <span className="text-neutral-700 font-mono text-[10px] uppercase tracking-wider">
-                      Buyer
-                    </span>
-                    <p className="mt-1">{truncateDid(order.buyer_did)}</p>
-                  </div>
-                  <div>
-                    <span className="text-neutral-700 font-mono text-[10px] uppercase tracking-wider">
-                      Seller
-                    </span>
-                    <p className="mt-1">{truncateDid(order.seller_did)}</p>
-                  </div>
-                </div>
-
-                {order.shipping && (
-                  <div className="mt-4 pt-4 border-t border-white/[0.04]">
-                    <span className="text-neutral-700 font-mono text-[10px] uppercase tracking-wider">
-                      Shipping
-                    </span>
-                    <p className="text-xs text-neutral-500 font-light mt-1">
-                      {order.shipping.carrier} — {order.shipping.tracking_id}
-                    </p>
-                  </div>
-                )}
-
-                {order.escrow_id && (
-                  <p className="text-[10px] font-mono text-neutral-800 mt-3">
-                    Escrow: {order.escrow_id}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        </>
+        <DataTable
+          columns={columns}
+          data={ordersList}
+          rowKey={(row) => row.id}
+          defaultSortId="created"
+          defaultSortDir="desc"
+          emptyState={
+            <EmptyState
+              icon={<OrdersIllustration />}
+              title="No orders yet"
+              description="Purchase a listing to create your first order. All transactions are escrow-backed for safety."
+            />
+          }
+        />
       )}
     </>
   );
@@ -922,7 +814,6 @@ function OrdersTab() {
 function DisputesTab() {
   const [disputesList, setDisputes] = useState<DisputeResponse[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sortKey, setSortKey] = useState<DisputeSortKey>("newest");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -936,124 +827,126 @@ function DisputesTab() {
       .finally(() => setLoading(false));
   }, [toast]);
 
+  const columns: Column<DisputeResponse>[] = [
+    {
+      id: "id",
+      header: "Dispute",
+      cell: (row) => (
+        <Tooltip content={row.id}>
+          <span className="text-xs font-mono text-neutral-500 cursor-default hover:text-neutral-300 transition-colors duration-150">
+            {row.id.slice(0, 8)}...
+          </span>
+        </Tooltip>
+      ),
+    },
+    {
+      id: "reason",
+      header: "Reason",
+      sortable: true,
+      compare: (a, b) => a.reason.localeCompare(b.reason),
+      cell: (row) => (
+        <span className="text-xs text-neutral-400 font-light">
+          {row.reason.replace(/([A-Z])/g, " $1").trim()}
+        </span>
+      ),
+    },
+    {
+      id: "evidence",
+      header: "Evidence",
+      sortable: true,
+      compare: (a, b) => a.evidence_count - b.evidence_count,
+      align: "center",
+      cell: (row) => (
+        <span className="text-xs font-mono text-neutral-500">
+          {row.evidence_count}
+        </span>
+      ),
+    },
+    {
+      id: "initiator",
+      header: "Initiator",
+      hideBelow: "md",
+      cell: (row) => (
+        <Tooltip content={row.initiator_did}>
+          <span className="text-xs text-neutral-500 font-light cursor-default hover:text-neutral-300 transition-colors duration-150">
+            {truncateDid(row.initiator_did)}
+          </span>
+        </Tooltip>
+      ),
+    },
+    {
+      id: "arbiter",
+      header: "Arbiter",
+      hideBelow: "lg",
+      cell: (row) =>
+        row.arbiter_did ? (
+          <Tooltip content={row.arbiter_did}>
+            <span className="text-xs text-neutral-500 font-light cursor-default hover:text-neutral-300 transition-colors duration-150">
+              {truncateDid(row.arbiter_did)}
+            </span>
+          </Tooltip>
+        ) : (
+          <span className="text-xs text-neutral-700 italic">Unassigned</span>
+        ),
+    },
+    {
+      id: "status",
+      header: "Status",
+      sortable: true,
+      compare: (a, b) => a.status.localeCompare(b.status),
+      cell: (row) => (
+        <span className={cn("text-[10px] font-mono uppercase tracking-wider", statusColor(row.status))}>
+          {row.status}
+        </span>
+      ),
+    },
+    {
+      id: "created",
+      header: "Created",
+      sortable: true,
+      compare: (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      hideBelow: "lg",
+      cell: (row) => (
+        <Tooltip content={new Date(row.created_at).toLocaleString()}>
+          <span className="text-xs font-mono text-neutral-700 cursor-default hover:text-neutral-500 transition-colors duration-150">
+            {formatRelativeTime(row.created_at)}
+          </span>
+        </Tooltip>
+      ),
+    },
+  ];
+
   return (
     <>
       {loading ? (
         <div className="space-y-px">
           {Array.from({ length: 2 }).map((_, i) => (
-            <Card key={i} className="bg-white/[0.01] border-white/[0.06] rounded-none">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <Skeleton className="h-2.5 w-32 mb-2" />
-                    <Skeleton className="h-3.5 w-48" />
-                  </div>
-                  <Skeleton className="h-2.5 w-16" />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
-                  <div>
-                    <Skeleton className="h-2.5 w-12 mb-1.5" />
-                    <Skeleton className="h-3 w-24" />
-                  </div>
-                  <div>
-                    <Skeleton className="h-2.5 w-14 mb-1.5" />
-                    <Skeleton className="h-3 w-16" />
-                  </div>
-                  <div>
-                    <Skeleton className="h-2.5 w-12 mb-1.5" />
-                    <Skeleton className="h-3 w-28" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <div key={i} className="flex items-center gap-4 py-3">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-3 w-28" />
+              <Skeleton className="h-3 w-10" />
+              <Skeleton className="h-3 w-24 hidden md:block" />
+              <Skeleton className="h-3 w-24 hidden lg:block" />
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-3 w-14 hidden lg:block" />
+            </div>
           ))}
         </div>
-      ) : disputesList.length === 0 ? (
-        <EmptyState
-          icon={<DisputeIllustration />}
-          title="No disputes"
-          description="Disputes appear when an order is contested. An arbiter reviews evidence and resolves the case."
-        />
       ) : (
-        <>
-        <SortBar options={DISPUTE_SORT_OPTIONS} active={sortKey} onChange={setSortKey} />
-        <div className="space-y-px">
-          {sortDisputes(disputesList, sortKey).map((dispute) => (
-            <Card
-              key={dispute.id}
-              className="bg-white/[0.01] border-white/[0.06] rounded-none"
-            >
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <p className="text-xs font-mono text-neutral-600 mb-1">
-                      {dispute.id}
-                    </p>
-                    <p className="text-sm font-light">{dispute.description}</p>
-                  </div>
-                  <span
-                    className={cn(
-                      "text-[10px] font-mono uppercase tracking-wider",
-                      statusColor(dispute.status)
-                    )}
-                  >
-                    {dispute.status}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs mt-4">
-                  <div>
-                    <span className="text-neutral-700 font-mono text-[10px] uppercase tracking-wider">
-                      Reason
-                    </span>
-                    <p className="text-neutral-500 font-light mt-1">
-                      {dispute.reason.replace(/([A-Z])/g, " $1").trim()}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-neutral-700 font-mono text-[10px] uppercase tracking-wider">
-                      Evidence
-                    </span>
-                    <p className="text-neutral-500 font-light mt-1">
-                      {dispute.evidence_count} item{dispute.evidence_count !== 1 ? "s" : ""}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-neutral-700 font-mono text-[10px] uppercase tracking-wider">
-                      Arbiter
-                    </span>
-                    <p className="text-neutral-500 font-light mt-1">
-                      {dispute.arbiter_did
-                        ? truncateDid(dispute.arbiter_did)
-                        : "Unassigned"}
-                    </p>
-                  </div>
-                </div>
-
-                {dispute.resolution_note && (
-                  <div className="mt-4 pt-4 border-t border-white/[0.04]">
-                    <span className="text-neutral-700 font-mono text-[10px] uppercase tracking-wider">
-                      Resolution
-                    </span>
-                    <p className="text-xs text-neutral-500 font-light mt-1">
-                      {dispute.resolution_note}
-                    </p>
-                  </div>
-                )}
-
-                <div className="flex justify-between mt-4">
-                  <p className="text-[10px] font-mono text-neutral-800">
-                    Initiator: {truncateDid(dispute.initiator_did)}
-                  </p>
-                  <p className="text-[10px] font-mono text-neutral-800">
-                    Order: {dispute.order_id}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        </>
+        <DataTable
+          columns={columns}
+          data={disputesList}
+          rowKey={(row) => row.id}
+          defaultSortId="created"
+          defaultSortDir="desc"
+          emptyState={
+            <EmptyState
+              icon={<DisputeIllustration />}
+              title="No disputes"
+              description="Disputes appear when an order is contested. An arbiter reviews evidence and resolves the case."
+            />
+          }
+        />
       )}
     </>
   );
@@ -1064,7 +957,6 @@ function DisputesTab() {
 function OffersTab() {
   const [offersList, setOffers] = useState<OfferResponse[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sortKey, setSortKey] = useState<OfferSortKey>("newest");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -1078,111 +970,119 @@ function OffersTab() {
       .finally(() => setLoading(false));
   }, [toast]);
 
+  const columns: Column<OfferResponse>[] = [
+    {
+      id: "id",
+      header: "Offer",
+      cell: (row) => (
+        <Tooltip content={row.id}>
+          <span className="text-xs font-mono text-neutral-500 cursor-default hover:text-neutral-300 transition-colors duration-150">
+            {row.id.slice(0, 8)}...
+          </span>
+        </Tooltip>
+      ),
+    },
+    {
+      id: "amount",
+      header: "Amount",
+      sortable: true,
+      compare: (a, b) => a.amount - b.amount,
+      cell: (row) => (
+        <div>
+          <span className="text-sm font-light">
+            {formatPrice(row.amount, row.token)}
+          </span>
+          {row.counter_amount !== null && (
+            <span className="text-[10px] font-mono text-blue-400 ml-2">
+              counter: {formatPrice(row.counter_amount, row.token)}
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: "buyer",
+      header: "Buyer",
+      hideBelow: "md",
+      cell: (row) => (
+        <Tooltip content={row.buyer_did}>
+          <span className="text-xs text-neutral-500 font-light cursor-default hover:text-neutral-300 transition-colors duration-150">
+            {truncateDid(row.buyer_did)}
+          </span>
+        </Tooltip>
+      ),
+    },
+    {
+      id: "message",
+      header: "Message",
+      hideBelow: "lg",
+      cell: (row) =>
+        row.message ? (
+          <Tooltip content={row.message}>
+            <span className="text-xs text-neutral-600 font-light italic cursor-default hover:text-neutral-400 transition-colors duration-150 truncate max-w-[160px] inline-block">
+              &ldquo;{row.message.length > 30 ? `${row.message.slice(0, 30)}...` : row.message}&rdquo;
+            </span>
+          </Tooltip>
+        ) : (
+          <span className="text-xs text-neutral-800">&mdash;</span>
+        ),
+    },
+    {
+      id: "status",
+      header: "Status",
+      sortable: true,
+      compare: (a, b) => a.status.localeCompare(b.status),
+      cell: (row) => (
+        <span className={cn("text-[10px] font-mono uppercase tracking-wider", statusColor(row.status))}>
+          {row.status}
+        </span>
+      ),
+    },
+    {
+      id: "expires",
+      header: "Expires",
+      sortable: true,
+      compare: (a, b) => new Date(a.expires_at).getTime() - new Date(b.expires_at).getTime(),
+      cell: (row) => (
+        <Tooltip content={new Date(row.expires_at).toLocaleString()}>
+          <span className="text-xs font-mono text-neutral-700 cursor-default hover:text-neutral-500 transition-colors duration-150">
+            {formatDate(row.expires_at)}
+          </span>
+        </Tooltip>
+      ),
+    },
+  ];
+
   return (
     <>
       {loading ? (
         <div className="space-y-px">
           {Array.from({ length: 3 }).map((_, i) => (
-            <Card key={i} className="bg-white/[0.01] border-white/[0.06] rounded-none">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <Skeleton className="h-2.5 w-32 mb-2" />
-                    <Skeleton className="h-5 w-24" />
-                  </div>
-                  <Skeleton className="h-2.5 w-16" />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Skeleton className="h-2.5 w-10 mb-1.5" />
-                    <Skeleton className="h-3 w-36" />
-                  </div>
-                  <div>
-                    <Skeleton className="h-2.5 w-12 mb-1.5" />
-                    <Skeleton className="h-3 w-24" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <div key={i} className="flex items-center gap-4 py-3">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-3 w-28" />
+              <Skeleton className="h-3 w-24 hidden md:block" />
+              <Skeleton className="h-3 w-20 hidden lg:block" />
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-3 w-20" />
+            </div>
           ))}
         </div>
-      ) : offersList.length === 0 ? (
-        <EmptyState
-          icon={<OffersIllustration />}
-          title="No offers yet"
-          description="Make an offer on a listing to negotiate a better price. Sellers can accept, reject, or counter."
-        />
       ) : (
-        <>
-        <SortBar options={OFFER_SORT_OPTIONS} active={sortKey} onChange={setSortKey} />
-        <div className="space-y-px">
-          {sortOffers(offersList, sortKey).map((offer) => (
-            <Card
-              key={offer.id}
-              className="bg-white/[0.01] border-white/[0.06] rounded-none"
-            >
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <p className="text-xs font-mono text-neutral-600 mb-1">
-                      {offer.id}
-                    </p>
-                    <p className="text-lg font-extralight">
-                      {formatPrice(offer.amount, offer.token)}
-                    </p>
-                  </div>
-                  <span
-                    className={cn(
-                      "text-[10px] font-mono uppercase tracking-wider",
-                      statusColor(offer.status)
-                    )}
-                  >
-                    {offer.status}
-                  </span>
-                </div>
-
-                {offer.message && (
-                  <p className="text-xs text-neutral-500 font-light mb-4 italic">
-                    &ldquo;{offer.message}&rdquo;
-                  </p>
-                )}
-
-                {offer.counter_amount !== null && (
-                  <div className="mb-4 px-4 py-3 bg-white/[0.02]">
-                    <span className="text-neutral-700 font-mono text-[10px] uppercase tracking-wider">
-                      Counter
-                    </span>
-                    <p className="text-sm font-light mt-1">
-                      {formatPrice(offer.counter_amount, offer.token)}
-                    </p>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-4 text-xs text-neutral-500 font-light">
-                  <div>
-                    <span className="text-neutral-700 font-mono text-[10px] uppercase tracking-wider">
-                      Buyer
-                    </span>
-                    <p className="mt-1">{truncateDid(offer.buyer_did)}</p>
-                  </div>
-                  <div>
-                    <span className="text-neutral-700 font-mono text-[10px] uppercase tracking-wider">
-                      Expires
-                    </span>
-                    <p className="mt-1">
-                      {new Date(offer.expires_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-
-                <p className="text-[10px] font-mono text-neutral-800 mt-3">
-                  Listing: {offer.listing_id}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        </>
+        <DataTable
+          columns={columns}
+          data={offersList}
+          rowKey={(row) => row.id}
+          defaultSortId="expires"
+          defaultSortDir="asc"
+          emptyState={
+            <EmptyState
+              icon={<OffersIllustration />}
+              title="No offers yet"
+              description="Make an offer on a listing to negotiate a better price. Sellers can accept, reject, or counter."
+            />
+          }
+        />
       )}
     </>
   );
