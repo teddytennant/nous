@@ -45,6 +45,7 @@ import {
 } from "@/components/reveal-on-scroll";
 import { FaqSection } from "@/components/faq";
 import { RoadmapSection } from "@/components/roadmap";
+import { TypeWriter } from "@/components/typewriter";
 
 const features = [
   {
@@ -560,7 +561,7 @@ export default function Home() {
           <div className="w-full h-full rounded-full bg-[radial-gradient(circle,#d4af37_0%,transparent_70%)] animate-[pulse_6s_ease-in-out_infinite]" />
         </div>
 
-        <div className="relative max-w-3xl text-center">
+        <div className="relative max-w-3xl text-center hero-stagger">
           <div className="inline-flex items-center gap-2 mb-8">
             <Badge
               variant="outline"
@@ -583,9 +584,27 @@ export default function Home() {
           <p className="text-lg sm:text-xl md:text-2xl text-neutral-400 font-extralight leading-relaxed max-w-2xl mx-auto mb-4">
             The sovereign everything-app.
           </p>
+
+          <p className="text-sm sm:text-base text-[#d4af37]/70 font-light leading-relaxed max-w-lg mx-auto mb-4 h-6">
+            <TypeWriter
+              phrases={[
+                "Own your identity.",
+                "Encrypt everything.",
+                "Govern your community.",
+                "Control your finances.",
+                "Think with local AI.",
+                "No servers. No compromises.",
+              ]}
+              typeSpeed={45}
+              eraseSpeed={25}
+              pauseAfterType={2200}
+              pauseAfterErase={300}
+            />
+          </p>
+
           <p className="text-sm sm:text-base text-neutral-600 font-light leading-relaxed max-w-lg mx-auto mb-12">
             Identity, messaging, governance, payments, AI — unified under one
-            encrypted, decentralized protocol. Own your digital life.
+            encrypted, decentralized protocol.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
