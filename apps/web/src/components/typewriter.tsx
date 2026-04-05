@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 /**
  * TypeWriter — cycles through phrases with a typing/erasing effect.
@@ -21,11 +21,12 @@ interface TypeWriterProps {
   className?: string;
 }
 
-function prefersReducedMotion(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches
-  );
+const noopSubscribe = () => () => {};
+function getReducedMotion(): boolean {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+function getServerReducedMotion(): boolean {
+  return false;
 }
 
 export function TypeWriter({
@@ -39,13 +40,8 @@ export function TypeWriter({
   const [text, setText] = useState("");
   const [phraseIndex, setPhraseIndex] = useState(0);
   const [isTyping, setIsTyping] = useState(true);
-  const [reducedMotion, setReducedMotion] = useState(false);
+  const reducedMotion = useSyncExternalStore(noopSubscribe, getReducedMotion, getServerReducedMotion);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Check reduced motion on mount
-  useEffect(() => {
-    setReducedMotion(prefersReducedMotion());
-  }, []);
 
   // Static mode for reduced motion — crossfade between phrases
   const [staticIndex, setStaticIndex] = useState(0);
