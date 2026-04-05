@@ -222,7 +222,8 @@ export function TerminalDemo() {
       let i = 0;
       const interval = setInterval(() => {
         if (i < outputLines.length) {
-          setLines((prev) => [...prev, { type: "output", text: outputLines[i] }]);
+          const line = outputLines[i];
+          setLines((prev) => [...prev, { type: "output", text: line }]);
           i++;
         } else {
           clearInterval(interval);
