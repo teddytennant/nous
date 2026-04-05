@@ -14,7 +14,115 @@ import { usePageShortcuts, useListNavigation } from "@/components/keyboard-short
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/avatar";
 import { Tooltip } from "@/components/ui/tooltip";
-import { Link, Bookmark, Share2, Check, MessageCircle, ChevronDown, Heart } from "lucide-react";
+import { Link, Bookmark, Share2, Check, MessageCircle, ChevronDown, Heart, RefreshCw } from "lucide-react";
+
+/* ── Character Progress Ring ──────────────────────────────────────────── */
+
+function CharacterProgress({ current, max }: { current: number; max: number }) {
+  const radius = 8;
+  const stroke = 1.5;
+  const circumference = 2 * Math.PI * radius;
+  const ratio = current / max;
+  const offset = circumference * (1 - ratio);
+  const remaining = max - current;
+
+  const color =
+    remaining <= 0
+      ? "#dc2626"
+      : remaining <= 20
+        ? "#f59e0b"
+        : remaining <= 50
+          ? "#d4af37"
+          : "#525252";
+
+  if (current === 0) return null;
+
+  return (
+    <div className="flex items-center gap-2">
+      <svg width="20" height="20" viewBox="0 0 20 20" className="shrink-0">
+        <circle
+          cx="10"
+          cy="10"
+          r={radius}
+          fill="none"
+          stroke="rgba(255,255,255,0.06)"
+          strokeWidth={stroke}
+        />
+        <circle
+          cx="10"
+          cy="10"
+          r={radius}
+          fill="none"
+          stroke={color}
+          strokeWidth={stroke}
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          transform="rotate(-90 10 10)"
+          className="transition-all duration-150"
+        />
+      </svg>
+      {remaining <= 50 && (
+        <span
+          className="text-[10px] font-mono tabular-nums transition-colors duration-150"
+          style={{ color }}
+        >
+          {remaining}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/* ── Auto-expanding Textarea ─────────────────────────────────────────── */
+
+function AutoTextarea({
+  value,
+  onChange,
+  placeholder,
+  className,
+  minRows = 3,
+  maxRows = 10,
+  onKeyDown,
+  autoFocus,
+  textareaRef,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  className?: string;
+  minRows?: number;
+  maxRows?: number;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  autoFocus?: boolean;
+  textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
+}) {
+  const internalRef = useRef<HTMLTextAreaElement>(null);
+  const ref = textareaRef || internalRef;
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const lineHeight = 20;
+    const min = lineHeight * minRows;
+    const max = lineHeight * maxRows;
+    el.style.height = `${Math.min(Math.max(el.scrollHeight, min), max)}px`;
+  }, [value, minRows, maxRows, ref]);
+
+  return (
+    <textarea
+      ref={ref}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className={className}
+      onKeyDown={onKeyDown}
+      autoFocus={autoFocus}
+      style={{ overflow: "hidden" }}
+    />
+  );
+}
 
 const MAX_POST_LENGTH = 500;
 const BOOKMARKS_KEY = "nous_bookmarks";
@@ -103,6 +211,8 @@ export default function SocialPage() {
   const [inlinePosting, setInlinePosting] = useState(false);
   const [likedAnimating, setLikedAnimating] = useState<string | null>(null);
   const [heartBurstId, setHeartBurstId] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [newPostIds, setNewPostIds] = useState<Set<string>>(new Set());
   const lastTapRef = useRef<{ id: string; time: number } | null>(null);
   const inlineReplyRef = useRef<HTMLTextAreaElement>(null);
 
@@ -124,9 +234,15 @@ export default function SocialPage() {
     }
   }, [toast]);
 
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadFeed();
+    setRefreshing(false);
+  }, [loadFeed]);
+
   usePageShortcuts({
     n: () => document.querySelector<HTMLTextAreaElement>("textarea")?.focus(),
-    r: () => { loadFeed(); },
+    r: () => { handleRefresh(); },
     b: () => setActiveTab("bookmarks"),
   });
 
@@ -139,9 +255,10 @@ export default function SocialPage() {
 
   // Live post updates via SSE
   useRealtime("new_post", (data) => {
+    const postId = data.id;
     setPosts((prev) => [
       {
-        id: data.id,
+        id: postId,
         pubkey: data.author,
         created_at: new Date().toISOString(),
         kind: 1,
@@ -150,6 +267,15 @@ export default function SocialPage() {
       },
       ...prev,
     ]);
+    // Animate the new post in
+    setNewPostIds((prev) => new Set(prev).add(postId));
+    setTimeout(() => {
+      setNewPostIds((prev) => {
+        const next = new Set(prev);
+        next.delete(postId);
+        return next;
+      });
+    }, 500);
     // Count posts from other users for the sidebar badge
     if (data.author && data.author !== userDid) {
       newPostCountRef.current += 1;
@@ -400,20 +526,19 @@ export default function SocialPage() {
               </span>
             </div>
           )}
-          <textarea
+          <AutoTextarea
             value={draft}
-            onChange={(e) => setDraft(e.target.value.slice(0, MAX_POST_LENGTH))}
+            onChange={(v) => setDraft(v.slice(0, MAX_POST_LENGTH))}
             placeholder="What's on your mind?"
             className="w-full bg-transparent text-sm font-light resize-none outline-none placeholder:text-neutral-700 min-h-[80px]"
-            rows={3}
+            minRows={3}
+            maxRows={8}
             onKeyDown={(e) => {
               if (e.key === "Enter" && e.metaKey) handlePost();
             }}
           />
           <div className="flex items-center justify-between mt-4">
-            <span className="text-[10px] font-mono text-neutral-700">
-              {draft.length}/{MAX_POST_LENGTH}
-            </span>
+            <CharacterProgress current={draft.length} max={MAX_POST_LENGTH} />
             <div className="flex items-center gap-3">
               <kbd className="hidden sm:inline text-[9px] font-mono text-neutral-700 bg-white/[0.03] px-1.5 py-0.5 rounded border border-white/[0.04]">
                 ⌘↵
@@ -455,10 +580,12 @@ export default function SocialPage() {
           ))}
         </div>
         <button
-          onClick={loadFeed}
-          className="text-[10px] font-mono uppercase tracking-wider text-neutral-600 hover:text-[#d4af37] transition-colors"
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-neutral-600 hover:text-[#d4af37] transition-colors disabled:opacity-50"
         >
-          Refresh
+          <RefreshCw size={10} className={cn(refreshing && "animate-spin")} />
+          {refreshing ? "Loading" : "Refresh"}
         </button>
       </div>
 
@@ -535,7 +662,8 @@ export default function SocialPage() {
                   data-list-item
                   className={cn(
                     "relative bg-transparent border-0 rounded-none border-b border-white/[0.04] pb-6 mb-6 transition-colors duration-150",
-                    isSelected && "bg-[#d4af37]/[0.015]"
+                    isSelected && "bg-[#d4af37]/[0.015]",
+                    newPostIds.has(post.id) && "new-post-enter"
                   )}
                 >
                   {isSelected && (
@@ -855,16 +983,25 @@ export default function SocialPage() {
                     {/* Inline Reply Compose */}
                     {inlineReplyTo === post.id && userDid && (
                       <div className="inline-reply-compose mt-4 ml-4 pl-4 border-l border-[#d4af37]/20">
+                        {/* Reply context preview */}
+                        <div className="flex items-center gap-2 mb-2 pb-2 border-b border-white/[0.04]">
+                          <span className="text-[10px] font-mono text-neutral-700">Replying to</span>
+                          <span className="text-[10px] font-light text-neutral-500 truncate">
+                            {post.content.length > 80 ? post.content.slice(0, 77) + "..." : post.content}
+                          </span>
+                        </div>
                         <div className="flex gap-3">
                           <Avatar did={userDid} size="xs" />
                           <div className="flex-1 min-w-0">
-                            <textarea
-                              ref={inlineReplyRef}
+                            <AutoTextarea
+                              textareaRef={inlineReplyRef}
                               value={inlineReplyDraft}
-                              onChange={(e) => setInlineReplyDraft(e.target.value.slice(0, MAX_POST_LENGTH))}
+                              onChange={(v) => setInlineReplyDraft(v.slice(0, MAX_POST_LENGTH))}
                               placeholder="Write a reply..."
                               className="w-full bg-transparent text-[13px] font-light resize-none outline-none placeholder:text-neutral-700 min-h-[40px]"
-                              rows={2}
+                              minRows={2}
+                              maxRows={6}
+                              autoFocus
                               onKeyDown={(e) => {
                                 if (e.key === "Enter" && e.metaKey) {
                                   handleInlineReply(post.id);
@@ -877,9 +1014,7 @@ export default function SocialPage() {
                             />
                             <div className="flex items-center justify-between mt-2">
                               <div className="flex items-center gap-3">
-                                <span className="text-[10px] font-mono text-neutral-700">
-                                  {inlineReplyDraft.length}/{MAX_POST_LENGTH}
-                                </span>
+                                <CharacterProgress current={inlineReplyDraft.length} max={MAX_POST_LENGTH} />
                                 <kbd className="hidden sm:inline text-[9px] font-mono text-neutral-700 bg-white/[0.03] px-1.5 py-0.5 rounded border border-white/[0.04]">
                                   ⌘↵ send
                                 </kbd>
