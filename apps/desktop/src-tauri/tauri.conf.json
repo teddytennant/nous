@@ -44,6 +44,11 @@
   "plugins": {
     "notification": {
       "sound": true
+    },
+    "deep-link": {
+      "desktop": {
+        "schemes": ["nous"]
+      }
     }
   }
 }
