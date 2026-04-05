@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 
 // ── Deterministic avatar colors ─────────────────────────────────────────
 
@@ -83,6 +83,19 @@ export function CommunitySection() {
   const [hoveredContributor, setHoveredContributor] = useState<number | null>(
     null,
   );
+  const [paused, setPaused] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Auto-rotate testimonials every 6 seconds, paused on hover
+  useEffect(() => {
+    if (paused) return;
+    timerRef.current = setInterval(() => {
+      setActiveTestimonial((prev) => (prev + 1) % testimonials.length);
+    }, 6000);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [paused]);
 
   const handleContributorHover = useCallback((i: number | null) => {
     setHoveredContributor(i);
@@ -183,7 +196,11 @@ export function CommunitySection() {
           From the Alpha
         </p>
 
-        <div className="relative">
+        <div
+          className="relative"
+          onMouseEnter={() => setPaused(true)}
+          onMouseLeave={() => setPaused(false)}
+        >
           {/* Quote */}
           <div className="border border-white/[0.06] rounded-sm p-8 sm:p-10 min-h-[180px] flex flex-col justify-between">
             <blockquote className="text-sm sm:text-base font-light text-neutral-300 leading-relaxed mb-6 max-w-3xl">
@@ -199,20 +216,36 @@ export function CommunitySection() {
                 </p>
               </div>
 
-              {/* Navigation dots */}
-              <div className="flex gap-2">
-                {testimonials.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setActiveTestimonial(i)}
-                    className={`w-1.5 h-1.5 rounded-full transition-all duration-200 ${
-                      i === activeTestimonial
-                        ? "bg-[#d4af37] scale-125"
-                        : "bg-white/[0.1] hover:bg-white/[0.2]"
-                    }`}
-                    aria-label={`Testimonial ${i + 1}`}
-                  />
-                ))}
+              {/* Navigation dots + progress */}
+              <div className="flex items-center gap-3">
+                <div className="flex gap-2">
+                  {testimonials.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        setActiveTestimonial(i);
+                        // Reset timer on manual selection
+                        if (timerRef.current) clearInterval(timerRef.current);
+                        if (!paused) {
+                          timerRef.current = setInterval(() => {
+                            setActiveTestimonial((prev) => (prev + 1) % testimonials.length);
+                          }, 6000);
+                        }
+                      }}
+                      className={`w-1.5 h-1.5 rounded-full transition-all duration-200 ${
+                        i === activeTestimonial
+                          ? "bg-[#d4af37] scale-125"
+                          : "bg-white/[0.1] hover:bg-white/[0.2]"
+                      }`}
+                      aria-label={`Testimonial ${i + 1}`}
+                    />
+                  ))}
+                </div>
+                {paused && (
+                  <span className="text-[9px] font-mono text-neutral-700">
+                    paused
+                  </span>
+                )}
               </div>
             </div>
           </div>
