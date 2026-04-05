@@ -278,26 +278,38 @@ function usePlatform(): Platform {
 
 // ── Animated count-up (triggers on scroll into view) ────────────────────
 
+function prefersReducedMotion(): boolean {
+  return typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
 function CountUp({ target, suffix = "" }: { target: number; suffix?: string }) {
   const ref = useRef<HTMLSpanElement>(null);
-  const [value, setValue] = useState(0);
-  const [triggered, setTriggered] = useState(false);
+  const [value, setValue] = useState(() => prefersReducedMotion() ? target : 0);
+  const triggeredRef = useRef(prefersReducedMotion());
 
   useEffect(() => {
     const el = ref.current;
-    if (!el) return;
-
-    // Respect reduced motion
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setValue(target);
-      return;
-    }
+    if (!el || triggeredRef.current) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && !triggered) {
-          setTriggered(true);
+        if (entry.isIntersecting && !triggeredRef.current) {
+          triggeredRef.current = true;
           observer.disconnect();
+
+          const duration = 1200;
+          const startTime = performance.now();
+
+          function tick(now: number) {
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            setValue(Math.round(target * eased));
+            if (progress < 1) requestAnimationFrame(tick);
+          }
+
+          requestAnimationFrame(tick);
         }
       },
       { threshold: 0.3 },
@@ -305,30 +317,7 @@ function CountUp({ target, suffix = "" }: { target: number; suffix?: string }) {
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, [target, triggered]);
-
-  useEffect(() => {
-    if (!triggered) return;
-
-    const duration = 1200;
-    const startTime = performance.now();
-
-    let raf: number;
-    function tick(now: number) {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      // Ease-out cubic
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setValue(Math.round(target * eased));
-
-      if (progress < 1) {
-        raf = requestAnimationFrame(tick);
-      }
-    }
-
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [triggered, target]);
+  }, [target]);
 
   return (
     <span ref={ref}>
