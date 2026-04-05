@@ -12,6 +12,7 @@ import { usePageShortcuts, useListNavigation } from "@/components/keyboard-short
 import { Avatar } from "@/components/avatar";
 import { DidAvatar } from "@/components/did-avatar";
 import { Tooltip } from "@/components/ui/tooltip";
+import { setNavBadge } from "@/components/sidebar";
 
 type CreateMode = "dm" | "group" | null;
 
@@ -295,6 +296,12 @@ export default function MessagesPage() {
     const lastMsg = lastMessages[ch.id];
     return count + (lastMsg && isChannelUnread(ch.id, lastMsg.id) ? 1 : 0);
   }, 0);
+
+  // Update sidebar badge with unread message count
+  useEffect(() => {
+    setNavBadge("/messages", totalUnread);
+    return () => { setNavBadge("/messages", 0); };
+  }, [totalUnread]);
 
   return (
     <div className="flex h-[calc(100dvh-3.5rem)] md:h-screen">
