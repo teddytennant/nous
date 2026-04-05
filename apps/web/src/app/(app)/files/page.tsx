@@ -15,6 +15,7 @@ import { EmptyState, FilesIllustration } from "@/components/empty-state";
 import { useToast } from "@/components/toast";
 import { PageHeader } from "@/components/page-header";
 import { usePageShortcuts } from "@/components/keyboard-shortcuts";
+import { Upload } from "lucide-react";
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -49,6 +50,8 @@ export default function FilesPage() {
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounter = useRef(0);
   const fileInput = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -151,7 +154,44 @@ export default function FilesPage() {
   }
 
   return (
-    <div className="p-4 sm:p-8 max-w-4xl">
+    <div
+      className="p-4 sm:p-8 max-w-4xl relative"
+      onDragEnter={(e) => {
+        e.preventDefault();
+        dragCounter.current++;
+        if (e.dataTransfer.types.includes("Files")) setIsDragging(true);
+      }}
+      onDragLeave={(e) => {
+        e.preventDefault();
+        dragCounter.current--;
+        if (dragCounter.current === 0) setIsDragging(false);
+      }}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={async (e) => {
+        e.preventDefault();
+        dragCounter.current = 0;
+        setIsDragging(false);
+        const droppedFiles = Array.from(e.dataTransfer.files);
+        for (const f of droppedFiles) {
+          await handleUpload(f);
+        }
+      }}
+    >
+      {/* Drop overlay */}
+      {isDragging && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-none">
+          <div className="drop-zone-active border-2 border-dashed border-[#d4af37]/40 rounded-sm p-16 text-center">
+            <Upload className="w-10 h-10 text-[#d4af37]/50 mx-auto mb-4" />
+            <p className="text-base font-extralight text-white tracking-[-0.02em]">
+              Drop files to upload
+            </p>
+            <p className="text-[11px] text-neutral-600 font-light mt-2">
+              Encrypted, chunked, and content-addressed
+            </p>
+          </div>
+        </div>
+      )}
+
       <PageHeader title="Files" subtitle="Content-addressed storage. Versioned. Deduplicated." />
 
       {/* Stats bar */}
@@ -243,7 +283,7 @@ export default function FilesPage() {
         <EmptyState
           icon={<FilesIllustration />}
           title="No files yet"
-          description="Upload your first file. Content is chunked, deduplicated, and addressed by hash."
+          description="Drag files here or click upload. Content is chunked, deduplicated, and addressed by hash."
           action={
             <button
               onClick={() => fileInput.current?.click()}
