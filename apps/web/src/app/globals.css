@@ -959,6 +959,17 @@ select option {
   pointer-events: none;
 }
 
+/* ── Drop zone ────────────────────────────────────────────────────── */
+
+@keyframes drop-zone-border-pulse {
+  0%, 100% { border-color: rgba(212, 175, 55, 0.25); }
+  50% { border-color: rgba(212, 175, 55, 0.5); }
+}
+
+.drop-zone-active {
+  animation: drop-zone-border-pulse 1.5s ease-in-out infinite;
+}
+
 /* ── Scroll-triggered reveal animations ──────────────────────────────── */
 
 /* Base: hidden state for all reveal variants */
