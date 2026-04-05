@@ -44,6 +44,7 @@ import {
   ScrollToTop,
 } from "@/components/reveal-on-scroll";
 import { FaqSection } from "@/components/faq";
+import { RoadmapSection } from "@/components/roadmap";
 
 const features = [
   {
@@ -1074,6 +1075,14 @@ export default function Home() {
       {/* Community */}
       <RevealOnScroll>
         <CommunitySection />
+      </RevealOnScroll>
+
+      {/* Divider */}
+      <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
+      {/* Roadmap */}
+      <RevealOnScroll>
+        <RoadmapSection />
       </RevealOnScroll>
 
       {/* Divider */}
