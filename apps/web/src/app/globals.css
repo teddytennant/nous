@@ -237,6 +237,36 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+/* Toast progress bar — shrinks from full width to 0 */
+@keyframes toast-progress {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+.toast-progress {
+  animation: toast-progress linear forwards;
+}
+
+/* Respect reduced motion for all toast animations */
+@media (prefers-reduced-motion: reduce) {
+  .toast-enter {
+    animation: none;
+    opacity: 1;
+  }
+  .toast-exit {
+    animation: none;
+    opacity: 0;
+  }
+  .toast-progress {
+    animation: none;
+    width: 0%;
+  }
+}
+
 /* Command palette animations */
 @keyframes cmd-backdrop-enter {
   from {
