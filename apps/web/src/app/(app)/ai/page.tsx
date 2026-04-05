@@ -18,6 +18,7 @@ import { useToast } from "@/components/toast";
 import { usePageShortcuts } from "@/components/keyboard-shortcuts";
 import { Copy, Check, Send, Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Tooltip } from "@/components/ui/tooltip";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 
 type ViewMode = "chat" | "agents" | "conversations";
@@ -306,9 +307,11 @@ export default function AIPage() {
                           )}>
                             {msg.role === "user" ? "You" : selectedAgent?.name ?? "Assistant"}
                           </span>
-                          <span className="text-[10px] text-neutral-700 font-mono">
-                            {formatTime(msg.timestamp)}
-                          </span>
+                          <Tooltip content={new Date(msg.timestamp).toLocaleString()}>
+                            <span className="text-[10px] text-neutral-700 font-mono cursor-default hover:text-neutral-500 transition-colors duration-150">
+                              {formatTime(msg.timestamp)}
+                            </span>
+                          </Tooltip>
                         </div>
 
                         {/* Message actions */}
@@ -609,17 +612,19 @@ export default function AIPage() {
                             {conv.message_count} messages
                           </p>
                         </div>
-                        <span className="text-[10px] text-neutral-700">
-                          {new Date(conv.updated_at).toLocaleDateString(
-                            "en-US",
-                            {
-                              month: "short",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            }
-                          )}
-                        </span>
+                        <Tooltip content={new Date(conv.updated_at).toLocaleString()}>
+                          <span className="text-[10px] text-neutral-700 cursor-default hover:text-neutral-500 transition-colors duration-150">
+                            {new Date(conv.updated_at).toLocaleDateString(
+                              "en-US",
+                              {
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              }
+                            )}
+                          </span>
+                        </Tooltip>
                       </div>
                     </CardContent>
                   </Card>
