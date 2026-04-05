@@ -74,6 +74,17 @@ jobs:
             patchelf \
             libfuse2
 
+      # Node.js for building Next.js frontend
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install web dependencies
+        run: npm ci
+        working-directory: apps/web
+
       # Install Tauri CLI
       - name: Install Tauri CLI
         run: cargo install tauri-cli --version "^2" --locked
