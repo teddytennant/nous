@@ -49,6 +49,50 @@ function useStoredIdentity() {
   return { did, name };
 }
 
+// ── Nav badge store ──────────────────────────────────────────────────────
+// External store for notification badges. Any component can write badge counts
+// and the sidebar will reactively display them.
+
+const navBadgeStore = {
+  _badges: new Map<string, number>(),
+  _listeners: new Set<() => void>(),
+  _snapshot: new Map<string, number>(),
+
+  set(href: string, count: number) {
+    if (count <= 0) {
+      this._badges.delete(href);
+    } else {
+      this._badges.set(href, count);
+    }
+    this._snapshot = new Map(this._badges);
+    for (const l of this._listeners) l();
+  },
+
+  subscribe(listener: () => void) {
+    navBadgeStore._listeners.add(listener);
+    return () => { navBadgeStore._listeners.delete(listener); };
+  },
+
+  getSnapshot() {
+    return navBadgeStore._snapshot;
+  },
+};
+
+const emptyBadges = new Map<string, number>();
+
+function useNavBadges() {
+  return useSyncExternalStore(
+    navBadgeStore.subscribe,
+    navBadgeStore.getSnapshot,
+    () => emptyBadges,
+  );
+}
+
+/** Set a notification badge count for a sidebar nav item. Pass 0 to clear. */
+export function setNavBadge(href: string, count: number) {
+  navBadgeStore.set(href, count);
+}
+
 const sections = [
   {
     label: "Overview",
@@ -224,6 +268,7 @@ function SidebarFooter({ status, onNavigate }: { status: string; onNavigate?: ()
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const { status } = useConnection();
+  const badges = useNavBadges();
   const [collapsed, setCollapsed] = useState<Set<string>>(
     () => new Set(readCollapsed()),
   );
@@ -294,6 +339,10 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         {sections.map((section) => {
           const isCollapsed = collapsed.has(section.label);
           const hasActiveItem = section.items.some((i) => pathname === i.href);
+          const sectionBadgeTotal = section.items.reduce(
+            (sum, item) => sum + (badges.get(item.href) ?? 0),
+            0,
+          );
 
           return (
             <div key={section.label}>
@@ -314,7 +363,12 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                   {section.label}
                 </span>
                 <div className="flex items-center gap-1.5">
-                  {isCollapsed && hasActiveItem && (
+                  {isCollapsed && sectionBadgeTotal > 0 && (
+                    <span className="min-w-[16px] h-[16px] flex items-center justify-center rounded-full bg-[#d4af37] text-black text-[9px] font-bold leading-none px-1">
+                      {sectionBadgeTotal > 99 ? "99+" : sectionBadgeTotal}
+                    </span>
+                  )}
+                  {isCollapsed && hasActiveItem && sectionBadgeTotal === 0 && (
                     <span className="w-1.5 h-1.5 rounded-full bg-[#d4af37]" />
                   )}
                   <ChevronDown
@@ -335,6 +389,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                   {section.items.map((item) => {
                     const active = pathname === item.href;
                     const Icon = item.icon;
+                    const badgeCount = badges.get(item.href) ?? 0;
                     return (
                       <Link
                         key={item.href}
@@ -350,13 +405,23 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                         {active && (
                           <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 bg-[#d4af37] rounded-full" />
                         )}
-                        <Icon
-                          className={cn(
-                            "w-4 h-4 shrink-0",
-                            active ? "text-[#d4af37]" : "text-neutral-600",
+                        <div className="relative shrink-0">
+                          <Icon
+                            className={cn(
+                              "w-4 h-4",
+                              active ? "text-[#d4af37]" : "text-neutral-600",
+                            )}
+                          />
+                          {badgeCount > 0 && (
+                            <span className="absolute -top-1 -right-1.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-[#d4af37] text-black text-[8px] font-bold leading-none px-0.5 nav-badge-enter">
+                              {badgeCount > 99 ? "99+" : badgeCount}
+                            </span>
                           )}
-                        />
-                        {item.name}
+                        </div>
+                        <span className="flex-1">{item.name}</span>
+                        {badgeCount > 0 && !active && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#d4af37] shrink-0" />
+                        )}
                       </Link>
                     );
                   })}
@@ -475,12 +540,14 @@ export function MobileDrawer() {
 
 export function BottomTabBar() {
   const pathname = usePathname();
+  const badges = useNavBadges();
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-black/80 backdrop-blur-xl border-t border-white/[0.06] flex items-center justify-around px-2" style={{ paddingBottom: "max(0.25rem, env(safe-area-inset-bottom))", height: "calc(4rem + env(safe-area-inset-bottom, 0px))" }}>
       {bottomTabs.map((tab) => {
         const active = pathname === tab.href;
         const Icon = tab.icon;
+        const badgeCount = badges.get(tab.href) ?? 0;
         return (
           <Link
             key={tab.href}
@@ -492,7 +559,14 @@ export function BottomTabBar() {
                 : "text-neutral-600 active:text-neutral-400",
             )}
           >
-            <Icon className="w-5 h-5" />
+            <div className="relative">
+              <Icon className="w-5 h-5" />
+              {badgeCount > 0 && (
+                <span className="absolute -top-1 -right-2 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-[#d4af37] text-black text-[8px] font-bold leading-none px-0.5">
+                  {badgeCount > 99 ? "99+" : badgeCount}
+                </span>
+              )}
+            </div>
             <span className="text-[10px] font-mono tracking-wide">
               {tab.name}
             </span>
