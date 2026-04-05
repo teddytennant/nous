@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { social, type FeedEvent } from "@/lib/api";
 import { useRealtime } from "@/lib/use-realtime";
 import { useToast } from "@/components/toast";
+import { setNavBadge } from "@/components/sidebar";
 import { EmptyState, SocialIllustration, FollowingIllustration, BookmarkIllustration } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { usePageShortcuts, useListNavigation } from "@/components/keyboard-shortcuts";
@@ -113,6 +114,9 @@ export default function SocialPage() {
     try {
       const data = await social.feed({ limit: 100 });
       setPosts(data.events);
+      // Reset new-post badge — user has seen the latest
+      newPostCountRef.current = 0;
+      setNavBadge("/social", 0);
     } catch (e) {
       toast({ title: "Failed to load feed", description: e instanceof Error ? e.message : undefined, variant: "error" });
     } finally {
@@ -130,6 +134,9 @@ export default function SocialPage() {
     loadFeed();
   }, [loadFeed]);
 
+  // Track new posts from other users for sidebar badge
+  const newPostCountRef = useRef(0);
+
   // Live post updates via SSE
   useRealtime("new_post", (data) => {
     setPosts((prev) => [
@@ -143,7 +150,17 @@ export default function SocialPage() {
       },
       ...prev,
     ]);
+    // Count posts from other users for the sidebar badge
+    if (data.author && data.author !== userDid) {
+      newPostCountRef.current += 1;
+      setNavBadge("/social", newPostCountRef.current);
+    }
   });
+
+  // Clear sidebar badge on unmount
+  useEffect(() => {
+    return () => { setNavBadge("/social", 0); };
+  }, []);
 
   async function handlePost() {
     if (!draft.trim() || posting || !userDid) return;
