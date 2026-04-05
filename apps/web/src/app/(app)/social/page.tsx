@@ -12,6 +12,7 @@ import { PageHeader } from "@/components/page-header";
 import { usePageShortcuts, useListNavigation } from "@/components/keyboard-shortcuts";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/avatar";
+import { Tooltip } from "@/components/ui/tooltip";
 import { Link, Bookmark, Share2, Check, MessageCircle, ChevronDown, Heart } from "lucide-react";
 
 const MAX_POST_LENGTH = 500;
@@ -534,19 +535,25 @@ export default function SocialPage() {
                               <span className="text-xs font-light text-neutral-300 truncate">
                                 {userDisplayName}
                               </span>
-                              <span className="text-[10px] font-mono text-neutral-700 truncate max-w-[100px] hidden sm:inline">
-                                {truncateDid(post.pubkey)}
-                              </span>
+                              <Tooltip content={post.pubkey}>
+                                <span className="text-[10px] font-mono text-neutral-700 truncate max-w-[100px] hidden sm:inline cursor-default hover:text-neutral-500 transition-colors duration-150">
+                                  {truncateDid(post.pubkey)}
+                                </span>
+                              </Tooltip>
                             </>
                           ) : (
-                            <span className="text-xs font-mono text-neutral-500 truncate max-w-[200px]">
-                              {truncateDid(post.pubkey)}
-                            </span>
+                            <Tooltip content={post.pubkey}>
+                              <span className="text-xs font-mono text-neutral-500 truncate max-w-[200px] cursor-default hover:text-neutral-300 transition-colors duration-150">
+                                {truncateDid(post.pubkey)}
+                              </span>
+                            </Tooltip>
                           )}
                         </div>
-                        <span className="text-[10px] text-neutral-700 shrink-0">
-                          {formatTime(post.created_at)}
-                        </span>
+                        <Tooltip content={new Date(post.created_at).toLocaleString()}>
+                          <span className="text-[10px] text-neutral-700 shrink-0 cursor-default hover:text-neutral-500 transition-colors duration-150">
+                            {formatTime(post.created_at)}
+                          </span>
+                        </Tooltip>
                       </div>
                       {!isOwn && userDid && (
                         <button
@@ -713,12 +720,16 @@ export default function SocialPage() {
                                   {/* Reply author row */}
                                   <div className="flex items-center gap-2.5 mb-1.5">
                                     <Avatar did={reply.pubkey} size="xs" />
-                                    <span className="text-[11px] font-mono text-neutral-600 truncate max-w-[160px]">
-                                      {truncateDid(reply.pubkey)}
-                                    </span>
-                                    <span className="text-[10px] text-neutral-700">
-                                      {formatTime(reply.created_at)}
-                                    </span>
+                                    <Tooltip content={reply.pubkey}>
+                                      <span className="text-[11px] font-mono text-neutral-600 truncate max-w-[160px] cursor-default hover:text-neutral-400 transition-colors duration-150">
+                                        {truncateDid(reply.pubkey)}
+                                      </span>
+                                    </Tooltip>
+                                    <Tooltip content={new Date(reply.created_at).toLocaleString()}>
+                                      <span className="text-[10px] text-neutral-700 cursor-default hover:text-neutral-500 transition-colors duration-150">
+                                        {formatTime(reply.created_at)}
+                                      </span>
+                                    </Tooltip>
                                     {isReplyOwn && (
                                       <span className="text-[10px] font-mono text-neutral-700">you</span>
                                     )}
@@ -798,12 +809,16 @@ export default function SocialPage() {
                                         <div key={nested.id} className="thread-reply-item py-2">
                                           <div className="flex items-center gap-2 mb-1">
                                             <Avatar did={nested.pubkey} size="xs" />
-                                            <span className="text-[10px] font-mono text-neutral-600 truncate max-w-[140px]">
-                                              {truncateDid(nested.pubkey)}
-                                            </span>
-                                            <span className="text-[10px] text-neutral-700">
-                                              {formatTime(nested.created_at)}
-                                            </span>
+                                            <Tooltip content={nested.pubkey}>
+                                              <span className="text-[10px] font-mono text-neutral-600 truncate max-w-[140px] cursor-default hover:text-neutral-400 transition-colors duration-150">
+                                                {truncateDid(nested.pubkey)}
+                                              </span>
+                                            </Tooltip>
+                                            <Tooltip content={new Date(nested.created_at).toLocaleString()}>
+                                              <span className="text-[10px] text-neutral-700 cursor-default hover:text-neutral-500 transition-colors duration-150">
+                                                {formatTime(nested.created_at)}
+                                              </span>
+                                            </Tooltip>
                                           </div>
                                           <p className="text-xs font-light leading-relaxed text-neutral-400 whitespace-pre-wrap">
                                             {nested.content}
