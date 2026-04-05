@@ -11,6 +11,7 @@ import { EmptyState, MessagesIllustration } from "@/components/empty-state";
 import { usePageShortcuts, useListNavigation } from "@/components/keyboard-shortcuts";
 import { Avatar } from "@/components/avatar";
 import { DidAvatar } from "@/components/did-avatar";
+import { Tooltip } from "@/components/ui/tooltip";
 
 type CreateMode = "dm" | "group" | null;
 
@@ -507,12 +508,14 @@ export default function MessagesPage() {
                     )}>
                       {channelDisplayName(ch, userDid)}
                     </span>
-                    <span className={cn(
-                      "text-[10px] font-mono shrink-0 ml-2",
-                      hasUnread ? "text-[#d4af37]" : "text-neutral-700"
-                    )}>
-                      {lastMsg ? timeAgo(lastMsg.timestamp) : timeAgo(ch.created_at)}
-                    </span>
+                    <Tooltip content={new Date(lastMsg ? lastMsg.timestamp : ch.created_at).toLocaleString()}>
+                      <span className={cn(
+                        "text-[10px] font-mono shrink-0 ml-2 cursor-default",
+                        hasUnread ? "text-[#d4af37]" : "text-neutral-700 hover:text-neutral-500 transition-colors duration-150"
+                      )}>
+                        {lastMsg ? timeAgo(lastMsg.timestamp) : timeAgo(ch.created_at)}
+                      </span>
+                    </Tooltip>
                   </div>
                   {lastMsg ? (
                     <p className={cn(
@@ -597,9 +600,11 @@ export default function MessagesPage() {
                   )}
                   <div className="flex-1 min-w-0">
                     {!isSelf && (
-                      <p className="text-[10px] font-mono text-neutral-700 mb-1">
-                        {senderName(msg.sender)}
-                      </p>
+                      <Tooltip content={msg.sender}>
+                        <p className="text-[10px] font-mono text-neutral-700 mb-1 cursor-default hover:text-neutral-500 transition-colors duration-150 w-fit">
+                          {senderName(msg.sender)}
+                        </p>
+                      </Tooltip>
                     )}
                     <div
                       className={cn(
@@ -613,7 +618,9 @@ export default function MessagesPage() {
                       "flex items-center gap-3 mt-1",
                       isSelf ? "justify-end" : ""
                     )}>
-                      <span className="text-[10px] text-neutral-700">{timeAgo(msg.timestamp)}</span>
+                      <Tooltip content={new Date(msg.timestamp).toLocaleString()}>
+                        <span className="text-[10px] text-neutral-700 cursor-default hover:text-neutral-500 transition-colors duration-150">{timeAgo(msg.timestamp)}</span>
+                      </Tooltip>
                       <button
                         onClick={() => setReplyTo(msg)}
                         className="text-[10px] font-mono text-neutral-800 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
