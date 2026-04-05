@@ -18,8 +18,51 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Nous",
-  description: "Decentralized everything-app. Identity, messaging, governance, payments — unified under one protocol.",
+  title: {
+    default: "Nous — The Sovereign Everything-App",
+    template: "%s | Nous",
+  },
+  description:
+    "Identity, messaging, governance, payments, AI — unified under one encrypted, decentralized protocol. Own your digital life.",
+  keywords: [
+    "decentralized",
+    "sovereign identity",
+    "encrypted messaging",
+    "governance",
+    "DID",
+    "web3",
+    "local-first",
+    "CRDT",
+    "Rust",
+    "open source",
+  ],
+  authors: [{ name: "Teddy Tennant" }],
+  creator: "Teddy Tennant",
+  metadataBase: new URL("https://nous.sh"),
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://nous.sh",
+    siteName: "Nous",
+    title: "Nous — The Sovereign Everything-App",
+    description:
+      "Identity, messaging, governance, payments, AI — unified under one encrypted, decentralized protocol.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Nous — The Sovereign Everything-App",
+    description:
+      "Identity, messaging, governance, payments, AI — unified under one encrypted, decentralized protocol.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
+  },
+  manifest: "/manifest.webmanifest",
 };
 
 export default function RootLayout({
