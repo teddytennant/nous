@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 use nous_terminal::{Cell as TermCell, Color as TermColor, RenderRow, Terminal, TerminalConfig};
 use serde::{Deserialize, Serialize};
 use tauri::{
-    AppHandle, Manager, State,
+    AppHandle, Listener, Manager, State,
     menu::{AboutMetadata, Menu, MenuItem, PredefinedMenuItem, Submenu},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
 };
@@ -539,18 +539,53 @@ fn handle_menu_event(app: &AppHandle, event: tauri::menu::MenuEvent) {
 
 fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let show = MenuItem::with_id(app, "show", "Show Nous", true, None::<&str>)?;
-    let status = MenuItem::with_id(app, "status", "Status: Online", false, None::<&str>)?;
-    let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&show, &status, &quit])?;
+    let sep1 = PredefinedMenuItem::separator(app)?;
+
+    // Quick navigation actions
+    let nav_dashboard = MenuItem::with_id(app, "nav_dashboard", "Dashboard", true, None::<&str>)?;
+    let nav_messages = MenuItem::with_id(app, "nav_messages", "Messages", true, None::<&str>)?;
+    let nav_wallet = MenuItem::with_id(app, "nav_wallet", "Wallet", true, None::<&str>)?;
+    let sep2 = PredefinedMenuItem::separator(app)?;
+
+    // Utility actions
+    let copy_did = MenuItem::with_id(app, "copy_did", "Copy DID", true, None::<&str>)?;
+    let sep3 = PredefinedMenuItem::separator(app)?;
+
+    let quit = MenuItem::with_id(app, "quit", "Quit Nous", true, None::<&str>)?;
+    let menu = Menu::with_items(
+        app,
+        &[
+            &show, &sep1, &nav_dashboard, &nav_messages, &nav_wallet, &sep2, &copy_did, &sep3,
+            &quit,
+        ],
+    )?;
 
     let _tray = TrayIconBuilder::new()
         .menu(&menu)
         .tooltip("Nous — Sovereign Protocol")
         .on_menu_event(move |app, event| match event.id.as_ref() {
             "show" => {
+                show_main_window(app);
+            }
+            "nav_dashboard" | "nav_messages" | "nav_wallet" => {
+                let route = match event.id.as_ref() {
+                    "nav_dashboard" => "/dashboard",
+                    "nav_messages" => "/messages",
+                    "nav_wallet" => "/wallet",
+                    _ => "/dashboard",
+                };
+                show_main_window(app);
                 if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.show();
-                    let _ = window.set_focus();
+                    let _ = window.eval(&format!(
+                        "window.location.href = '{route}'"
+                    ));
+                }
+            }
+            "copy_did" => {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.eval(
+                        "navigator.clipboard.writeText(localStorage.getItem('nous_did') || '')"
+                    );
                 }
             }
             "quit" => {
@@ -565,16 +600,35 @@ fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
                 ..
             } = event
             {
-                let app = tray.app_handle();
-                if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.show();
-                    let _ = window.set_focus();
-                }
+                show_main_window(tray.app_handle());
             }
         })
         .build(app)?;
 
     Ok(())
+}
+
+fn show_main_window(app: &AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.show();
+        let _ = window.unminimize();
+        let _ = window.set_focus();
+    }
+}
+
+// ── Deep Link Parsing ────────────────────────────────────────────────────
+
+/// Parse a deep link event payload into a route path.
+/// Accepts payloads like `"nous://dashboard"` or `"nous://wallet"`.
+/// Returns `None` for invalid or unrecognized URLs.
+fn parse_deep_link(payload: &str) -> Option<String> {
+    let url = payload.strip_prefix('"').and_then(|s| s.strip_suffix('"')).unwrap_or(payload);
+    let path = url.strip_prefix("nous://")?;
+    // Sanitize: only allow alphanumeric, hyphens, slashes (no query strings or JS injection)
+    if path.is_empty() || !path.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '/') {
+        return None;
+    }
+    Some(format!("/{path}"))
 }
 
 // ── Run ───────────────────────────────────────────────────────────────────
@@ -586,6 +640,8 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_window_state::Builder::new().build())
+        .plugin(tauri_plugin_deep_link::init())
         .manage(api)
         .manage(terminal_sessions)
         .invoke_handler(tauri::generate_handler![
@@ -605,6 +661,20 @@ pub fn run() {
             let menu = setup_menu(handle)?;
             app.set_menu(menu)?;
             setup_tray(handle)?;
+
+            // Deep link handler: navigate the webview to the path from nous:// URLs
+            let app_handle = handle.clone();
+            app.listen("deep-link://new-url", move |event| {
+                if let Some(route) = parse_deep_link(event.payload()) {
+                    show_main_window(&app_handle);
+                    if let Some(window) = app_handle.get_webview_window("main") {
+                        let _ = window.eval(&format!(
+                            "window.location.href = '{route}'"
+                        ));
+                    }
+                }
+            });
+
             Ok(())
         })
         .on_menu_event(handle_menu_event)
@@ -675,5 +745,46 @@ mod tests {
         let deserialized: IdentityInfo = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.did, "did:key:zTest");
         assert_eq!(deserialized.keys.len(), 2);
+    }
+
+    #[test]
+    fn deep_link_parses_quoted_url() {
+        assert_eq!(
+            parse_deep_link("\"nous://dashboard\""),
+            Some("/dashboard".into())
+        );
+    }
+
+    #[test]
+    fn deep_link_parses_unquoted_url() {
+        assert_eq!(
+            parse_deep_link("nous://wallet"),
+            Some("/wallet".into())
+        );
+    }
+
+    #[test]
+    fn deep_link_parses_nested_path() {
+        assert_eq!(
+            parse_deep_link("\"nous://settings/identity\""),
+            Some("/settings/identity".into())
+        );
+    }
+
+    #[test]
+    fn deep_link_rejects_empty_path() {
+        assert_eq!(parse_deep_link("\"nous://\""), None);
+    }
+
+    #[test]
+    fn deep_link_rejects_non_nous_scheme() {
+        assert_eq!(parse_deep_link("\"http://evil.com\""), None);
+    }
+
+    #[test]
+    fn deep_link_rejects_injection_attempts() {
+        // Query strings and special chars are blocked
+        assert_eq!(parse_deep_link("\"nous://x?a=b\""), None);
+        assert_eq!(parse_deep_link("\"nous://x'alert(1)\""), None);
     }
 }
