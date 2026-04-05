@@ -130,11 +130,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Build Next.js frontend
+        working-directory: apps/web
+        run: |
+          npm ci
+          npm run build
       - name: Build Tauri app
         working-directory: apps/desktop
-        run: |
-          npm ci 2>/dev/null || true
-          cargo build --manifest-path src-tauri/Cargo.toml
+        run: cargo build --manifest-path src-tauri/Cargo.toml
 
   integration:
     name: Integration Tests
