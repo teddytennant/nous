@@ -142,10 +142,43 @@ function AccordionItem({
 export function FaqSection() {
   const [openIndex, setOpenIndex] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState(0);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const handleToggle = useCallback((key: string) => {
     setOpenIndex((prev) => (prev === key ? null : key));
   }, []);
+
+  const selectCategory = useCallback((i: number) => {
+    setActiveCategory(i);
+    setOpenIndex(null);
+    tabRefs.current[i]?.focus();
+  }, []);
+
+  const handleTabKeyDown = useCallback(
+    (e: React.KeyboardEvent, index: number) => {
+      const count = faqCategories.length;
+      let next: number | null = null;
+
+      if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+        e.preventDefault();
+        next = (index + 1) % count;
+      } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+        e.preventDefault();
+        next = (index - 1 + count) % count;
+      } else if (e.key === "Home") {
+        e.preventDefault();
+        next = 0;
+      } else if (e.key === "End") {
+        e.preventDefault();
+        next = count - 1;
+      }
+
+      if (next !== null) {
+        selectCategory(next);
+      }
+    },
+    [selectCategory],
+  );
 
   const currentCategory = faqCategories[activeCategory];
 
@@ -166,14 +199,14 @@ export function FaqSection() {
           {faqCategories.map((cat, i) => (
             <button
               key={cat.label}
+              ref={(el) => { tabRefs.current[i] = el; }}
               type="button"
               role="tab"
+              tabIndex={activeCategory === i ? 0 : -1}
               aria-selected={activeCategory === i}
               aria-controls={`faq-panel-${i}`}
-              onClick={() => {
-                setActiveCategory(i);
-                setOpenIndex(null);
-              }}
+              onClick={() => selectCategory(i)}
+              onKeyDown={(e) => handleTabKeyDown(e, i)}
               className={`text-left text-xs font-mono uppercase tracking-[0.15em] px-3 py-2 rounded-sm transition-colors duration-200 ${
                 activeCategory === i
                   ? "text-[#d4af37] bg-[#d4af37]/[0.06]"
