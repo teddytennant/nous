@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Check, Clock, ArrowRight } from "lucide-react";
 
 /* ── Types ─────────────────────────────────────────────────────────────── */
@@ -119,11 +119,15 @@ function PhaseCard({
   index,
   isActive,
   onSelect,
+  onKeyDown,
+  buttonRef,
 }: {
   phase: RoadmapPhase;
   index: number;
   isActive: boolean;
   onSelect: () => void;
+  onKeyDown?: (e: React.KeyboardEvent) => void;
+  buttonRef?: React.Ref<HTMLButtonElement>;
 }) {
   const doneCount = phase.items.filter((i) => i.status === "done").length;
   const total = phase.items.length;
@@ -131,8 +135,10 @@ function PhaseCard({
 
   return (
     <button
+      ref={buttonRef}
       type="button"
       onClick={onSelect}
+      onKeyDown={onKeyDown}
       aria-pressed={isActive}
       className={`text-left w-full p-5 rounded-sm border transition-all duration-200 ${
         isActive
@@ -181,10 +187,38 @@ function PhaseCard({
 
 export function RoadmapSection() {
   const [activePhase, setActivePhase] = useState(1); // Default to current phase
+  const phaseRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
-  const handleSelect = useCallback((i: number) => {
+  const selectPhase = useCallback((i: number) => {
     setActivePhase(i);
+    phaseRefs.current[i]?.focus();
   }, []);
+
+  const handlePhaseKeyDown = useCallback(
+    (e: React.KeyboardEvent, index: number) => {
+      const count = phases.length;
+      let next: number | null = null;
+
+      if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+        e.preventDefault();
+        next = (index + 1) % count;
+      } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+        e.preventDefault();
+        next = (index - 1 + count) % count;
+      } else if (e.key === "Home") {
+        e.preventDefault();
+        next = 0;
+      } else if (e.key === "End") {
+        e.preventDefault();
+        next = count - 1;
+      }
+
+      if (next !== null) {
+        selectPhase(next);
+      }
+    },
+    [selectPhase],
+  );
 
   const current = phases[activePhase];
 
@@ -209,7 +243,9 @@ export function RoadmapSection() {
                 phase={phase}
                 index={i}
                 isActive={activePhase === i}
-                onSelect={() => handleSelect(i)}
+                onSelect={() => selectPhase(i)}
+                onKeyDown={(e) => handlePhaseKeyDown(e, i)}
+                buttonRef={(el) => { phaseRefs.current[i] = el; }}
               />
             </div>
           ))}
