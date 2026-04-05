@@ -6,7 +6,7 @@ use nous_terminal::{Cell as TermCell, Color as TermColor, RenderRow, Terminal, T
 use serde::{Deserialize, Serialize};
 use tauri::{
     AppHandle, Manager, State,
-    menu::{Menu, MenuItem},
+    menu::{AboutMetadata, Menu, MenuItem, PredefinedMenuItem, Submenu},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
 };
 use tokio::sync::RwLock;
@@ -436,6 +436,105 @@ fn terminal_screen(
     }
 }
 
+// ── Native Menu Bar ──────────────────────────────────────────────────────
+
+fn setup_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
+    // App menu (macOS) — About, Services, Hide, Quit
+    let app_menu = Submenu::with_items(
+        app,
+        "Nous",
+        true,
+        &[
+            &PredefinedMenuItem::about(
+                app,
+                Some("About Nous"),
+                Some(AboutMetadata {
+                    name: Some("Nous".into()),
+                    version: Some(env!("CARGO_PKG_VERSION").into()),
+                    copyright: Some("Built for sovereignty. Not for sale.".into()),
+                    ..Default::default()
+                }),
+            )?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::services(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::hide(app, None)?,
+            &PredefinedMenuItem::hide_others(app, None)?,
+            &PredefinedMenuItem::show_all(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::quit(app, None)?,
+        ],
+    )?;
+
+    // Edit menu — Undo, Redo, Cut, Copy, Paste, Select All
+    let edit_menu = Submenu::with_items(
+        app,
+        "Edit",
+        true,
+        &[
+            &PredefinedMenuItem::undo(app, None)?,
+            &PredefinedMenuItem::redo(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::cut(app, None)?,
+            &PredefinedMenuItem::copy(app, None)?,
+            &PredefinedMenuItem::paste(app, None)?,
+            &PredefinedMenuItem::select_all(app, None)?,
+        ],
+    )?;
+
+    // View menu — Reload, Force Reload, Full Screen
+    let view_menu = Submenu::with_items(
+        app,
+        "View",
+        true,
+        &[
+            &MenuItem::with_id(app, "reload", "Reload", true, Some("CmdOrCtrl+R"))?,
+            &MenuItem::with_id(
+                app,
+                "force_reload",
+                "Force Reload",
+                true,
+                Some("CmdOrCtrl+Shift+R"),
+            )?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::fullscreen(app, None)?,
+        ],
+    )?;
+
+    // Window menu — Minimize, Maximize, Close
+    let window_menu = Submenu::with_items(
+        app,
+        "Window",
+        true,
+        &[
+            &PredefinedMenuItem::minimize(app, None)?,
+            &PredefinedMenuItem::maximize(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::close_window(app, None)?,
+        ],
+    )?;
+
+    Menu::with_items(app, &[&app_menu, &edit_menu, &view_menu, &window_menu])
+}
+
+fn handle_menu_event(app: &AppHandle, event: tauri::menu::MenuEvent) {
+    match event.id().as_ref() {
+        "reload" => {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.eval("window.location.reload()");
+            }
+        }
+        "force_reload" => {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.eval(
+                    "caches.keys().then(ks => Promise.all(ks.map(k => caches.delete(k)))).then(() => window.location.reload())"
+                );
+            }
+        }
+        _ => {}
+    }
+}
+
 // ── System Tray ───────────────────────────────────────────────────────────
 
 fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
@@ -502,9 +601,13 @@ pub fn run() {
             terminal_screen,
         ])
         .setup(|app| {
-            setup_tray(app.handle())?;
+            let handle = app.handle();
+            let menu = setup_menu(handle)?;
+            app.set_menu(menu)?;
+            setup_tray(handle)?;
             Ok(())
         })
+        .on_menu_event(handle_menu_event)
         .run(tauri::generate_context!())
         .expect("failed to run nous desktop");
 }
