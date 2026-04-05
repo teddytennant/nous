@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useCallback, useSyncExternalStore } from "react";
 import Link from "next/link";
 import {
   Shield,
@@ -274,6 +274,68 @@ function getClientPlatform(): Platform {
 
 function usePlatform(): Platform {
   return useSyncExternalStore(noop, getClientPlatform, getServerPlatform);
+}
+
+// ── Animated count-up (triggers on scroll into view) ────────────────────
+
+function CountUp({ target, suffix = "" }: { target: number; suffix?: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [value, setValue] = useState(0);
+  const [triggered, setTriggered] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    // Respect reduced motion
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setValue(target);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !triggered) {
+          setTriggered(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.3 },
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [target, triggered]);
+
+  useEffect(() => {
+    if (!triggered) return;
+
+    const duration = 1200;
+    const startTime = performance.now();
+
+    let raf: number;
+    function tick(now: number) {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setValue(Math.round(target * eased));
+
+      if (progress < 1) {
+        raf = requestAnimationFrame(tick);
+      }
+    }
+
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [triggered, target]);
+
+  return (
+    <span ref={ref}>
+      {value.toLocaleString()}
+      {suffix}
+    </span>
+  );
 }
 
 export default function Home() {
@@ -965,17 +1027,21 @@ export default function Home() {
         <RevealOnScroll delay={100}>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-white/[0.04] rounded-sm overflow-hidden">
           {[
-            { value: "20", label: "Crates", description: "Modular Rust workspace" },
-            { value: "8", label: "Subsystems", description: "Identity to AI, unified" },
-            { value: "0", label: "Servers", description: "Nothing to trust" },
-            { value: "5", label: "Platforms", description: "Ship everywhere" },
+            { value: 20, label: "Crates", suffix: "", description: "Modular Rust workspace" },
+            { value: 8, label: "Subsystems", suffix: "", description: "Identity to AI, unified" },
+            { value: 0, label: "Servers", suffix: "", description: "Nothing to trust" },
+            { value: 5, label: "Platforms", suffix: "", description: "Ship everywhere" },
+            { value: 2000, label: "Tests", suffix: "+", description: "Rust + web coverage" },
+            { value: 100, label: "Uptime", suffix: "%", description: "No server means no downtime" },
+            { value: 256, label: "Bit Encryption", suffix: "", description: "AES-256-GCM standard" },
+            { value: 0, label: "Telemetry", suffix: "", description: "Zero data collection" },
           ].map((stat) => (
             <div
               key={stat.label}
               className="bg-black p-8 sm:p-10 group hover:bg-white/[0.02] transition-colors duration-200"
             >
               <p className="text-4xl sm:text-5xl font-extralight tracking-[-0.03em] text-white group-hover:text-[#d4af37] transition-colors duration-300 mb-3 tabular-nums">
-                {stat.value}
+                <CountUp target={stat.value} suffix={stat.suffix} />
               </p>
               <p className="text-xs font-mono uppercase tracking-[0.2em] text-neutral-500 mb-2">
                 {stat.label}
