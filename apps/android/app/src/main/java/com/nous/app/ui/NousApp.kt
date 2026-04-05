@@ -33,6 +33,7 @@ import com.nous.app.ui.screens.GovernanceScreen
 import com.nous.app.ui.screens.IdentityScreen
 import com.nous.app.ui.screens.MarketplaceScreen
 import com.nous.app.ui.screens.MessagesScreen
+import com.nous.app.ui.screens.NetworkScreen
 import com.nous.app.ui.screens.SettingsScreen
 import com.nous.app.ui.screens.SocialScreen
 import com.nous.app.ui.screens.WalletScreen
@@ -118,6 +119,7 @@ fun NousApp() {
             composable("ai") { AIScreen(viewModel = sharedViewModel) }
             composable("marketplace") { MarketplaceScreen(viewModel = sharedViewModel) }
             composable("files") { FilesScreen(viewModel = sharedViewModel) }
+            composable("network") { NetworkScreen(viewModel = sharedViewModel) }
             composable("settings") { SettingsScreen(viewModel = sharedViewModel) }
         }
     }
