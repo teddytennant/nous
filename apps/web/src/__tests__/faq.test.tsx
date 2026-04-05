@@ -164,4 +164,62 @@ describe("FaqSection", () => {
     );
     expect(screen.getByText(/AES-256-GCM/i)).toBeInTheDocument();
   });
+
+  it("navigates tabs with ArrowDown key", () => {
+    render(<FaqSection />);
+    const generalTab = screen.getByRole("tab", { name: /general/i });
+    generalTab.focus();
+
+    fireEvent.keyDown(generalTab, { key: "ArrowDown" });
+    const privacyTab = screen.getByRole("tab", { name: /privacy/i });
+    expect(privacyTab).toHaveAttribute("aria-selected", "true");
+    expect(document.activeElement).toBe(privacyTab);
+  });
+
+  it("navigates tabs with ArrowUp key", () => {
+    render(<FaqSection />);
+    const generalTab = screen.getByRole("tab", { name: /general/i });
+    generalTab.focus();
+
+    // ArrowUp from first wraps to last
+    fireEvent.keyDown(generalTab, { key: "ArrowUp" });
+    const technicalTab = screen.getByRole("tab", { name: /technical/i });
+    expect(technicalTab).toHaveAttribute("aria-selected", "true");
+    expect(document.activeElement).toBe(technicalTab);
+  });
+
+  it("Home key moves to first tab", () => {
+    render(<FaqSection />);
+    // Switch to Technical first
+    fireEvent.click(screen.getByRole("tab", { name: /technical/i }));
+    const technicalTab = screen.getByRole("tab", { name: /technical/i });
+    technicalTab.focus();
+
+    fireEvent.keyDown(technicalTab, { key: "Home" });
+    const generalTab = screen.getByRole("tab", { name: /general/i });
+    expect(generalTab).toHaveAttribute("aria-selected", "true");
+    expect(document.activeElement).toBe(generalTab);
+  });
+
+  it("End key moves to last tab", () => {
+    render(<FaqSection />);
+    const generalTab = screen.getByRole("tab", { name: /general/i });
+    generalTab.focus();
+
+    fireEvent.keyDown(generalTab, { key: "End" });
+    const technicalTab = screen.getByRole("tab", { name: /technical/i });
+    expect(technicalTab).toHaveAttribute("aria-selected", "true");
+    expect(document.activeElement).toBe(technicalTab);
+  });
+
+  it("inactive tabs have tabIndex -1", () => {
+    render(<FaqSection />);
+    const generalTab = screen.getByRole("tab", { name: /general/i });
+    const privacyTab = screen.getByRole("tab", { name: /privacy/i });
+    const technicalTab = screen.getByRole("tab", { name: /technical/i });
+
+    expect(generalTab).toHaveAttribute("tabindex", "0");
+    expect(privacyTab).toHaveAttribute("tabindex", "-1");
+    expect(technicalTab).toHaveAttribute("tabindex", "-1");
+  });
 });
