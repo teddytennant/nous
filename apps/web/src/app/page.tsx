@@ -1131,25 +1131,171 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="mt-auto px-6 py-8 border-t border-white/[0.04]">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-4">
-            <p className="text-[10px] text-neutral-700 font-mono tracking-wider">
-              nous v0.1.0
-            </p>
-            <span className="text-neutral-800">|</span>
-            <a
-              href={`https://github.com/${GITHUB_REPO}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[10px] text-neutral-700 font-mono tracking-wider hover:text-neutral-500 transition-colors duration-200"
-            >
-              github
-            </a>
+      <footer className="mt-auto px-6 py-16 border-t border-white/[0.04]">
+        <div className="max-w-6xl mx-auto">
+          {/* Footer columns */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-10 mb-14">
+            {/* Product */}
+            <div>
+              <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-600 mb-4">
+                Product
+              </p>
+              <ul className="space-y-2.5">
+                <li>
+                  <a href="#features" className="text-xs text-neutral-500 hover:text-white transition-colors duration-200 font-light">
+                    Features
+                  </a>
+                </li>
+                <li>
+                  <Link href="/download" className="text-xs text-neutral-500 hover:text-white transition-colors duration-200 font-light">
+                    Download
+                  </Link>
+                </li>
+                <li>
+                  <a href="#roadmap" className="text-xs text-neutral-500 hover:text-white transition-colors duration-200 font-light">
+                    Roadmap
+                  </a>
+                </li>
+                <li>
+                  <a href="#faq" className="text-xs text-neutral-500 hover:text-white transition-colors duration-200 font-light">
+                    FAQ
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Developers */}
+            <div>
+              <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-600 mb-4">
+                Developers
+              </p>
+              <ul className="space-y-2.5">
+                <li>
+                  <a
+                    href={`https://github.com/${GITHUB_REPO}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-neutral-500 hover:text-white transition-colors duration-200 font-light"
+                  >
+                    GitHub
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href={`https://github.com/${GITHUB_REPO}/tree/main/crates`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-neutral-500 hover:text-white transition-colors duration-200 font-light"
+                  >
+                    Source Code
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href={`https://github.com/${GITHUB_REPO}/issues`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-neutral-500 hover:text-white transition-colors duration-200 font-light"
+                  >
+                    Issues
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href={`https://github.com/${GITHUB_REPO}/releases`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-neutral-500 hover:text-white transition-colors duration-200 font-light"
+                  >
+                    Releases
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Community */}
+            <div>
+              <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-600 mb-4">
+                Community
+              </p>
+              <ul className="space-y-2.5">
+                <li>
+                  <a
+                    href={`https://github.com/${GITHUB_REPO}/discussions`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-neutral-500 hover:text-white transition-colors duration-200 font-light"
+                  >
+                    Discussions
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href={`https://github.com/${GITHUB_REPO}/blob/main/CONTRIBUTING.md`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-neutral-500 hover:text-white transition-colors duration-200 font-light"
+                  >
+                    Contributing
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href={`https://github.com/${GITHUB_REPO}/blob/main/CODE_OF_CONDUCT.md`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-neutral-500 hover:text-white transition-colors duration-200 font-light"
+                  >
+                    Code of Conduct
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Legal */}
+            <div>
+              <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-600 mb-4">
+                Legal
+              </p>
+              <ul className="space-y-2.5">
+                <li>
+                  <a
+                    href={`https://github.com/${GITHUB_REPO}/blob/main/LICENSE`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-neutral-500 hover:text-white transition-colors duration-200 font-light"
+                  >
+                    MIT License
+                  </a>
+                </li>
+                <li>
+                  <span className="text-xs text-neutral-700 font-light">
+                    No telemetry
+                  </span>
+                </li>
+                <li>
+                  <span className="text-xs text-neutral-700 font-light">
+                    No tracking
+                  </span>
+                </li>
+              </ul>
+            </div>
           </div>
-          <p className="text-[10px] text-neutral-700 font-light tracking-wider">
-            Built for sovereignty. Not for sale.
-          </p>
+
+          {/* Bottom bar */}
+          <div className="pt-8 border-t border-white/[0.04] flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div className="flex items-center gap-4">
+              <span className="text-base font-extralight tracking-[-0.04em] text-neutral-600">
+                Nous
+              </span>
+              <span className="text-[10px] font-mono text-neutral-800 tracking-wider">
+                v0.1.0
+              </span>
+            </div>
+            <p className="text-[10px] text-neutral-700 font-light tracking-wider">
+              Built for sovereignty. Not for sale.
+            </p>
+          </div>
         </div>
       </footer>
     </div>
