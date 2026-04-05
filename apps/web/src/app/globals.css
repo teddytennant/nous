@@ -959,6 +959,17 @@ select option {
   pointer-events: none;
 }
 
+/* ── Nav badge ────────────────────────────────────────────────────── */
+
+@keyframes nav-badge-enter {
+  from { transform: scale(0); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.nav-badge-enter {
+  animation: nav-badge-enter 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 /* ── Drop zone ────────────────────────────────────────────────────── */
 
 @keyframes drop-zone-border-pulse {
