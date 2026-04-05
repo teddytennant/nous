@@ -226,7 +226,7 @@ function SidebarFooter({ status, onNavigate }: { status: string; onNavigate?: ()
   const { did, name } = useStoredIdentity();
 
   return (
-    <div className="px-4 py-4 border-t border-white/[0.04]" data-tour="user">
+    <div className="px-4 py-4 border-t border-white/[0.04] space-y-3" data-tour="user">
       {did ? (
         <Link
           href="/identity"
@@ -274,6 +274,24 @@ function SidebarFooter({ status, onNavigate }: { status: string; onNavigate?: ()
           </p>
         </div>
       )}
+      <div className="flex items-center justify-between px-2">
+        <a
+          href="https://github.com/teddytennant/nous/releases"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[10px] font-mono text-neutral-800 hover:text-neutral-500 transition-colors duration-150"
+        >
+          v0.1.0
+        </a>
+        <a
+          href="https://github.com/teddytennant/nous"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[10px] font-mono text-neutral-800 hover:text-neutral-500 transition-colors duration-150"
+        >
+          GitHub
+        </a>
+      </div>
     </div>
   );
 }
