@@ -81,6 +81,9 @@ Object.defineProperty(window, "matchMedia", {
   }),
 });
 
+// Mock scrollIntoView (not available in jsdom)
+Element.prototype.scrollIntoView = vi.fn();
+
 // Clear localStorage between tests
 afterEach(() => {
   localStorageMock.clear();
