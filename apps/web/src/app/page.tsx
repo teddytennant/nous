@@ -21,6 +21,7 @@ import {
   Check,
   Menu,
   X,
+  HelpCircle,
 } from "lucide-react";
 
 function GithubIcon({ className }: { className?: string }) {
@@ -42,6 +43,7 @@ import {
   ScrollProgress,
   ScrollToTop,
 } from "@/components/reveal-on-scroll";
+import { FaqSection } from "@/components/faq";
 
 const features = [
   {
@@ -438,6 +440,12 @@ export default function Home() {
             >
               Features
             </a>
+            <a
+              href="#faq"
+              className="text-xs text-neutral-500 hover:text-white transition-colors duration-200 hidden sm:block"
+            >
+              FAQ
+            </a>
             <Link
               href="/download"
               className="text-xs text-neutral-500 hover:text-white transition-colors duration-200 hidden sm:block"
@@ -490,6 +498,14 @@ export default function Home() {
             >
               <Shield className="w-4 h-4 text-neutral-600" />
               Features
+            </a>
+            <a
+              href="#faq"
+              onClick={closeMobileMenu}
+              className="flex items-center gap-3 px-3 py-3 text-sm font-light text-neutral-400 hover:text-white hover:bg-white/[0.02] rounded-sm transition-colors duration-150"
+            >
+              <HelpCircle className="w-4 h-4 text-neutral-600" />
+              FAQ
             </a>
             <Link
               href="/download"
@@ -1043,6 +1059,14 @@ export default function Home() {
         </div>
         </RevealOnScroll>
       </section>
+
+      {/* Divider */}
+      <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
+      {/* FAQ */}
+      <RevealOnScroll>
+        <FaqSection />
+      </RevealOnScroll>
 
       {/* Divider */}
       <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
