@@ -11,6 +11,8 @@ authors.workspace = true
 nous-core = { path = "../nous-core" }
 nous-crypto = { path = "../nous-crypto" }
 nous-identity = { path = "../nous-identity" }
+nous-pouw = { path = "../nous-pouw", optional = true }
+ed25519-dalek = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
@@ -18,5 +20,12 @@ chrono = { workspace = true }
 uuid = { workspace = true }
 sha2 = { workspace = true }
 
+[features]
+default = ["pouw"]
+pouw = ["dep:nous-pouw", "dep:ed25519-dalek"]
+
 [dev-dependencies]
+nous-pouw = { path = "../nous-pouw" }
+ed25519-dalek = { workspace = true }
+rand = { workspace = true }
 tempfile = { workspace = true }

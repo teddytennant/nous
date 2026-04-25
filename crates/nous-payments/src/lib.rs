@@ -4,6 +4,8 @@ pub mod escrow;
 pub mod executor;
 pub mod history;
 pub mod invoice;
+#[cfg(feature = "pouw")]
+pub mod mint;
 pub mod stream;
 pub mod swap;
 pub mod wallet;

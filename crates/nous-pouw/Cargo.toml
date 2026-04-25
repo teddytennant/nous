@@ -1,0 +1,33 @@
+[package]
+name = "nous-pouw"
+description = "Proof-of-useful-work consensus for the nous mesh: blocks of agent task receipts validated by trust-weighted quorum"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+nous-core = { path = "../nous-core" }
+nous-crypto = { path = "../nous-crypto" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+ed25519-dalek = { workspace = true }
+blake3 = { workspace = true }
+rand = { workspace = true }
+rand_chacha = { workspace = true }
+hex = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }
+criterion = { workspace = true }
+
+[[example]]
+name = "devnet"
+path = "examples/devnet.rs"
+
+[[bench]]
+name = "round_throughput"
+harness = false
