@@ -80,7 +80,7 @@ const ANSI_COLOR_MAP: Record<string, string> = {
   "0": "",
   "1": "font-bold",
   "32": "text-emerald-400",
-  "33": "text-[#d4af37]",
+  "33": "text-[#B23A3A]",
   "36": "text-cyan-400",
   "37": "text-neutral-300",
   "90": "text-neutral-600",
@@ -156,7 +156,7 @@ function PromptLine({ text }: { text: string }) {
 
   return (
     <div className="group/prompt flex items-start gap-0 relative">
-      <span className="text-[#d4af37] select-none shrink-0">❯ </span>
+      <span className="text-[#B23A3A] select-none shrink-0">❯ </span>
       <span className="text-white">{text}</span>
       <button
         type="button"
@@ -328,11 +328,11 @@ export function TerminalDemo() {
           {/* Currently typing line */}
           {(typingText || (!isTyping && lines.length === 0)) && (
             <div className="flex items-start gap-0">
-              <span className="text-[#d4af37] select-none shrink-0">❯ </span>
+              <span className="text-[#B23A3A] select-none shrink-0">❯ </span>
               <span className="text-white">{typingText}</span>
               <span
                 className={`inline-block w-[8px] h-[18px] ml-px translate-y-[1px] ${
-                  showCursor ? "bg-[#d4af37]" : "bg-transparent"
+                  showCursor ? "bg-[#B23A3A]" : "bg-transparent"
                 }`}
               />
             </div>
@@ -341,10 +341,10 @@ export function TerminalDemo() {
           {/* Cursor on empty prompt when idle and has content */}
           {!typingText && !isTyping && lines.length > 0 && (
             <div className="flex items-start gap-0 mt-0">
-              <span className="text-[#d4af37] select-none shrink-0">❯ </span>
+              <span className="text-[#B23A3A] select-none shrink-0">❯ </span>
               <span
                 className={`inline-block w-[8px] h-[18px] ml-px translate-y-[1px] ${
-                  showCursor ? "bg-[#d4af37]" : "bg-transparent"
+                  showCursor ? "bg-[#B23A3A]" : "bg-transparent"
                 }`}
               />
             </div>

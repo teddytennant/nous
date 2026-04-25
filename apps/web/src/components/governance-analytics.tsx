@@ -135,7 +135,7 @@ function DonutChart({
             cy={cy}
             r={r}
             fill="none"
-            stroke="#d4af37"
+            stroke="#B23A3A"
             strokeWidth={strokeWidth}
             strokeDasharray={`${forDash} ${circumference - forDash}`}
             strokeDashoffset={circumference * 0.25}
@@ -171,10 +171,10 @@ function DonutChart({
       {/* Legend */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-[#d4af37]" />
+          <span className="w-2 h-2 rounded-full bg-[#B23A3A]" />
           <span className="text-xs font-light text-neutral-400">
             For{" "}
-            <span className="font-mono text-[#d4af37]">
+            <span className="font-mono text-[#B23A3A]">
               {votesFor} ({Math.round(forPct * 100)}%)
             </span>
           </span>
@@ -200,7 +200,7 @@ function DonutChart({
 function RingGauge({
   value,
   label,
-  color = "#d4af37",
+  color = "#B23A3A",
 }: {
   value: number;
   label: string;
@@ -292,7 +292,7 @@ function VoteBar({
             className={cn(
               "text-[10px] font-mono",
               s === "active"
-                ? "text-[#d4af37]"
+                ? "text-[#B23A3A]"
                 : s === "passed" || s === "executed"
                   ? "text-emerald-600"
                   : "text-neutral-600"
@@ -304,7 +304,7 @@ function VoteBar({
             <span
               className={cn(
                 "text-[10px] font-mono",
-                margin > 0 ? "text-[#d4af37]" : margin < 0 ? "text-red-700" : "text-neutral-600"
+                margin > 0 ? "text-[#B23A3A]" : margin < 0 ? "text-red-700" : "text-neutral-600"
               )}
             >
               {margin > 0 ? "+" : ""}{margin}%
@@ -317,7 +317,7 @@ function VoteBar({
       <div className="flex h-2 rounded-full overflow-hidden bg-white/[0.04]">
         {forPct > 0 && (
           <div
-            className="bg-[#d4af37] transition-all duration-500 ease-out chart-bar-enter"
+            className="bg-[#B23A3A] transition-all duration-500 ease-out chart-bar-enter"
             style={{ width: `${forPct}%` }}
           />
         )}
@@ -501,7 +501,7 @@ export function GovernanceAnalytics({
               {
                 label: "Active",
                 value: stats.active,
-                color: "bg-[#d4af37]",
+                color: "bg-[#B23A3A]",
               },
               {
                 label: "Passed",
@@ -541,7 +541,7 @@ export function GovernanceAnalytics({
               <RingGauge
                 value={stats.avgParticipation}
                 label="Participation"
-                color="#d4af37"
+                color="#B23A3A"
               />
               <RingGauge
                 value={stats.approvalRate}
@@ -580,7 +580,7 @@ export function GovernanceAnalytics({
                   </div>
                   <div className="h-px bg-white/[0.04] relative">
                     <div
-                      className="absolute inset-y-0 left-0 bg-[#d4af37]/30 transition-all duration-300"
+                      className="absolute inset-y-0 left-0 bg-[#B23A3A]/30 transition-all duration-300"
                       style={{
                         width: `${(d.member_count / maxMembers) * 100}%`,
                       }}
@@ -623,7 +623,7 @@ export function GovernanceAnalytics({
                       className={cn(
                         "text-[10px] font-mono uppercase tracking-wider shrink-0 ml-3",
                         p.status.toLowerCase() === "active"
-                          ? "text-[#d4af37]"
+                          ? "text-[#B23A3A]"
                           : p.status.toLowerCase() === "passed" ||
                               p.status.toLowerCase() === "executed"
                             ? "text-emerald-600"

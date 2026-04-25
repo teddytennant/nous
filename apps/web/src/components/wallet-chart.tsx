@@ -170,7 +170,7 @@ function formatYAxis(value: number): string {
 
 const TOKEN_COLORS: Record<string, string> = {
   ETH: "#627eea",
-  NOUS: "#d4af37",
+  NOUS: "#B23A3A",
   USDC: "#2775ca",
 };
 
@@ -390,7 +390,7 @@ export function WalletChart({
 
   // Determine line/area color based on performance
   const isPositive = pctChange === null || pctChange >= 0;
-  const lineColor = isPositive ? "#d4af37" : "#ef4444";
+  const lineColor = isPositive ? "#B23A3A" : "#ef4444";
   const gradientId = isPositive ? "wc-grad-pos" : "wc-grad-neg";
 
   return (
@@ -468,8 +468,8 @@ export function WalletChart({
             >
               <defs>
                 <linearGradient id="wc-grad-pos" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#d4af37" stopOpacity="0.12" />
-                  <stop offset="100%" stopColor="#d4af37" stopOpacity="0" />
+                  <stop offset="0%" stopColor="#B23A3A" stopOpacity="0.12" />
+                  <stop offset="100%" stopColor="#B23A3A" stopOpacity="0" />
                 </linearGradient>
                 <linearGradient id="wc-grad-neg" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#ef4444" stopOpacity="0.12" />
@@ -639,7 +639,7 @@ export function WalletChart({
             <div className={cn(
               "flex items-center gap-1 px-2 py-1 rounded-sm text-[10px] font-mono tabular-nums",
               isPositive
-                ? "text-[#d4af37] bg-[#d4af37]/[0.06]"
+                ? "text-[#B23A3A] bg-[#B23A3A]/[0.06]"
                 : "text-red-400 bg-red-400/[0.06]"
             )}>
               <svg

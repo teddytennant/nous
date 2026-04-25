@@ -453,8 +453,8 @@ describe("NotificationBell", () => {
       await waitFor(() => expect(mockFeed).toHaveBeenCalled());
       await user.click(screen.getByRole("button", { name: /notifications/i }));
 
-      // Unread dots are w-2 h-2 rounded-full bg-[#d4af37]
-      const dots = container.querySelectorAll(".bg-\\[\\#d4af37\\].rounded-full.w-2.h-2");
+      // Unread dots are w-2 h-2 rounded-full bg-[#B23A3A]
+      const dots = container.querySelectorAll(".bg-\\[\\#B23A3A\\].rounded-full.w-2.h-2");
       expect(dots.length).toBeGreaterThan(0);
     });
 

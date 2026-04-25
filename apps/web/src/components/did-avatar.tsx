@@ -31,16 +31,19 @@ function hashDid(did: string): number[] {
   return bytes;
 }
 
-// Gold-adjacent palette derived from the Nous accent color
+// Editorial identicon palette — a warm-earth ramp around the Nous accent.
+// Limited and intentional: no neon, no pastels. Each color is a hex with
+// enough chroma to vary identifiers but enough quietness to belong on the
+// page surface.
 const PALETTE = [
-  "#d4af37", // gold
-  "#c4a030", // darker gold
-  "#b8860b", // dark goldenrod
-  "#daa520", // goldenrod
-  "#cd853f", // peru
-  "#d4a574", // warm tan
-  "#c9b458", // brass
-  "#a0845c", // warm brown
+  "#B23A3A", // oxblood
+  "#7A2A2A", // oxblood-dim
+  "#8FA48A", // sage
+  "#C2785A", // clay
+  "#6F6A60", // stone
+  "#A4604A", // burnt sienna
+  "#C9C3B6", // ivory-dim
+  "#8A8478", // umber
 ];
 
 function deriveColor(bytes: number[]): string {

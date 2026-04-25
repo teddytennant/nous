@@ -165,7 +165,7 @@ describe("AI page", () => {
     it("defaults to chat tab", () => {
       renderAI();
       const chatTab = screen.getByText("chat");
-      expect(chatTab.className).toContain("d4af37"); // gold = active
+      expect(chatTab.className).toContain("B23A3A"); // gold = active
     });
   });
 

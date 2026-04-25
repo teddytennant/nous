@@ -116,7 +116,7 @@ describe("OfflineState", () => {
     it("renders disconnect X mark in gold", () => {
       const { container } = render(<OfflineState />);
       const svg = container.querySelector("svg.offline-illustration");
-      const goldLines = svg?.querySelectorAll('line[stroke="#d4af37"]');
+      const goldLines = svg?.querySelectorAll('line[stroke="#B23A3A"]');
       expect(goldLines?.length).toBe(2); // two lines forming the X
     });
 
@@ -258,7 +258,7 @@ describe("ConnectingState", () => {
   it("has gold background on the pulse dot", () => {
     const { container } = render(<ConnectingState />);
     const dot = container.querySelector(".connecting-pulse");
-    expect(dot?.className).toContain("bg-[#d4af37]");
+    expect(dot?.className).toContain("bg-[#B23A3A]");
   });
 
   it("renders with offline-state-enter animation class", () => {

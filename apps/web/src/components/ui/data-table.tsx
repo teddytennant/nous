@@ -59,9 +59,9 @@ function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
     return <ArrowUpDown className="w-3 h-3 text-neutral-800 ml-1 inline-block" />;
   }
   if (dir === "asc") {
-    return <ArrowUp className="w-3 h-3 text-[#d4af37] ml-1 inline-block" />;
+    return <ArrowUp className="w-3 h-3 text-[#B23A3A] ml-1 inline-block" />;
   }
-  return <ArrowDown className="w-3 h-3 text-[#d4af37] ml-1 inline-block" />;
+  return <ArrowDown className="w-3 h-3 text-[#B23A3A] ml-1 inline-block" />;
 }
 
 // ── Responsive hide classes ─────────────────────────────────────────────

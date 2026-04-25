@@ -465,7 +465,7 @@ export default function Home() {
             </a>
             <Link
               href="/dashboard"
-              className="text-xs font-medium bg-white text-black px-4 py-1.5 rounded-md hover:bg-neutral-200 transition-colors duration-200 hidden sm:block"
+              className="text-xs font-medium bg-oxblood text-ivory px-4 py-1.5 rounded-[2px] hover:bg-oxblood-dim transition-colors duration-[160ms] hidden sm:block"
             >
               Open App
             </Link>
@@ -531,7 +531,7 @@ export default function Home() {
               <Link
                 href="/dashboard"
                 onClick={closeMobileMenu}
-                className="flex items-center justify-center gap-2 bg-[#d4af37] text-black px-6 py-2.5 rounded-md text-sm font-medium hover:bg-[#c4a030] transition-colors duration-200"
+                className="flex items-center justify-center gap-2 bg-oxblood text-ivory px-6 py-2.5 rounded-[2px] text-sm font-medium hover:bg-oxblood-dim transition-colors duration-[160ms]"
               >
                 Open App
                 <ArrowRight className="w-4 h-4" />
@@ -550,84 +550,102 @@ export default function Home() {
         />
       )}
 
-      {/* Hero */}
-      <section className="relative flex flex-col items-center justify-center px-6 pt-40 pb-32 overflow-hidden">
-        {/* Network constellation background */}
-        <div className="absolute inset-0 pointer-events-none">
+      {/* Hero — editorial composition.
+          Statement-left, taut feature-list-right. Single oxblood mark inline.
+          Mono subhead carries peer/release stats. No glow, no orb. */}
+      <section className="relative px-6 pt-36 pb-28 overflow-hidden">
+        {/* Quiet network lattice — hairlines, no animation. */}
+        <div className="absolute inset-0 pointer-events-none opacity-50">
           <HeroNetwork />
         </div>
-        {/* Animated gradient orb */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] opacity-[0.07] pointer-events-none">
-          <div className="w-full h-full rounded-full bg-[radial-gradient(circle,#d4af37_0%,transparent_70%)] animate-[pulse_6s_ease-in-out_infinite]" />
-        </div>
 
-        <div className="relative max-w-3xl text-center hero-stagger">
-          <div className="inline-flex items-center gap-2 mb-8">
-            <Badge
-              variant="outline"
-              className="text-[10px] font-mono tracking-wider uppercase px-3 py-1 border-white/10"
-            >
-              v0.1.0
-            </Badge>
-            <Badge
-              variant="outline"
-              className="text-[10px] font-mono tracking-wider uppercase px-3 py-1 border-[#d4af37]/30 text-[#d4af37]"
-            >
-              Private Alpha
-            </Badge>
+        <div className="relative max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-x-10 gap-y-12 items-end">
+          {/* Statement column — sits in cols 1–8, asymmetric. */}
+          <div className="lg:col-span-8">
+            <p className="text-[10px] font-mono uppercase tracking-[0.25em] text-stone mb-8">
+              v0.1.0  ·  private alpha
+            </p>
+
+            <h1 className="font-display text-[3rem] sm:text-[4rem] md:text-[5rem] lg:text-[6rem] leading-[1.02] tracking-[-0.025em] text-foreground mb-8">
+              The sovereign
+              <br />
+              everything-app
+              <span className="text-oxblood">.</span>
+            </h1>
+
+            <p className="font-mono text-[0.8125rem] text-stone tracking-[0.02em] mb-10 max-w-xl">
+              <TypeWriter
+                phrases={[
+                  "own your identity.",
+                  "encrypt everything.",
+                  "govern your community.",
+                  "control your finances.",
+                  "think with local ai.",
+                  "no servers. no compromises.",
+                ]}
+                typeSpeed={45}
+                eraseSpeed={25}
+                pauseAfterType={2200}
+                pauseAfterErase={300}
+              />
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-start gap-3">
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center gap-2 bg-oxblood text-ivory px-6 h-10 text-sm font-medium hover:bg-oxblood-dim transition-colors duration-[160ms]"
+              >
+                Open the app
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+              <Link
+                href="/download"
+                className="inline-flex items-center gap-2 border border-rule text-foreground px-6 h-10 text-sm font-light hover:border-foreground/40 transition-colors duration-[160ms]"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Download
+              </Link>
+            </div>
           </div>
 
-          <h1 className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-extralight tracking-[-0.05em] mb-6 hero-title">
-            Nous
-          </h1>
-
-          <p className="text-lg sm:text-xl md:text-2xl text-neutral-400 font-extralight leading-relaxed max-w-2xl mx-auto mb-4">
-            The sovereign everything-app.
-          </p>
-
-          <p className="text-sm sm:text-base text-[#d4af37]/70 font-light leading-relaxed max-w-lg mx-auto mb-4 h-6">
-            <TypeWriter
-              phrases={[
-                "Own your identity.",
-                "Encrypt everything.",
-                "Govern your community.",
-                "Control your finances.",
-                "Think with local AI.",
-                "No servers. No compromises.",
-              ]}
-              typeSpeed={45}
-              eraseSpeed={25}
-              pauseAfterType={2200}
-              pauseAfterErase={300}
-            />
-          </p>
-
-          <p className="text-sm sm:text-base text-neutral-600 font-light leading-relaxed max-w-lg mx-auto mb-12">
-            Identity, messaging, governance, payments, AI — unified under one
-            encrypted, decentralized protocol.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              href="/dashboard"
-              className="group flex items-center gap-2 bg-[#d4af37] text-black px-8 py-3 rounded-md text-sm font-medium hover:bg-[#c4a030] transition-all duration-200 glow-pulse"
-            >
-              Get Started
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-200" />
-            </Link>
-            <Link
-              href="/download"
-              className="flex items-center gap-2 border border-white/10 px-8 py-3 rounded-md text-sm font-light text-neutral-300 hover:border-white/20 hover:text-white transition-all duration-200"
-            >
-              <Download className="w-4 h-4" />
-              Download
-            </Link>
-          </div>
+          {/* Feature-list column — taut mono entries, hairline-separated. */}
+          <aside className="lg:col-span-4 lg:pl-6 lg:border-l border-rule">
+            <p className="text-[10px] font-mono uppercase tracking-[0.25em] text-stone mb-5">
+              Index
+            </p>
+            <ul className="space-y-0">
+              {[
+                ["01", "Identity", "did:key + zk-snarks"],
+                ["02", "Messaging", "x25519 + aes-gcm"],
+                ["03", "Governance", "quadratic voting"],
+                ["04", "Payments", "multi-chain wallet"],
+                ["05", "Social", "nostr + activitypub"],
+                ["06", "Storage", "crdts + ipfs"],
+                ["07", "AI", "local inference"],
+                ["08", "Browser", "ipfs + ens"],
+              ].map(([no, name, tag]) => (
+                <li
+                  key={no}
+                  className="flex items-baseline gap-3 py-2 border-t border-rule first:border-t-0"
+                >
+                  <span className="text-[10px] font-mono text-stone tabular-nums w-6 shrink-0">
+                    {no}
+                  </span>
+                  <span className="text-sm font-light text-foreground flex-1">
+                    {name}
+                  </span>
+                  <span className="text-[10px] font-mono text-stone">
+                    {tag}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </aside>
         </div>
       </section>
 
-      {/* Divider line */}
-      <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      {/* Hairline divider — replaces gradient. */}
+      <div className="w-full h-px bg-rule" />
 
       {/* Features */}
       <section id="features" className="px-6 py-28 max-w-6xl mx-auto w-full scroll-mt-16">
@@ -653,8 +671,8 @@ export default function Home() {
                 className="bg-black p-8 sm:p-10 group hover:bg-white/[0.02] transition-colors duration-200"
               >
                 <div className="flex items-start gap-4">
-                  <div className="shrink-0 w-10 h-10 rounded-md bg-white/[0.04] border border-white/[0.06] flex items-center justify-center group-hover:border-[#d4af37]/20 group-hover:bg-[#d4af37]/[0.04] transition-colors duration-300">
-                    <Icon className="w-4.5 h-4.5 text-neutral-500 group-hover:text-[#d4af37] transition-colors duration-300" />
+                  <div className="shrink-0 w-10 h-10 rounded-md bg-white/[0.04] border border-white/[0.06] flex items-center justify-center group-hover:border-[#B23A3A]/20 group-hover:bg-[#B23A3A]/[0.04] transition-colors duration-300">
+                    <Icon className="w-4.5 h-4.5 text-neutral-500 group-hover:text-[#B23A3A] transition-colors duration-300" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-3">
@@ -678,7 +696,7 @@ export default function Home() {
       </section>
 
       {/* Divider */}
-      <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      <div className="w-full h-px bg-rule" />
 
       {/* Ownership — Why Nous Matters */}
       <section className="px-6 py-28 max-w-6xl mx-auto w-full">
@@ -703,7 +721,7 @@ export default function Home() {
                 <th className="text-left text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-600 pb-6 pr-6 w-[31%]">
                   Status Quo
                 </th>
-                <th className="text-left text-[10px] font-mono uppercase tracking-[0.15em] text-[#d4af37] pb-6 w-[31%]">
+                <th className="text-left text-[10px] font-mono uppercase tracking-[0.15em] text-[#B23A3A] pb-6 w-[31%]">
                   Nous
                 </th>
               </tr>
@@ -720,7 +738,7 @@ export default function Home() {
                   <td className="py-5 pr-6 text-sm font-light text-neutral-600">
                     {row.legacy}
                   </td>
-                  <td className="py-5 text-sm font-light text-neutral-300 group-hover:text-[#d4af37] transition-colors duration-200">
+                  <td className="py-5 text-sm font-light text-neutral-300 group-hover:text-[#B23A3A] transition-colors duration-200">
                     {row.nous}
                   </td>
                 </tr>
@@ -752,7 +770,7 @@ export default function Home() {
       </section>
 
       {/* Divider */}
-      <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      <div className="w-full h-px bg-rule" />
 
       {/* Who Is This For */}
       <section className="px-6 py-28 max-w-6xl mx-auto w-full">
@@ -777,8 +795,8 @@ export default function Home() {
                 key={persona.title}
                 className="bg-black p-8 sm:p-10 group hover:bg-white/[0.02] transition-colors duration-200"
               >
-                <div className="w-10 h-10 rounded-md bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mb-6 group-hover:border-[#d4af37]/20 group-hover:bg-[#d4af37]/[0.04] transition-colors duration-300">
-                  <Icon className="w-4.5 h-4.5 text-neutral-500 group-hover:text-[#d4af37] transition-colors duration-300" />
+                <div className="w-10 h-10 rounded-md bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mb-6 group-hover:border-[#B23A3A]/20 group-hover:bg-[#B23A3A]/[0.04] transition-colors duration-300">
+                  <Icon className="w-4.5 h-4.5 text-neutral-500 group-hover:text-[#B23A3A] transition-colors duration-300" />
                 </div>
                 <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-700 mb-2">
                   {persona.title}
@@ -795,7 +813,7 @@ export default function Home() {
                       key={f}
                       className="flex items-center gap-2 text-xs font-light text-neutral-600 group-hover:text-neutral-400 transition-colors duration-200"
                     >
-                      <span className="w-1 h-1 rounded-full bg-[#d4af37]/40 shrink-0" />
+                      <span className="w-1 h-1 rounded-full bg-[#B23A3A]/40 shrink-0" />
                       {f}
                     </li>
                   ))}
@@ -808,7 +826,7 @@ export default function Home() {
       </section>
 
       {/* Divider */}
-      <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      <div className="w-full h-px bg-rule" />
 
       {/* App Preview */}
       <section className="px-6 py-28 max-w-6xl mx-auto w-full">
@@ -837,7 +855,7 @@ export default function Home() {
       </section>
 
       {/* Divider */}
-      <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      <div className="w-full h-px bg-rule" />
 
       {/* How It Works — Terminal Demo */}
       <section className="px-6 py-28 max-w-6xl mx-auto w-full">
@@ -865,7 +883,7 @@ export default function Home() {
       </section>
 
       {/* Divider */}
-      <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      <div className="w-full h-px bg-rule" />
 
       {/* Topology */}
       <section className="px-6 py-28 max-w-6xl mx-auto w-full">
@@ -894,7 +912,7 @@ export default function Home() {
       </section>
 
       {/* Divider */}
-      <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      <div className="w-full h-px bg-rule" />
 
       {/* Download */}
       <section id="download" className="px-6 py-28 max-w-6xl mx-auto w-full scroll-mt-16">
@@ -921,12 +939,12 @@ export default function Home() {
               }
               className={`group flex items-center gap-4 p-6 border border-white/[0.08] rounded-md transition-all duration-200 ${
                 primaryDownload.file
-                  ? "hover:border-[#d4af37]/30 hover:bg-[#d4af37]/[0.02] cursor-pointer"
+                  ? "hover:border-[#B23A3A]/30 hover:bg-[#B23A3A]/[0.02] cursor-pointer"
                   : "opacity-50 cursor-not-allowed"
               }`}
             >
-              <div className="w-12 h-12 rounded-md bg-white/[0.04] border border-white/[0.06] flex items-center justify-center group-hover:border-[#d4af37]/20 transition-colors duration-200">
-                <primaryDownload.icon className="w-5 h-5 text-neutral-400 group-hover:text-[#d4af37] transition-colors duration-200" />
+              <div className="w-12 h-12 rounded-md bg-white/[0.04] border border-white/[0.06] flex items-center justify-center group-hover:border-[#B23A3A]/20 transition-colors duration-200">
+                <primaryDownload.icon className="w-5 h-5 text-neutral-400 group-hover:text-[#B23A3A] transition-colors duration-200" />
               </div>
               <div>
                 <p className="text-sm font-medium mb-0.5">
@@ -937,7 +955,7 @@ export default function Home() {
                 </p>
               </div>
               {primaryDownload.file && (
-                <ArrowRight className="w-4 h-4 text-neutral-700 ml-auto group-hover:text-[#d4af37] group-hover:translate-x-0.5 transition-all duration-200" />
+                <ArrowRight className="w-4 h-4 text-neutral-700 ml-auto group-hover:text-[#B23A3A] group-hover:translate-x-0.5 transition-all duration-200" />
               )}
             </a>
 
@@ -991,7 +1009,7 @@ export default function Home() {
             </div>
             <Link
               href="/download"
-              className="flex items-center gap-2 mt-4 px-4 py-2 text-xs text-neutral-500 hover:text-[#d4af37] transition-colors duration-200 link-underline"
+              className="flex items-center gap-2 mt-4 px-4 py-2 text-xs text-neutral-500 hover:text-[#B23A3A] transition-colors duration-200 link-underline"
             >
               View all platforms, install guides & verification
               <ArrowRight className="w-3 h-3" />
@@ -1002,7 +1020,7 @@ export default function Home() {
       </section>
 
       {/* Divider */}
-      <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      <div className="w-full h-px bg-rule" />
 
       {/* Primitives */}
       <section className="px-6 py-28 max-w-6xl mx-auto w-full">
@@ -1024,7 +1042,7 @@ export default function Home() {
               <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-700 mb-2 group-hover:text-neutral-500 transition-colors duration-200">
                 {label}
               </p>
-              <p className="text-sm font-light tracking-wide group-hover:text-[#d4af37] transition-colors duration-200">
+              <p className="text-sm font-light tracking-wide group-hover:text-[#B23A3A] transition-colors duration-200">
                 {value}
               </p>
             </div>
@@ -1034,7 +1052,7 @@ export default function Home() {
       </section>
 
       {/* Divider */}
-      <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      <div className="w-full h-px bg-rule" />
 
       {/* By the Numbers */}
       <section className="px-6 py-28 max-w-6xl mx-auto w-full">
@@ -1065,7 +1083,7 @@ export default function Home() {
               key={stat.label}
               className="bg-black p-8 sm:p-10 group hover:bg-white/[0.02] transition-colors duration-200"
             >
-              <p className="text-4xl sm:text-5xl font-extralight tracking-[-0.03em] text-white group-hover:text-[#d4af37] transition-colors duration-300 mb-3 tabular-nums">
+              <p className="text-4xl sm:text-5xl font-extralight tracking-[-0.03em] text-white group-hover:text-[#B23A3A] transition-colors duration-300 mb-3 tabular-nums">
                 <CountUp target={stat.value} suffix={stat.suffix} />
               </p>
               <p className="text-xs font-mono uppercase tracking-[0.2em] text-neutral-500 mb-2">
@@ -1081,7 +1099,7 @@ export default function Home() {
       </section>
 
       {/* Divider */}
-      <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      <div className="w-full h-px bg-rule" />
 
       {/* FAQ */}
       <RevealOnScroll>
@@ -1089,7 +1107,7 @@ export default function Home() {
       </RevealOnScroll>
 
       {/* Divider */}
-      <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      <div className="w-full h-px bg-rule" />
 
       {/* Community */}
       <RevealOnScroll>
@@ -1097,7 +1115,7 @@ export default function Home() {
       </RevealOnScroll>
 
       {/* Divider */}
-      <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      <div className="w-full h-px bg-rule" />
 
       {/* Roadmap */}
       <RevealOnScroll>
@@ -1105,7 +1123,7 @@ export default function Home() {
       </RevealOnScroll>
 
       {/* Divider */}
-      <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      <div className="w-full h-px bg-rule" />
 
       {/* Open Source */}
       <RevealOnScroll>
@@ -1113,14 +1131,14 @@ export default function Home() {
       </RevealOnScroll>
 
       {/* Divider */}
-      <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      <div className="w-full h-px bg-rule" />
 
       {/* CTA */}
       <section className="px-6 py-32 text-center">
         <RevealOnScroll>
           <p className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-[-0.03em] mb-4">
             Sovereign. Encrypted.{" "}
-            <span className="text-[#d4af37]">Unstoppable.</span>
+            <span className="text-[#B23A3A]">Unstoppable.</span>
           </p>
           <p className="text-sm text-neutral-600 font-light mb-12 max-w-md mx-auto">
             Join the private alpha and help build the future of decentralized
@@ -1131,7 +1149,7 @@ export default function Home() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
             href="/dashboard"
-            className="group flex items-center gap-2 bg-white text-black px-8 py-3 rounded-md text-sm font-medium hover:bg-neutral-200 transition-colors duration-200"
+            className="group flex items-center gap-2 bg-oxblood text-ivory px-8 py-3 rounded-[2px] text-sm font-medium hover:bg-oxblood-dim transition-colors duration-[160ms]"
           >
             Open App
             <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-200" />

@@ -406,8 +406,8 @@ export function PeerGraph({ peers, className }: PeerGraphProps) {
         <defs>
           {/* Center node gold glow */}
           <radialGradient id="peer-center-glow">
-            <stop offset="0%" stopColor="#d4af37" stopOpacity="0.15" />
-            <stop offset="100%" stopColor="#d4af37" stopOpacity="0" />
+            <stop offset="0%" stopColor="#B23A3A" stopOpacity="0.15" />
+            <stop offset="100%" stopColor="#B23A3A" stopOpacity="0" />
           </radialGradient>
 
           {/* Grid pattern for subtle background */}
@@ -465,15 +465,15 @@ export function PeerGraph({ peers, className }: PeerGraphProps) {
           cy={cy}
           r={10}
           fill="#0a0a0a"
-          stroke="#d4af37"
+          stroke="#B23A3A"
           strokeWidth={1.5}
         />
-        <circle cx={cx} cy={cy} r={3.5} fill="#d4af37" opacity={0.8} />
+        <circle cx={cx} cy={cy} r={3.5} fill="#B23A3A" opacity={0.8} />
         <text
           x={cx}
           y={cy + 24}
           textAnchor="middle"
-          fill="#d4af37"
+          fill="#B23A3A"
           fontSize="9"
           fontFamily="var(--font-mono)"
           letterSpacing="0.1em"

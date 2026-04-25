@@ -1,28 +1,28 @@
 /**
- * Animated network constellation for the landing page hero.
- * Pure SVG + CSS animations. No JavaScript animation loop.
- * Shows a subtle, slowly-moving network of nodes and connections
- * representing the decentralized nature of Nous.
+ * Editorial hero composition. A small constellation of nodes connected by
+ * hairlines on `--rule`. No glow, no breathing, no pulse ring. Renders
+ * statically — present, not animated.
+ *
+ * Two nodes carry the accent (`--oxblood`) — the center and one peer —
+ * because the principle is "stamp, not wash."
  */
 
-// Node positions are fixed — animation is CSS-only (orbital drift)
 const nodes = [
-  { x: 50, y: 50, r: 3, gold: true, delay: 0 },     // center
-  { x: 22, y: 28, r: 1.5, gold: false, delay: 0.2 },
-  { x: 78, y: 24, r: 2, gold: true, delay: 0.4 },
-  { x: 35, y: 72, r: 1.5, gold: false, delay: 0.6 },
-  { x: 72, y: 68, r: 1.5, gold: true, delay: 0.8 },
-  { x: 15, y: 52, r: 1, gold: false, delay: 1.0 },
-  { x: 85, y: 48, r: 1, gold: false, delay: 1.2 },
-  { x: 42, y: 18, r: 1, gold: false, delay: 1.4 },
-  { x: 58, y: 82, r: 1, gold: false, delay: 1.6 },
-  { x: 30, y: 45, r: 1.5, gold: true, delay: 0.3 },
-  { x: 68, y: 38, r: 1.5, gold: false, delay: 0.5 },
-  { x: 55, y: 30, r: 1, gold: false, delay: 0.7 },
-  { x: 40, y: 60, r: 1, gold: false, delay: 0.9 },
+  { x: 50, y: 50, r: 2.4, accent: true },   // center
+  { x: 22, y: 28, r: 1.2 },
+  { x: 78, y: 24, r: 1.6, accent: true },
+  { x: 35, y: 72, r: 1.2 },
+  { x: 72, y: 68, r: 1.2 },
+  { x: 15, y: 52, r: 0.9 },
+  { x: 85, y: 48, r: 0.9 },
+  { x: 42, y: 18, r: 0.9 },
+  { x: 58, y: 82, r: 0.9 },
+  { x: 30, y: 45, r: 1.2 },
+  { x: 68, y: 38, r: 1.2 },
+  { x: 55, y: 30, r: 0.9 },
+  { x: 40, y: 60, r: 0.9 },
 ];
 
-// Connections between nodes (indices)
 const edges: [number, number][] = [
   [0, 1], [0, 2], [0, 3], [0, 4], [0, 9], [0, 10],
   [1, 7], [1, 5], [1, 9],
@@ -40,14 +40,6 @@ export function HeroNetwork() {
       preserveAspectRatio="xMidYMid slice"
       aria-hidden="true"
     >
-      <defs>
-        {/* Soft glow for gold nodes */}
-        <filter id="hero-glow" x="-100%" y="-100%" width="300%" height="300%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" />
-        </filter>
-      </defs>
-
-      {/* Edges */}
       {edges.map(([a, b], i) => (
         <line
           key={`e${i}`}
@@ -55,56 +47,21 @@ export function HeroNetwork() {
           y1={nodes[a].y}
           x2={nodes[b].x}
           y2={nodes[b].y}
-          stroke="white"
-          strokeOpacity="0.04"
-          strokeWidth="0.3"
-          className="hero-edge"
-          style={{ animationDelay: `${i * 0.15}s` }}
+          stroke="var(--rule)"
+          strokeWidth="0.25"
         />
       ))}
 
-      {/* Node glow layer (behind) */}
-      {nodes
-        .filter((n) => n.gold)
-        .map((n, i) => (
-          <circle
-            key={`glow${i}`}
-            cx={n.x}
-            cy={n.y}
-            r={n.r * 3}
-            fill="#d4af37"
-            opacity="0.03"
-            filter="url(#hero-glow)"
-            className="hero-node-glow"
-            style={{ animationDelay: `${n.delay}s` }}
-          />
-        ))}
-
-      {/* Nodes */}
       {nodes.map((n, i) => (
         <circle
           key={`n${i}`}
           cx={n.x}
           cy={n.y}
           r={n.r}
-          fill={n.gold ? "#d4af37" : "white"}
-          opacity={n.gold ? 0.2 : 0.06}
-          className="hero-node"
-          style={{ animationDelay: `${n.delay}s` }}
+          fill={n.accent ? "var(--oxblood)" : "var(--ivory-dim)"}
+          opacity={n.accent ? 0.85 : 0.18}
         />
       ))}
-
-      {/* Animated pulse ring on center node */}
-      <circle
-        cx={50}
-        cy={50}
-        r="6"
-        fill="none"
-        stroke="#d4af37"
-        strokeWidth="0.3"
-        opacity="0"
-        className="hero-pulse-ring"
-      />
     </svg>
   );
 }

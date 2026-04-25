@@ -227,12 +227,12 @@ export default function IdentityPage() {
               onChange={(e) => setDisplayName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && createIdentity()}
               placeholder="Display name (optional)"
-              className="w-full bg-white/[0.02] border border-white/[0.06] focus:border-[#d4af37]/30 text-sm font-light px-4 py-3 rounded-sm outline-none placeholder:text-neutral-700 transition-colors duration-200"
+              className="w-full bg-white/[0.02] border border-white/[0.06] focus:border-[#B23A3A]/30 text-sm font-light px-4 py-3 rounded-sm outline-none placeholder:text-neutral-700 transition-colors duration-200"
             />
             <button
               onClick={createIdentity}
               disabled={creating}
-              className="w-full flex items-center justify-center gap-2 bg-[#d4af37] text-black px-6 py-3 rounded-md text-sm font-medium hover:bg-[#c4a030] transition-colors duration-200 disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 bg-[#B23A3A] text-black px-6 py-3 rounded-md text-sm font-medium hover:bg-[#7A2A2A] transition-colors duration-200 disabled:opacity-50"
             >
               {creating ? (
                 "Generating..."
@@ -266,7 +266,7 @@ export default function IdentityPage() {
         <section>
           <div className="bg-white/[0.01] border border-white/[0.06] overflow-hidden">
             {/* Decorative top bar — subtle gold gradient */}
-            <div className="h-px bg-gradient-to-r from-transparent via-[#d4af37]/30 to-transparent" />
+            <div className="h-px bg-gradient-to-r from-transparent via-[#B23A3A]/30 to-transparent" />
 
             <div className="p-6 sm:p-8">
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
@@ -290,7 +290,7 @@ export default function IdentityPage() {
                         }}
                         onBlur={saveDisplayName}
                         placeholder="Display name"
-                        className="bg-white/[0.03] border border-[#d4af37]/30 text-lg font-light px-3 py-1 rounded-sm outline-none placeholder:text-neutral-700 w-full max-w-[240px] transition-colors duration-200"
+                        className="bg-white/[0.03] border border-[#B23A3A]/30 text-lg font-light px-3 py-1 rounded-sm outline-none placeholder:text-neutral-700 w-full max-w-[240px] transition-colors duration-200"
                       />
                     ) : (
                       <>
@@ -302,7 +302,7 @@ export default function IdentityPage() {
                           className="p-1 rounded hover:bg-white/[0.04] transition-colors duration-150"
                           aria-label="Edit display name"
                         >
-                          <Pencil className="w-3.5 h-3.5 text-neutral-600 hover:text-[#d4af37] transition-colors duration-150" />
+                          <Pencil className="w-3.5 h-3.5 text-neutral-600 hover:text-[#B23A3A] transition-colors duration-150" />
                         </button>
                       </>
                     )}
@@ -321,7 +321,7 @@ export default function IdentityPage() {
                     {copied ? (
                       <Check className="w-3 h-3 text-emerald-500" />
                     ) : (
-                      <Copy className="w-3 h-3 text-neutral-700 group-hover:text-[#d4af37] transition-colors duration-150" />
+                      <Copy className="w-3 h-3 text-neutral-700 group-hover:text-[#B23A3A] transition-colors duration-150" />
                     )}
                   </button>
 
@@ -329,7 +329,7 @@ export default function IdentityPage() {
                   <div className="flex items-center justify-center sm:justify-start gap-3">
                     <button
                       onClick={copyDid}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-light border border-white/[0.06] rounded-md hover:border-[#d4af37]/20 hover:bg-[#d4af37]/[0.02] transition-all duration-200"
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-light border border-white/[0.06] rounded-md hover:border-[#B23A3A]/20 hover:bg-[#B23A3A]/[0.02] transition-all duration-200"
                     >
                       <Copy className="w-3 h-3" />
                       Share DID
@@ -354,7 +354,7 @@ export default function IdentityPage() {
             </div>
 
             {/* Bottom decorative bar */}
-            <div className="h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
+            <div className="h-px bg-rule" />
           </div>
         </section>
 
@@ -363,12 +363,12 @@ export default function IdentityPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-white/[0.04] overflow-hidden">
             <div className="bg-black p-6 group hover:bg-white/[0.01] transition-colors duration-200">
               <div className="flex items-center gap-2 mb-3">
-                <Star className="w-3 h-3 text-neutral-700 group-hover:text-[#d4af37] transition-colors duration-300" />
+                <Star className="w-3 h-3 text-neutral-700 group-hover:text-[#B23A3A] transition-colors duration-300" />
                 <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-600">
                   Reputation
                 </p>
               </div>
-              <p className="text-2xl font-extralight tabular-nums group-hover:text-[#d4af37] transition-colors duration-300">
+              <p className="text-2xl font-extralight tabular-nums group-hover:text-[#B23A3A] transition-colors duration-300">
                 {reputation?.total_score ?? 0}
               </p>
               <p className="text-[10px] text-neutral-700 mt-1">
@@ -377,12 +377,12 @@ export default function IdentityPage() {
             </div>
             <div className="bg-black p-6 group hover:bg-white/[0.01] transition-colors duration-200">
               <div className="flex items-center gap-2 mb-3">
-                <Shield className="w-3 h-3 text-neutral-700 group-hover:text-[#d4af37] transition-colors duration-300" />
+                <Shield className="w-3 h-3 text-neutral-700 group-hover:text-[#B23A3A] transition-colors duration-300" />
                 <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-600">
                   Credentials
                 </p>
               </div>
-              <p className="text-2xl font-extralight tabular-nums group-hover:text-[#d4af37] transition-colors duration-300">
+              <p className="text-2xl font-extralight tabular-nums group-hover:text-[#B23A3A] transition-colors duration-300">
                 {credentials.length}
               </p>
               <p className="text-[10px] text-neutral-700 mt-1">
@@ -391,12 +391,12 @@ export default function IdentityPage() {
             </div>
             <div className="bg-black p-6 group hover:bg-white/[0.01] transition-colors duration-200">
               <div className="flex items-center gap-2 mb-3">
-                <Key className="w-3 h-3 text-neutral-700 group-hover:text-[#d4af37] transition-colors duration-300" />
+                <Key className="w-3 h-3 text-neutral-700 group-hover:text-[#B23A3A] transition-colors duration-300" />
                 <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-600">
                   Key Pairs
                 </p>
               </div>
-              <p className="text-2xl font-extralight tabular-nums group-hover:text-[#d4af37] transition-colors duration-300">
+              <p className="text-2xl font-extralight tabular-nums group-hover:text-[#B23A3A] transition-colors duration-300">
                 2
               </p>
               <p className="text-[10px] text-neutral-700 mt-1">
@@ -428,7 +428,7 @@ export default function IdentityPage() {
                     </div>
                     <div className="h-1 bg-white/[0.04] rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-[#d4af37]/60 rounded-full transition-all duration-700 ease-out group-hover:bg-[#d4af37] "
+                        className="h-full bg-[#B23A3A]/60 rounded-full transition-all duration-700 ease-out group-hover:bg-[#B23A3A] "
                         style={{ width: `${pct}%` }}
                       />
                     </div>
@@ -447,8 +447,8 @@ export default function IdentityPage() {
           <div className="space-y-px">
             <div className="flex items-center justify-between py-4 px-5 bg-white/[0.01] border border-white/[0.06] border-b-0 card-lift">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-md bg-[#d4af37]/[0.06] border border-[#d4af37]/10 flex items-center justify-center">
-                  <Key className="w-3.5 h-3.5 text-[#d4af37]/60" />
+                <div className="w-8 h-8 rounded-md bg-[#B23A3A]/[0.06] border border-[#B23A3A]/10 flex items-center justify-center">
+                  <Key className="w-3.5 h-3.5 text-[#B23A3A]/60" />
                 </div>
                 <div>
                   <p className="text-sm font-light">Signing</p>
@@ -507,7 +507,7 @@ export default function IdentityPage() {
               title="No credentials yet"
               description="Verifiable credentials are issued by trusted parties to attest to claims about your identity. They'll appear here once issued."
               action={
-                <button className="flex items-center gap-1.5 text-xs text-[#d4af37] font-medium hover:text-[#c4a030] transition-colors duration-200">
+                <button className="flex items-center gap-1.5 text-xs text-[#B23A3A] font-medium hover:text-[#7A2A2A] transition-colors duration-200">
                   Learn about credentials
                   <ArrowRight className="w-3 h-3" />
                 </button>
@@ -527,7 +527,7 @@ export default function IdentityPage() {
                       </h3>
                       <span
                         className={`text-[10px] font-mono uppercase tracking-wider ${
-                          cred.expired ? "text-red-400" : "text-[#d4af37]"
+                          cred.expired ? "text-red-400" : "text-[#B23A3A]"
                         }`}
                       >
                         {cred.expired ? "expired" : "valid"}

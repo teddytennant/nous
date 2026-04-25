@@ -132,7 +132,7 @@ describe("ProductTour", () => {
         container.querySelectorAll("[class*='h-1'][class*='rounded-full']"),
       );
       const activeDot = stepDots.find(
-        (d) => d.className.includes("w-4") && d.className.includes("bg-[#d4af37]"),
+        (d) => d.className.includes("w-4") && d.className.includes("bg-[#B23A3A]"),
       );
       expect(activeDot).toBeTruthy();
     });

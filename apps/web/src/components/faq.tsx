@@ -106,7 +106,7 @@ function AccordionItem({
         type="button"
         onClick={onToggle}
         aria-expanded={isOpen}
-        className="flex items-center justify-between w-full py-5 px-1 text-left group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#d4af37]/50 rounded-sm"
+        className="flex items-center justify-between w-full py-5 px-1 text-left group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#B23A3A]/50 rounded-sm"
       >
         <span
           className={`text-sm font-light pr-8 transition-colors duration-200 ${
@@ -118,7 +118,7 @@ function AccordionItem({
         <ChevronDown
           className={`w-4 h-4 shrink-0 transition-all duration-200 ${
             isOpen
-              ? "text-[#d4af37] rotate-180"
+              ? "text-[#B23A3A] rotate-180"
               : "text-neutral-700 group-hover:text-neutral-500"
           }`}
         />
@@ -209,7 +209,7 @@ export function FaqSection() {
               onKeyDown={(e) => handleTabKeyDown(e, i)}
               className={`text-left text-xs font-mono uppercase tracking-[0.15em] px-3 py-2 rounded-sm transition-colors duration-200 ${
                 activeCategory === i
-                  ? "text-[#d4af37] bg-[#d4af37]/[0.06]"
+                  ? "text-[#B23A3A] bg-[#B23A3A]/[0.06]"
                   : "text-neutral-600 hover:text-neutral-400 hover:bg-white/[0.02]"
               }`}
             >

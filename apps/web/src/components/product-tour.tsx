@@ -375,8 +375,8 @@ export function ProductTour() {
             {/* Header */}
             <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.06]">
               {Icon && (
-                <div className="w-8 h-8 rounded-md bg-[#d4af37]/[0.08] border border-[#d4af37]/20 flex items-center justify-center shrink-0">
-                  <Icon className="w-4 h-4 text-[#d4af37]" />
+                <div className="w-8 h-8 rounded-md bg-[#B23A3A]/[0.08] border border-[#B23A3A]/20 flex items-center justify-center shrink-0">
+                  <Icon className="w-4 h-4 text-[#B23A3A]" />
                 </div>
               )}
               <div className="flex-1 min-w-0">
@@ -407,9 +407,9 @@ export function ProductTour() {
                     key={i}
                     className={`h-1 rounded-full transition-all duration-200 ${
                       i === stepIndex
-                        ? "w-4 bg-[#d4af37]"
+                        ? "w-4 bg-[#B23A3A]"
                         : i < stepIndex
-                          ? "w-1.5 bg-[#d4af37]/40"
+                          ? "w-1.5 bg-[#B23A3A]/40"
                           : "w-1.5 bg-white/[0.08]"
                     }`}
                   />
@@ -432,7 +432,7 @@ export function ProductTour() {
                 )}
                 <button
                   onClick={handleNext}
-                  className="flex items-center gap-1 px-4 py-1.5 text-[10px] font-mono bg-[#d4af37] text-black rounded-sm hover:bg-[#c4a030] transition-colors duration-150"
+                  className="flex items-center gap-1 px-4 py-1.5 text-[10px] font-mono bg-[#B23A3A] text-black rounded-sm hover:bg-[#7A2A2A] transition-colors duration-150"
                 >
                   {stepIndex < TOUR_STEPS.length - 1 ? (
                     <>

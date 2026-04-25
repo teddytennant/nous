@@ -320,7 +320,7 @@ export default function MessagesPage() {
             </div>
             <div className="flex items-center gap-2">
               {totalUnread > 0 && (
-                <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[#d4af37] text-black text-[10px] font-mono font-medium unread-badge-enter">
+                <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[#B23A3A] text-black text-[10px] font-mono font-medium unread-badge-enter">
                   {totalUnread}
                 </span>
               )}
@@ -370,13 +370,13 @@ export default function MessagesPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => setCreateMode("dm")}
-                className="flex-1 text-[10px] font-mono uppercase tracking-wider py-2 border border-white/[0.06] text-neutral-600 hover:text-[#d4af37] hover:border-[#d4af37]/30 transition-all"
+                className="flex-1 text-[10px] font-mono uppercase tracking-wider py-2 border border-white/[0.06] text-neutral-600 hover:text-[#B23A3A] hover:border-[#B23A3A]/30 transition-all"
               >
                 New DM
               </button>
               <button
                 onClick={() => setCreateMode("group")}
-                className="flex-1 text-[10px] font-mono uppercase tracking-wider py-2 border border-white/[0.06] text-neutral-600 hover:text-[#d4af37] hover:border-[#d4af37]/30 transition-all"
+                className="flex-1 text-[10px] font-mono uppercase tracking-wider py-2 border border-white/[0.06] text-neutral-600 hover:text-[#B23A3A] hover:border-[#B23A3A]/30 transition-all"
               >
                 New Group
               </button>
@@ -392,7 +392,7 @@ export default function MessagesPage() {
                 autoFocus
               />
               <div className="flex gap-2">
-                <button onClick={createDM} className="flex-1 text-[10px] font-mono uppercase tracking-wider py-1.5 border border-[#d4af37]/30 text-[#d4af37]">
+                <button onClick={createDM} className="flex-1 text-[10px] font-mono uppercase tracking-wider py-1.5 border border-[#B23A3A]/30 text-[#B23A3A]">
                   Create
                 </button>
                 <button onClick={() => setCreateMode(null)} className="text-[10px] font-mono text-neutral-600 hover:text-white px-2">
@@ -417,7 +417,7 @@ export default function MessagesPage() {
                 rows={3}
               />
               <div className="flex gap-2">
-                <button onClick={createGroup} className="flex-1 text-[10px] font-mono uppercase tracking-wider py-1.5 border border-[#d4af37]/30 text-[#d4af37]">
+                <button onClick={createGroup} className="flex-1 text-[10px] font-mono uppercase tracking-wider py-1.5 border border-[#B23A3A]/30 text-[#B23A3A]">
                   Create
                 </button>
                 <button onClick={() => setCreateMode(null)} className="text-[10px] font-mono text-neutral-600 hover:text-white px-2">
@@ -454,7 +454,7 @@ export default function MessagesPage() {
                   <p className="text-xs text-neutral-600 font-light">No conversations match &ldquo;{searchQuery}&rdquo;</p>
                   <button
                     onClick={() => { setSearchQuery(""); searchInputRef.current?.focus(); }}
-                    className="text-[10px] font-mono text-[#d4af37] mt-2 hover:underline"
+                    className="text-[10px] font-mono text-[#B23A3A] mt-2 hover:underline"
                   >
                     Clear search
                   </button>
@@ -493,18 +493,18 @@ export default function MessagesPage() {
               className={cn(
                 "relative w-full text-left px-4 sm:px-6 py-3.5 transition-colors duration-150 border-b border-white/[0.03]",
                 selected === ch.id ? "bg-white/[0.03]" : "hover:bg-white/[0.015]",
-                isHighlighted && selected !== ch.id && "bg-[#d4af37]/[0.015]",
+                isHighlighted && selected !== ch.id && "bg-[#B23A3A]/[0.015]",
                 hasUnread && selected !== ch.id && "bg-white/[0.01]"
               )}
             >
               {isHighlighted && (
-                <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[#d4af37] rounded-full" />
+                <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[#B23A3A] rounded-full" />
               )}
               <div className="flex items-center gap-3">
                 <div className="relative shrink-0">
                   <Avatar did={avatarDid} size="sm" />
                   {hasUnread && (
-                    <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#d4af37] border-2 border-black unread-dot-enter" />
+                    <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#B23A3A] border-2 border-black unread-dot-enter" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -518,7 +518,7 @@ export default function MessagesPage() {
                     <Tooltip content={new Date(lastMsg ? lastMsg.timestamp : ch.created_at).toLocaleString()}>
                       <span className={cn(
                         "text-[10px] font-mono shrink-0 ml-2 cursor-default",
-                        hasUnread ? "text-[#d4af37]" : "text-neutral-700 hover:text-neutral-500 transition-colors duration-150"
+                        hasUnread ? "text-[#B23A3A]" : "text-neutral-700 hover:text-neutral-500 transition-colors duration-150"
                       )}>
                         {lastMsg ? timeAgo(lastMsg.timestamp) : timeAgo(ch.created_at)}
                       </span>
@@ -712,7 +712,7 @@ export default function MessagesPage() {
                 className={cn(
                   "shrink-0 w-8 h-8 flex items-center justify-center rounded-sm transition-all duration-150",
                   input.trim()
-                    ? "bg-[#d4af37] text-black hover:bg-[#c4a030]"
+                    ? "bg-[#B23A3A] text-black hover:bg-[#7A2A2A]"
                     : "bg-white/[0.04] text-neutral-700 cursor-not-allowed"
                 )}
               >

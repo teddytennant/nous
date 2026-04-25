@@ -42,7 +42,7 @@ function NousLogo() {
         cx="32"
         cy="32"
         r="28"
-        stroke="#d4af37"
+        stroke="#B23A3A"
         strokeWidth="0.5"
         opacity="0.3"
       />
@@ -56,20 +56,20 @@ function NousLogo() {
         opacity="0.15"
       />
       {/* Center node */}
-      <circle cx="32" cy="32" r="4" fill="#d4af37" opacity="0.2" />
-      <circle cx="32" cy="32" r="2" fill="#d4af37" opacity="0.6" />
+      <circle cx="32" cy="32" r="4" fill="#B23A3A" opacity="0.2" />
+      <circle cx="32" cy="32" r="2" fill="#B23A3A" opacity="0.6" />
       {/* Orbital nodes */}
-      <circle cx="32" cy="4" r="1.5" fill="#d4af37" opacity="0.4" />
+      <circle cx="32" cy="4" r="1.5" fill="#B23A3A" opacity="0.4" />
       <circle cx="56" cy="20" r="1.5" fill="white" opacity="0.2" />
       <circle cx="56" cy="44" r="1.5" fill="white" opacity="0.15" />
-      <circle cx="32" cy="60" r="1.5" fill="#d4af37" opacity="0.3" />
+      <circle cx="32" cy="60" r="1.5" fill="#B23A3A" opacity="0.3" />
       <circle cx="8" cy="44" r="1.5" fill="white" opacity="0.15" />
       <circle cx="8" cy="20" r="1.5" fill="white" opacity="0.2" />
       {/* Connections */}
-      <line x1="32" y1="6" x2="32" y2="14" stroke="#d4af37" strokeWidth="0.5" opacity="0.2" />
+      <line x1="32" y1="6" x2="32" y2="14" stroke="#B23A3A" strokeWidth="0.5" opacity="0.2" />
       <line x1="54" y1="21" x2="46" y2="26" stroke="white" strokeWidth="0.5" opacity="0.1" />
       <line x1="54" y1="43" x2="46" y2="38" stroke="white" strokeWidth="0.5" opacity="0.1" />
-      <line x1="32" y1="58" x2="32" y2="50" stroke="#d4af37" strokeWidth="0.5" opacity="0.15" />
+      <line x1="32" y1="58" x2="32" y2="50" stroke="#B23A3A" strokeWidth="0.5" opacity="0.15" />
       <line x1="10" y1="43" x2="18" y2="38" stroke="white" strokeWidth="0.5" opacity="0.1" />
       <line x1="10" y1="21" x2="18" y2="26" stroke="white" strokeWidth="0.5" opacity="0.1" />
     </svg>
@@ -86,8 +86,8 @@ function KeyIllustration() {
       xmlns="http://www.w3.org/2000/svg"
     >
       {/* Key body */}
-      <circle cx="18" cy="18" r="10" stroke="#d4af37" strokeWidth="1" opacity="0.4" />
-      <circle cx="18" cy="18" r="4" stroke="#d4af37" strokeWidth="1" opacity="0.6" />
+      <circle cx="18" cy="18" r="10" stroke="#B23A3A" strokeWidth="1" opacity="0.4" />
+      <circle cx="18" cy="18" r="4" stroke="#B23A3A" strokeWidth="1" opacity="0.6" />
       {/* Key shaft */}
       <line x1="26" y1="26" x2="42" y2="42" stroke="white" strokeWidth="1" opacity="0.3" />
       {/* Key teeth */}
@@ -162,7 +162,7 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
       </p>
       <button
         onClick={onNext}
-        className="group flex items-center gap-3 px-8 py-3 bg-[#d4af37] text-black text-sm font-medium rounded-sm hover:bg-[#c4a030] active:bg-[#b39028] transition-colors duration-200"
+        className="group flex items-center gap-3 px-8 py-3 bg-[#B23A3A] text-black text-sm font-medium rounded-sm hover:bg-[#7A2A2A] active:bg-[#591F1F] transition-colors duration-200"
       >
         Get Started
         <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-200" />
@@ -218,7 +218,7 @@ function IdentityStep({
             onChange={(e) => setDisplayName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !creating && handleCreate()}
             placeholder="Display name (optional)"
-            className="w-full bg-white/[0.03] border border-white/[0.08] text-sm font-light px-4 py-3 rounded-sm outline-none placeholder:text-neutral-700 focus:border-[#d4af37]/30 transition-colors duration-200"
+            className="w-full bg-white/[0.03] border border-white/[0.08] text-sm font-light px-4 py-3 rounded-sm outline-none placeholder:text-neutral-700 focus:border-[#B23A3A]/30 transition-colors duration-200"
             autoFocus
           />
           <p className="text-[10px] text-neutral-700 mt-2 text-left">
@@ -233,7 +233,7 @@ function IdentityStep({
         <button
           onClick={handleCreate}
           disabled={creating}
-          className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#d4af37] text-black text-sm font-medium rounded-sm hover:bg-[#c4a030] active:bg-[#b39028] transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#B23A3A] text-black text-sm font-medium rounded-sm hover:bg-[#7A2A2A] active:bg-[#591F1F] transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {creating ? (
             <>
@@ -291,7 +291,7 @@ function TourStep({ onNext }: { onNext: () => void }) {
               <Icon
                 className={cn(
                   "w-4 h-4 mb-3 transition-colors duration-200",
-                  hoveredIndex === i ? "text-[#d4af37]" : "text-neutral-600",
+                  hoveredIndex === i ? "text-[#B23A3A]" : "text-neutral-600",
                 )}
               />
               <p className="text-sm font-light mb-1">{feature.name}</p>
@@ -305,7 +305,7 @@ function TourStep({ onNext }: { onNext: () => void }) {
 
       <button
         onClick={onNext}
-        className="group flex items-center gap-3 px-8 py-3 bg-[#d4af37] text-black text-sm font-medium rounded-sm hover:bg-[#c4a030] active:bg-[#b39028] transition-colors duration-200"
+        className="group flex items-center gap-3 px-8 py-3 bg-[#B23A3A] text-black text-sm font-medium rounded-sm hover:bg-[#7A2A2A] active:bg-[#591F1F] transition-colors duration-200"
       >
         Enter Nous
         <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-200" />
@@ -323,8 +323,8 @@ function ReadyStep({ did, onEnter }: { did: string; onEnter: () => void }) {
 
   return (
     <div className="onboarding-step flex flex-col items-center text-center px-6">
-      <div className="w-12 h-12 rounded-full border border-[#d4af37]/30 flex items-center justify-center mb-8">
-        <Check className="w-5 h-5 text-[#d4af37]" />
+      <div className="w-12 h-12 rounded-full border border-[#B23A3A]/30 flex items-center justify-center mb-8">
+        <Check className="w-5 h-5 text-[#B23A3A]" />
       </div>
       <h2 className="text-2xl sm:text-3xl font-extralight tracking-[-0.03em] mb-3">
         You&apos;re All Set
@@ -357,7 +357,7 @@ function StepIndicator({ current }: { current: Step }) {
           className={cn(
             "h-px transition-all duration-300",
             i <= currentIndex
-              ? "bg-[#d4af37] w-6"
+              ? "bg-[#B23A3A] w-6"
               : "bg-white/[0.08] w-4",
           )}
         />
@@ -384,7 +384,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
   return (
     <div className="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center">
       {/* Background texture */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(212,175,55,0.03)_0%,transparent_70%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(178,58,58,0.03)_0%,transparent_70%)]" />
 
       {/* Content */}
       <div className="relative z-10 flex flex-col items-center justify-center flex-1 w-full">

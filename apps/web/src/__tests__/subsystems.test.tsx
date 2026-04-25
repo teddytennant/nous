@@ -182,7 +182,7 @@ describe("SubsystemsWidget", () => {
 
       // Find the status dot (small rounded circle) in the subsystem row
       const row = screen.getByText("identity").closest("div")!.parentElement!;
-      const dot = row.querySelector(".bg-\\[\\#d4af37\\]");
+      const dot = row.querySelector(".bg-\\[\\#B23A3A\\]");
       expect(dot).toBeInTheDocument();
     });
 
@@ -251,7 +251,7 @@ describe("SubsystemsWidget", () => {
       // The overall status dot is the first one in the header area
       const headerDot = container.querySelector(".w-2.h-2.rounded-full");
       expect(headerDot).toBeInTheDocument();
-      expect(headerDot!.className).toContain("bg-[#d4af37]");
+      expect(headerDot!.className).toContain("bg-[#B23A3A]");
     });
   });
 });

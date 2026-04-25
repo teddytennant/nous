@@ -31,7 +31,7 @@ const AVATAR_COLORS = [
   ["#14b8a6", "#0d9488"], // teal
   ["#06b6d4", "#0891b2"], // cyan
   ["#3b82f6", "#2563eb"], // blue
-  ["#d4af37", "#b8972e"], // gold (Nous accent)
+  ["#B23A3A", "#b8972e"], // gold (Nous accent)
 ];
 
 function getInitials(did: string): string {

@@ -53,7 +53,7 @@ function Select({
             "text-sm font-light text-white",
             "outline-none transition-colors duration-200",
             "hover:border-white/[0.12]",
-            "focus:border-[#d4af37]/40",
+            "focus:border-[#B23A3A]/40",
             "disabled:opacity-40 disabled:cursor-not-allowed",
             "data-[placeholder]:text-neutral-700",
           )}
@@ -92,7 +92,7 @@ function Select({
                       "text-sm font-light text-neutral-400",
                       "outline-none transition-colors duration-100",
                       "data-[highlighted]:bg-white/[0.04] data-[highlighted]:text-white",
-                      "data-[selected]:text-[#d4af37]",
+                      "data-[selected]:text-[#B23A3A]",
                       "data-[disabled]:opacity-40 data-[disabled]:pointer-events-none",
                     )}
                   >

@@ -13,7 +13,7 @@ function hashStr(s: string): number {
 }
 
 const AVATAR_COLORS = [
-  "#d4af37", "#627eea", "#2775ca", "#10b981", "#8b5cf6",
+  "#B23A3A", "#627eea", "#2775ca", "#10b981", "#8b5cf6",
   "#f59e0b", "#ef4444", "#6366f1", "#ec4899", "#14b8a6",
   "#f97316", "#a78bfa", "#34d399", "#fbbf24", "#60a5fa",
 ];
@@ -177,7 +177,7 @@ export function CommunitySection() {
             key={m.label}
             className="bg-black p-6 sm:p-8 group hover:bg-white/[0.02] transition-colors duration-200"
           >
-            <p className="text-2xl sm:text-3xl font-extralight tracking-[-0.03em] text-white group-hover:text-[#d4af37] transition-colors duration-300 mb-2 tabular-nums">
+            <p className="text-2xl sm:text-3xl font-extralight tracking-[-0.03em] text-white group-hover:text-[#B23A3A] transition-colors duration-300 mb-2 tabular-nums">
               {m.value}
             </p>
             <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-600 mb-1">
@@ -235,7 +235,7 @@ export function CommunitySection() {
                     }}
                     className={`w-1.5 h-1.5 rounded-full transition-all duration-200 ${
                       i === activeTestimonial
-                        ? "bg-[#d4af37] scale-125"
+                        ? "bg-[#B23A3A] scale-125"
                         : "bg-white/[0.1] hover:bg-white/[0.2]"
                     }`}
                     aria-label={`Testimonial ${i + 1}`}

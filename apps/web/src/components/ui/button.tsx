@@ -5,40 +5,56 @@ import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Editorial button primitive.
+ *
+ *   primary    — oxblood field, ivory text, no shadow, color shifts on press.
+ *   secondary  — transparent, hairline rule. Hover deepens the rule.
+ *   ghost      — no chrome, oxblood text, underline on hover.
+ *   destructive — clay, used sparingly.
+ *   link       — text link with the editorial underline reveal.
+ *
+ * Sharp corners (radius 0/2). Sizes follow the type scale (0.875 / 1 / 1.125).
+ * Icon + label gap is 8px. No icon-only variant with shadow — use a secondary
+ * with size="icon" if you need it.
+ */
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all duration-200 outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap font-medium tracking-tight transition-colors duration-[160ms] outline-none select-none focus-visible:outline focus-visible:outline-1 focus-visible:outline-oxblood focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-50 aria-invalid:text-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
-        outline:
-          "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+        // Primary — oxblood field, ivory text, sharp.
+        default:
+          "bg-oxblood text-ivory rounded-[2px] hover:bg-oxblood-dim active:bg-oxblood-dim",
+        // Secondary — transparent with hairline rule.
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
+          "bg-transparent text-foreground border border-border rounded-[2px] hover:border-foreground",
+        outline:
+          "bg-transparent text-foreground border border-border rounded-[2px] hover:border-foreground",
+        // Ghost — no chrome, oxblood text, underline reveal.
         ghost:
-          "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
+          "bg-transparent text-oxblood rounded-[2px] hover:underline underline-offset-4 decoration-1",
         destructive:
-          "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
-        link: "text-primary underline-offset-4 hover:underline",
-        // Nous design system variants
-        gold: "bg-[#d4af37] text-black font-medium hover:bg-[#c4a030] active:bg-[#b39028] focus-visible:ring-[#d4af37]/30",
+          "bg-transparent text-destructive border border-destructive/40 rounded-[2px] hover:border-destructive",
+        // Subtle text link, no border, no fill.
+        link: "bg-transparent text-foreground rounded-none px-0 hover:text-oxblood",
+        // Backwards-compat aliases — map to editorial variants.
+        gold:
+          "bg-oxblood text-ivory rounded-[2px] hover:bg-oxblood-dim active:bg-oxblood-dim",
         "ghost-dark":
-          "text-neutral-400 hover:text-white hover:bg-white/[0.04] active:bg-white/[0.06]",
+          "bg-transparent text-foreground rounded-[2px] hover:text-oxblood",
         "outline-dark":
-          "border-white/10 text-neutral-300 hover:border-white/20 hover:text-white hover:bg-white/[0.02]",
+          "bg-transparent text-foreground border border-border rounded-[2px] hover:border-foreground",
       },
       size: {
-        default:
-          "h-8 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
-        xs: "h-6 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
-        lg: "h-9 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3",
+        default: "h-8 px-3 text-[0.875rem]",
+        xs: "h-6 px-2 text-[0.75rem]",
+        sm: "h-7 px-2.5 text-[0.8125rem]",
+        lg: "h-10 px-4 text-[1rem]",
         icon: "size-8",
-        "icon-xs":
-          "size-6 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",
-        "icon-sm":
-          "size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg",
-        "icon-lg": "size-9",
+        "icon-xs": "size-6",
+        "icon-sm": "size-7",
+        "icon-lg": "size-10",
       },
     },
     defaultVariants: {

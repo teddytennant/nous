@@ -401,7 +401,7 @@ describe("Marketplace page", () => {
     it("defaults to Listings tab", async () => {
       await renderMarketplace();
       const listingsTab = screen.getByText("Listings");
-      expect(listingsTab.className).toContain("border-[#d4af37]");
+      expect(listingsTab.className).toContain("border-[#B23A3A]");
     });
 
     it("renders New Listing button", async () => {
@@ -618,11 +618,11 @@ describe("Marketplace page", () => {
       const user = userEvent.setup();
       await renderMarketplace();
       const allBtn = screen.getByText("All");
-      expect(allBtn.closest("button")?.className).toContain("text-[#d4af37]");
+      expect(allBtn.closest("button")?.className).toContain("text-[#B23A3A]");
       await user.click(screen.getByText("Digital"));
       const digitalBtn = screen.getByText("Digital");
       expect(digitalBtn.closest("button")?.className).toContain(
-        "text-[#d4af37]"
+        "text-[#B23A3A]"
       );
     });
   });
@@ -789,7 +789,7 @@ describe("Marketplace page", () => {
       await renderMarketplace();
       await user.click(screen.getByText("Orders"));
       const ordersTab = screen.getByText("Orders");
-      expect(ordersTab.className).toContain("border-[#d4af37]");
+      expect(ordersTab.className).toContain("border-[#B23A3A]");
     });
 
     it("switches to Disputes tab", async () => {
@@ -797,7 +797,7 @@ describe("Marketplace page", () => {
       await renderMarketplace();
       await user.click(screen.getByText("Disputes"));
       const tab = screen.getByText("Disputes");
-      expect(tab.className).toContain("border-[#d4af37]");
+      expect(tab.className).toContain("border-[#B23A3A]");
     });
 
     it("switches to Offers tab", async () => {
@@ -805,7 +805,7 @@ describe("Marketplace page", () => {
       await renderMarketplace();
       await user.click(screen.getByText("Offers"));
       const tab = screen.getByText("Offers");
-      expect(tab.className).toContain("border-[#d4af37]");
+      expect(tab.className).toContain("border-[#B23A3A]");
     });
   });
 

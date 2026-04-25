@@ -58,27 +58,27 @@ describe("Sidebar", () => {
     expect(screen.getByText("Account")).toBeInTheDocument();
   });
 
-  it("renders all navigation items", () => {
+  it("renders all navigation items (mono lowercase)", () => {
     render(
       <MobileSidebarProvider>
         <Sidebar />
       </MobileSidebarProvider>,
     );
 
-    expect(screen.getByText("Dashboard")).toBeInTheDocument();
-    expect(screen.getByText("Social")).toBeInTheDocument();
-    expect(screen.getByText("Messages")).toBeInTheDocument();
-    expect(screen.getByText("Wallet")).toBeInTheDocument();
-    expect(screen.getByText("Marketplace")).toBeInTheDocument();
-    expect(screen.getByText("Governance")).toBeInTheDocument();
-    expect(screen.getByText("AI")).toBeInTheDocument();
-    expect(screen.getByText("Files")).toBeInTheDocument();
-    expect(screen.getByText("Network")).toBeInTheDocument();
-    expect(screen.getByText("Identity")).toBeInTheDocument();
-    expect(screen.getByText("Settings")).toBeInTheDocument();
+    expect(screen.getByText("dashboard")).toBeInTheDocument();
+    expect(screen.getByText("social")).toBeInTheDocument();
+    expect(screen.getByText("messages")).toBeInTheDocument();
+    expect(screen.getByText("wallet")).toBeInTheDocument();
+    expect(screen.getByText("marketplace")).toBeInTheDocument();
+    expect(screen.getByText("governance")).toBeInTheDocument();
+    expect(screen.getByText("ai")).toBeInTheDocument();
+    expect(screen.getByText("files")).toBeInTheDocument();
+    expect(screen.getByText("network")).toBeInTheDocument();
+    expect(screen.getByText("identity")).toBeInTheDocument();
+    expect(screen.getByText("settings")).toBeInTheDocument();
   });
 
-  it("highlights the active route with gold color", () => {
+  it("highlights the active route with oxblood color", () => {
     mockUsePathname.mockReturnValue("/wallet");
     render(
       <MobileSidebarProvider>
@@ -86,8 +86,8 @@ describe("Sidebar", () => {
       </MobileSidebarProvider>,
     );
 
-    const walletLink = screen.getByText("Wallet").closest("a")!;
-    expect(walletLink.className).toContain("text-[#d4af37]");
+    const walletLink = screen.getByText("wallet").closest("a")!;
+    expect(walletLink.className).toContain("text-oxblood");
   });
 
   it("renders the search/command palette trigger", () => {
@@ -97,7 +97,7 @@ describe("Sidebar", () => {
       </MobileSidebarProvider>,
     );
 
-    expect(screen.getByText("Search...")).toBeInTheDocument();
+    expect(screen.getByText("search")).toBeInTheDocument();
     expect(screen.getByText("⌘K")).toBeInTheDocument();
   });
 
@@ -108,10 +108,10 @@ describe("Sidebar", () => {
       </MobileSidebarProvider>,
     );
 
-    const dashboardLink = screen.getByText("Dashboard").closest("a")!;
+    const dashboardLink = screen.getByText("dashboard").closest("a")!;
     expect(dashboardLink.getAttribute("href")).toBe("/dashboard");
 
-    const aiLink = screen.getByText("AI").closest("a")!;
+    const aiLink = screen.getByText("ai").closest("a")!;
     expect(aiLink.getAttribute("href")).toBe("/ai");
   });
 
@@ -123,8 +123,8 @@ describe("Sidebar", () => {
       </MobileSidebarProvider>,
     );
 
-    // Finance section has Wallet, Marketplace, Governance
-    expect(screen.getByText("Wallet")).toBeInTheDocument();
+    // Finance section has wallet, marketplace, governance
+    expect(screen.getByText("wallet")).toBeInTheDocument();
 
     // Click the Finance section header to collapse
     const financeHeader = screen.getByText("Finance").closest("button")!;
@@ -143,40 +143,40 @@ describe("BottomTabBar", () => {
     mockUsePathname.mockReturnValue("/dashboard");
   });
 
-  it("renders 5 tab items", () => {
+  it("renders 5 tab items (mono lowercase)", () => {
     render(<BottomTabBar />);
 
-    expect(screen.getByText("Home")).toBeInTheDocument();
-    expect(screen.getByText("Social")).toBeInTheDocument();
-    expect(screen.getByText("Messages")).toBeInTheDocument();
-    expect(screen.getByText("Wallet")).toBeInTheDocument();
-    expect(screen.getByText("AI")).toBeInTheDocument();
+    expect(screen.getByText("home")).toBeInTheDocument();
+    expect(screen.getByText("social")).toBeInTheDocument();
+    expect(screen.getByText("messages")).toBeInTheDocument();
+    expect(screen.getByText("wallet")).toBeInTheDocument();
+    expect(screen.getByText("ai")).toBeInTheDocument();
   });
 
-  it("highlights the active tab with gold", () => {
+  it("highlights the active tab with oxblood", () => {
     mockUsePathname.mockReturnValue("/social");
     render(<BottomTabBar />);
 
-    const socialTab = screen.getByText("Social").closest("a")!;
-    expect(socialTab.className).toContain("text-[#d4af37]");
+    const socialTab = screen.getByText("social").closest("a")!;
+    expect(socialTab.className).toContain("text-oxblood");
   });
 
-  it("non-active tabs use neutral color", () => {
+  it("non-active tabs use stone color", () => {
     mockUsePathname.mockReturnValue("/dashboard");
     render(<BottomTabBar />);
 
-    const walletTab = screen.getByText("Wallet").closest("a")!;
-    expect(walletTab.className).toContain("text-neutral-600");
+    const walletTab = screen.getByText("wallet").closest("a")!;
+    expect(walletTab.className).toContain("text-stone");
   });
 
   it("has correct href on tab links", () => {
     render(<BottomTabBar />);
 
-    expect(screen.getByText("Home").closest("a")!.getAttribute("href")).toBe(
+    expect(screen.getByText("home").closest("a")!.getAttribute("href")).toBe(
       "/dashboard",
     );
     expect(
-      screen.getByText("Messages").closest("a")!.getAttribute("href"),
+      screen.getByText("messages").closest("a")!.getAttribute("href"),
     ).toBe("/messages");
   });
 });

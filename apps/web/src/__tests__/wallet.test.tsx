@@ -260,7 +260,7 @@ describe("Wallet page", () => {
     it("defaults to balances tab", async () => {
       await renderWallet(MOCK_DID);
       const balancesBtn = screen.getByText("balances");
-      expect(balancesBtn.className).toContain("d4af37");
+      expect(balancesBtn.className).toContain("B23A3A");
     });
   });
 

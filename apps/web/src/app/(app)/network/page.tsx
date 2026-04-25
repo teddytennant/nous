@@ -595,7 +595,7 @@ export default function NetworkPage() {
             <button
               onClick={handleConnect}
               disabled={connecting || !connectAddr.trim()}
-              className="text-[10px] font-mono uppercase tracking-wider px-3 py-1.5 border border-white/[0.06] text-neutral-600 hover:text-[#d4af37] hover:border-[#d4af37]/30 transition-all disabled:opacity-30"
+              className="text-[10px] font-mono uppercase tracking-wider px-3 py-1.5 border border-white/[0.06] text-neutral-600 hover:text-[#B23A3A] hover:border-[#B23A3A]/30 transition-all disabled:opacity-30"
             >
               {connecting ? "..." : "Connect"}
             </button>

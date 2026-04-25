@@ -170,15 +170,24 @@ describe("DidAvatar", () => {
       expect(rects.length).toBeGreaterThan(2);
     });
 
-    it("uses gold-adjacent palette colors", () => {
+    it("uses editorial palette colors", () => {
       const { container } = render(<DidAvatar did={MOCK_DID} />);
       const rects = Array.from(container.querySelectorAll("rect"));
       const patternRects = rects.slice(2); // Skip background + border
-      const goldPalette = ["#d4af37", "#c4a030", "#b8860b", "#daa520", "#cd853f", "#d4a574", "#c9b458", "#a0845c"];
-      // All pattern cells should use a gold-palette color
+      const palette = [
+        "#B23A3A",
+        "#7A2A2A",
+        "#8FA48A",
+        "#C2785A",
+        "#6F6A60",
+        "#A4604A",
+        "#C9C3B6",
+        "#8A8478",
+      ];
+      // All pattern cells should use a palette color
       for (const rect of patternRects) {
         const fill = rect.getAttribute("fill");
-        expect(goldPalette).toContain(fill);
+        expect(palette).toContain(fill);
       }
     });
 

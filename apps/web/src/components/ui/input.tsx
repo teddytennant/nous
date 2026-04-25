@@ -34,7 +34,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             "outline-none transition-colors duration-200",
             error
               ? "border-red-500/40 focus:border-red-500/60"
-              : "border-white/[0.08] focus:border-[#d4af37]/40",
+              : "border-white/[0.08] focus:border-[#B23A3A]/40",
             "disabled:opacity-40 disabled:cursor-not-allowed",
             className,
           )}

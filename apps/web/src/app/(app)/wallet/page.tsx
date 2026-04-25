@@ -295,7 +295,7 @@ export default function WalletPage() {
         return "text-emerald-500";
       case "pending":
       case "active":
-        return "text-[#d4af37]";
+        return "text-[#B23A3A]";
       case "cancelled":
       case "refunded":
         return "text-neutral-600";
@@ -319,7 +319,7 @@ export default function WalletPage() {
             onClick={() => setTab(t)}
             className={`text-xs font-mono uppercase tracking-[0.2em] pb-2 transition-colors duration-150 ${
               tab === t
-                ? "text-[#d4af37] border-b border-[#d4af37]"
+                ? "text-[#B23A3A] border-b border-[#B23A3A]"
                 : "text-neutral-600 hover:text-neutral-400"
             }`}
           >
@@ -337,7 +337,7 @@ export default function WalletPage() {
             action={
               <button
                 onClick={handleCreateWallet}
-                className="text-xs font-mono uppercase tracking-wider px-6 py-3 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150"
+                className="text-xs font-mono uppercase tracking-wider px-6 py-3 border border-[#B23A3A]/30 text-[#B23A3A] hover:bg-[#B23A3A]/5 transition-all duration-150"
               >
                 Create Wallet
               </button>
@@ -393,7 +393,7 @@ export default function WalletPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setSendModal(true)}
-                className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-white/10 text-neutral-500 hover:text-[#d4af37] hover:border-[#d4af37]/30 transition-all duration-150"
+                className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-white/10 text-neutral-500 hover:text-[#B23A3A] hover:border-[#B23A3A]/30 transition-all duration-150"
               >
                 Send
               </button>
@@ -450,7 +450,7 @@ export default function WalletPage() {
               <button
                 onClick={handleSend}
                 disabled={sending || !sendTo || !sendAmount}
-                className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150 disabled:opacity-30"
+                className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#B23A3A]/30 text-[#B23A3A] hover:bg-[#B23A3A]/5 transition-all duration-150 disabled:opacity-30"
               >
                 {sending ? "Sending..." : "Confirm Send"}
               </button>
@@ -522,7 +522,7 @@ export default function WalletPage() {
             </h2>
             <button
               onClick={() => setShowInvoiceForm(true)}
-              className="text-[10px] font-mono uppercase tracking-wider text-neutral-600 hover:text-[#d4af37] transition-colors"
+              className="text-[10px] font-mono uppercase tracking-wider text-neutral-600 hover:text-[#B23A3A] transition-colors"
             >
               Create Invoice
             </button>
@@ -625,7 +625,7 @@ export default function WalletPage() {
                   !invoiceTo ||
                   invoiceItems.every((i) => !i.description)
                 }
-                className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150 disabled:opacity-30"
+                className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#B23A3A]/30 text-[#B23A3A] hover:bg-[#B23A3A]/5 transition-all duration-150 disabled:opacity-30"
               >
                 Create Invoice
               </button>
@@ -640,7 +640,7 @@ export default function WalletPage() {
               action={
                 <button
                   onClick={() => setShowInvoiceForm(true)}
-                  className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150"
+                  className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#B23A3A]/30 text-[#B23A3A] hover:bg-[#B23A3A]/5 transition-all duration-150"
                 >
                   Create Invoice
                 </button>
@@ -694,7 +694,7 @@ export default function WalletPage() {
                         {!isIssuer && inv.status === "pending" && (
                           <button
                             onClick={() => handlePayInvoice(inv.id)}
-                            className="text-[10px] font-mono uppercase tracking-wider px-3 py-1.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5"
+                            className="text-[10px] font-mono uppercase tracking-wider px-3 py-1.5 border border-[#B23A3A]/30 text-[#B23A3A] hover:bg-[#B23A3A]/5"
                           >
                             Pay
                           </button>
@@ -726,7 +726,7 @@ export default function WalletPage() {
             </h2>
             <button
               onClick={() => setShowEscrowForm(true)}
-              className="text-[10px] font-mono uppercase tracking-wider text-neutral-600 hover:text-[#d4af37] transition-colors"
+              className="text-[10px] font-mono uppercase tracking-wider text-neutral-600 hover:text-[#B23A3A] transition-colors"
             >
               Create Escrow
             </button>
@@ -791,7 +791,7 @@ export default function WalletPage() {
               <button
                 onClick={handleCreateEscrow}
                 disabled={!escrowSeller || !escrowAmount}
-                className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150 disabled:opacity-30"
+                className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#B23A3A]/30 text-[#B23A3A] hover:bg-[#B23A3A]/5 transition-all duration-150 disabled:opacity-30"
               >
                 Create Escrow
               </button>
@@ -806,7 +806,7 @@ export default function WalletPage() {
               action={
                 <button
                   onClick={() => setShowEscrowForm(true)}
-                  className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150"
+                  className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#B23A3A]/30 text-[#B23A3A] hover:bg-[#B23A3A]/5 transition-all duration-150"
                 >
                   Create Escrow
                 </button>
@@ -872,7 +872,7 @@ export default function WalletPage() {
                       {isBuyer && esc.status === "active" && (
                         <button
                           onClick={() => handleReleaseEscrow(esc.id)}
-                          className="text-[10px] font-mono uppercase tracking-wider px-3 py-1.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5"
+                          className="text-[10px] font-mono uppercase tracking-wider px-3 py-1.5 border border-[#B23A3A]/30 text-[#B23A3A] hover:bg-[#B23A3A]/5"
                         >
                           Release
                         </button>

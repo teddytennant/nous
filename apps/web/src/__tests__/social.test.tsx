@@ -169,7 +169,7 @@ describe("Social page", () => {
     it("defaults to timeline tab", async () => {
       await renderSocial(MOCK_DID);
       const timelineBtn = screen.getByText("timeline");
-      expect(timelineBtn.className).toContain("d4af37");
+      expect(timelineBtn.className).toContain("B23A3A");
     });
   });
 

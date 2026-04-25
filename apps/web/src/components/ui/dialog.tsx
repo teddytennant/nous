@@ -147,7 +147,7 @@ function DialogCloseButton({
         "absolute right-4 top-4 p-1.5 rounded-sm",
         "text-neutral-600 hover:text-white hover:bg-white/[0.06]",
         "transition-colors duration-150 outline-none",
-        "focus-visible:ring-2 focus-visible:ring-[#d4af37]/40",
+        "focus-visible:ring-2 focus-visible:ring-[#B23A3A]/40",
         className,
       )}
       aria-label="Close"

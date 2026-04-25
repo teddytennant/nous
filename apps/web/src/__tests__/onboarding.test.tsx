@@ -362,7 +362,7 @@ describe("Onboarding", () => {
         ".flex.items-center.gap-2 > div",
       );
       // First indicator should be active (gold) on welcome step
-      expect(indicators[0].className).toContain("bg-[#d4af37]");
+      expect(indicators[0].className).toContain("bg-[#B23A3A]");
     });
 
     it("shows unhighlighted steps for future steps", () => {
