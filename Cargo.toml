@@ -24,6 +24,7 @@ members = [
     "crates/nous-wasm",
     "crates/nous-terminal",
     "crates/nous-bench",
+    "crates/nous-design",
 ]
 
 [workspace.package]

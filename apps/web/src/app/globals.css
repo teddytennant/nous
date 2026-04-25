@@ -48,40 +48,122 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Infinite Minimalism — dark mode default */
+/* ──────────────────────────────────────────────────────────────────────────
+ * Editorial design tokens. Source of truth: docs/design/tokens.json.
+ * Dark is the default; .light is a first-class variant.
+ *
+ * Token names that downstream Tailwind/shadcn components already reference
+ * (--background, --foreground, --primary, --border, --ring, etc.) are
+ * preserved — only their values move to the new palette. New raw tokens
+ * (--ink, --ivory, --oxblood, ...) are added alongside for direct use.
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/* Light mode — variant. Overridden by the dark block below for default. */
 :root {
-  --background: #000000;
-  --foreground: #fafafa;
-  --card: #0a0a0a;
-  --card-foreground: #fafafa;
-  --popover: #0a0a0a;
-  --popover-foreground: #fafafa;
-  --primary: #fafafa;
-  --primary-foreground: #000000;
-  --secondary: #111111;
-  --secondary-foreground: #fafafa;
-  --muted: #111111;
-  --muted-foreground: #737373;
-  --accent: #111111;
-  --accent-foreground: #fafafa;
-  --destructive: #dc2626;
-  --border: #1a1a1a;
-  --input: #1a1a1a;
-  --ring: #404040;
-  --chart-1: #fafafa;
-  --chart-2: #737373;
-  --chart-3: #525252;
-  --chart-4: #404040;
-  --chart-5: #262626;
-  --radius: 0.5rem;
-  --sidebar: #0a0a0a;
-  --sidebar-foreground: #fafafa;
-  --sidebar-primary: #fafafa;
-  --sidebar-primary-foreground: #000000;
-  --sidebar-accent: #111111;
-  --sidebar-accent-foreground: #fafafa;
-  --sidebar-border: #1a1a1a;
-  --sidebar-ring: #404040;
+  /* Raw editorial tokens */
+  --paper: #f4f1ea;
+  --ink: #14130f;            /* in light mode, "ink" is text (ink-text) */
+  --ink-text: #14130f;
+  --ivory: #f4f1ea;          /* page surface */
+  --ivory-dim: #5a564e;
+  --stone: #8a8478;
+  --rule: #dcd7cc;
+  --oxblood: #b23a3a;
+  --oxblood-dim: #7a2a2a;
+  --sage: #6e8468;
+  --clay: #a4604a;
+
+  /* Semantic remap for Tailwind/shadcn consumers */
+  --background: var(--paper);
+  --foreground: var(--ink-text);
+  --card: #ffffff;
+  --card-foreground: var(--ink-text);
+  --popover: #ffffff;
+  --popover-foreground: var(--ink-text);
+  --primary: var(--oxblood);
+  --primary-foreground: var(--paper);
+  --secondary: var(--paper);
+  --secondary-foreground: var(--ink-text);
+  --muted: #ebe6dc;
+  --muted-foreground: var(--stone);
+  --accent: var(--oxblood);
+  --accent-foreground: var(--paper);
+  --destructive: var(--clay);
+  --border: var(--rule);
+  --input: var(--rule);
+  --ring: var(--oxblood);
+
+  /* Chart series — restrained, mono-leaning ramp */
+  --chart-1: var(--ink-text);
+  --chart-2: var(--stone);
+  --chart-3: var(--oxblood);
+  --chart-4: var(--sage);
+  --chart-5: var(--clay);
+
+  /* Sidebar chrome */
+  --sidebar: #ffffff;
+  --sidebar-foreground: var(--ink-text);
+  --sidebar-primary: var(--oxblood);
+  --sidebar-primary-foreground: var(--paper);
+  --sidebar-accent: #ebe6dc;
+  --sidebar-accent-foreground: var(--ink-text);
+  --sidebar-border: var(--rule);
+  --sidebar-ring: var(--oxblood);
+
+  /* Editorial radius — panels max 4px, sharp by default */
+  --radius: 4px;
+}
+
+/* Dark mode — default. Apply by adding `class="dark"` to <html>. */
+.dark {
+  /* Raw editorial tokens */
+  --ink: #0e0e0c;
+  --ink-2: #161613;
+  --ivory: #efeae0;
+  --ivory-dim: #c9c3b6;
+  --stone: #6f6a60;
+  --rule: #1f1d1a;
+  --oxblood: #b23a3a;
+  --oxblood-dim: #7a2a2a;
+  --sage: #8fa48a;
+  --clay: #c2785a;
+
+  /* Semantic remap */
+  --background: var(--ink);
+  --foreground: var(--ivory);
+  --card: var(--ink-2);
+  --card-foreground: var(--ivory);
+  --popover: var(--ink-2);
+  --popover-foreground: var(--ivory);
+  --primary: var(--oxblood);
+  --primary-foreground: var(--ivory);
+  --secondary: var(--ink-2);
+  --secondary-foreground: var(--ivory);
+  --muted: var(--ink-2);
+  --muted-foreground: var(--stone);
+  --accent: var(--oxblood);
+  --accent-foreground: var(--ivory);
+  --destructive: var(--clay);
+  --border: var(--rule);
+  --input: var(--rule);
+  --ring: var(--oxblood);
+
+  /* Chart series */
+  --chart-1: var(--ivory);
+  --chart-2: var(--ivory-dim);
+  --chart-3: var(--oxblood);
+  --chart-4: var(--sage);
+  --chart-5: var(--clay);
+
+  /* Sidebar chrome */
+  --sidebar: var(--ink-2);
+  --sidebar-foreground: var(--ivory);
+  --sidebar-primary: var(--oxblood);
+  --sidebar-primary-foreground: var(--ivory);
+  --sidebar-accent: var(--ink-2);
+  --sidebar-accent-foreground: var(--ivory);
+  --sidebar-border: var(--rule);
+  --sidebar-ring: var(--oxblood);
 }
 
 @layer base {
@@ -96,19 +178,30 @@
   }
 }
 
-/* Typography — Swiss discipline */
-h1, h2, h3, h4, h5, h6 {
+/* Editorial typography defaults
+ * Display headings use Source Serif 4; sub-headings stay sans (Geist).
+ * Hierarchy comes from size and the serif/sans shift, not weight contrast. */
+h1, h2 {
+  font-family: var(--font-serif, "Source Serif 4"), Georgia, serif;
+  font-weight: 400;
   letter-spacing: -0.02em;
-  font-weight: 300;
+  line-height: 1.15;
+}
+h3, h4, h5, h6 {
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
 }
 
-/* Motion with purpose */
+/* Motion: a single deceleration curve across the system. Phase 2 culls
+ * decorative animations; the easing here is the canonical one. */
 * {
-  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
 }
 
 ::selection {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(178, 58, 58, 0.22);  /* oxblood at 22% */
+  color: var(--ivory);
 }
 
 /* Hero title shimmer */
