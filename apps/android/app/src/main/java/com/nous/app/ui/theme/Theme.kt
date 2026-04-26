@@ -1,5 +1,6 @@
 package com.nous.app.ui.theme
 
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -7,6 +8,7 @@ import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.unit.dp
 
 // ─── Editorial color schemes ──────────────────────────────────────────────────
@@ -92,6 +94,12 @@ fun NousTheme(
         colorScheme = colors,
         typography = NousTypography,
         shapes = NousShapes,
-        content = content,
-    )
+    ) {
+        // Replace Material's expanding ripple with the flat 12% oxblood overlay
+        // for every `clickable`, `selectable`, `combinedClickable`, etc., that
+        // doesn't pass an explicit indication.
+        CompositionLocalProvider(LocalIndication provides OxbloodPressIndication) {
+            content()
+        }
+    }
 }

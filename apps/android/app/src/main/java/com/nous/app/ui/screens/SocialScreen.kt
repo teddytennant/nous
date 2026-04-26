@@ -1,30 +1,22 @@
 package com.nous.app.ui.screens
 
-import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -35,20 +27,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.nous.app.data.FeedEvent
 import com.nous.app.data.NousViewModel
-
-private val Gold = Color(0xFFD4AF37)
-private val TextPrimary = Color(0xFFFAFAFA)
-private val TextSecondary = Color(0xFF737373)
-private val SurfaceColor = Color(0xFF0A0A0A)
-private val BorderColor = Color(0xFF1A1A1A)
+import com.nous.app.ui.components.EmptyState
+import com.nous.app.ui.components.Hairline
+import com.nous.app.ui.components.KeyValue
+import com.nous.app.ui.components.MetaLabel
+import com.nous.app.ui.theme.NousMono
+import com.nous.app.ui.theme.NousSpacing
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,26 +57,20 @@ fun SocialScreen(viewModel: NousViewModel = viewModel()) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 24.dp),
+                .padding(horizontal = NousSpacing.gutter),
         ) {
             item {
-                Spacer(modifier = Modifier.height(24.dp))
-
+                Spacer(Modifier.height(NousSpacing.xl))
                 Text(
                     text = "Social",
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = TextPrimary,
-                    modifier = Modifier.padding(bottom = 4.dp),
+                    style = MaterialTheme.typography.displayMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
-                Text(
-                    text = "Decentralized feed",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextSecondary,
-                    modifier = Modifier.padding(bottom = 24.dp),
-                )
+                Spacer(Modifier.height(8.dp))
+                MetaLabel(text = "Decentralized feed · Nostr")
+                Spacer(Modifier.height(NousSpacing.xxl))
             }
 
-            // Compose area
             item {
                 ComposeArea(
                     value = postContent,
@@ -101,62 +83,35 @@ fun SocialScreen(viewModel: NousViewModel = viewModel()) {
                         }
                     },
                 )
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(Modifier.height(NousSpacing.xxl))
+                MetaLabel(text = "Feed")
+                Spacer(Modifier.height(NousSpacing.md))
+                Hairline()
             }
 
-            // Feed header
-            item {
-                Text(
-                    text = "FEED",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = TextSecondary,
-                    modifier = Modifier.padding(bottom = 12.dp),
-                )
-            }
-
-            if (socialState.loading) {
-                item {
+            when {
+                socialState.loading -> item {
                     LinearProgressIndicator(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = Gold,
-                        trackColor = BorderColor,
-                    )
-                }
-            } else if (socialState.events.isEmpty()) {
-                item {
-                    Surface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .border(1.dp, BorderColor, RoundedCornerShape(0.dp)),
-                        color = SurfaceColor,
-                        shape = RoundedCornerShape(0.dp),
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            Text(
-                                text = "No posts yet.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = TextSecondary,
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Be the first to post on the sovereign web.",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = TextSecondary,
-                            )
-                        }
-                    }
+                            .padding(top = 12.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.outline,
+                    )
                 }
-            } else {
-                items(socialState.events) { event ->
-                    PostCard(event = event)
-                    Spacer(modifier = Modifier.height(8.dp))
+                socialState.events.isEmpty() -> item {
+                    EmptyState(
+                        headline = "No posts yet",
+                        body = "Be the first voice on the sovereign web.",
+                    )
+                }
+                else -> items(socialState.events) { event ->
+                    PostArticle(event = event)
+                    Hairline()
                 }
             }
 
-            item { Spacer(modifier = Modifier.height(24.dp)) }
+            item { Spacer(Modifier.height(NousSpacing.xl)) }
         }
     }
 }
@@ -167,176 +122,123 @@ private fun ComposeArea(
     onValueChange: (String) -> Unit,
     onPost: () -> Unit,
 ) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, BorderColor, RoundedCornerShape(0.dp)),
-        color = SurfaceColor,
-        shape = RoundedCornerShape(0.dp),
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            OutlinedTextField(
-                value = value,
-                onValueChange = onValueChange,
-                placeholder = {
-                    Text(
-                        "What's on your mind?",
-                        color = TextSecondary,
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 3,
-                maxLines = 6,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Gold,
-                    unfocusedBorderColor = BorderColor,
-                    focusedTextColor = TextPrimary,
-                    unfocusedTextColor = TextPrimary,
-                    cursorColor = Gold,
-                ),
-                shape = RoundedCornerShape(0.dp),
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // Show detected hashtags
-                val tags = extractHashtags(value)
-                if (tags.isNotEmpty()) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        tags.take(3).forEach { tag ->
-                            Text(
-                                text = "#$tag",
-                                fontSize = 11.sp,
-                                color = Gold,
-                                fontFamily = FontFamily.Monospace,
-                            )
-                        }
-                        if (tags.size > 3) {
-                            Text(
-                                text = "+${tags.size - 3}",
-                                fontSize = 11.sp,
-                                color = TextSecondary,
-                            )
-                        }
-                    }
-                } else {
-                    Spacer(modifier = Modifier.weight(1f))
-                }
-
-                Button(
-                    onClick = onPost,
-                    enabled = value.isNotBlank(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Gold,
-                        contentColor = Color.Black,
-                        disabledContainerColor = BorderColor,
-                        disabledContentColor = TextSecondary,
-                    ),
-                    shape = RoundedCornerShape(0.dp),
-                ) {
-                    Text("Post", fontWeight = FontWeight.Normal)
-                }
+    Column {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            placeholder = {
+                Text("What's on your mind?", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 3,
+            maxLines = 6,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+            ),
+            shape = RoundedCornerShape(0.dp),
+        )
+        Spacer(Modifier.height(NousSpacing.md))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            val tags = extractHashtags(value)
+            if (tags.isNotEmpty()) {
+                Text(
+                    text = tags.take(4).joinToString("  ") { "#$it" },
+                    style = NousMono,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f),
+                )
             }
+            Text(
+                text = "Publish",
+                style = MaterialTheme.typography.labelLarge,
+                color = if (value.isBlank())
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                else
+                    MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable(enabled = value.isNotBlank()) { onPost() },
+            )
         }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun PostCard(event: FeedEvent) {
+private fun PostArticle(event: FeedEvent) {
     val tags = event.tags
         .filter { it.isNotEmpty() && it[0] == "t" }
         .mapNotNull { it.getOrNull(1) }
 
-    Surface(
+    val firstSentence = event.content.split('.', '!', '?', '\n')
+        .firstOrNull { it.isNotBlank() }
+        ?.trim()
+        ?: event.content.take(60)
+    val rest = event.content.removePrefix(firstSentence).trimStart('.', '!', '?', ' ', '\n')
+
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, BorderColor, RoundedCornerShape(0.dp)),
-        color = SurfaceColor,
-        shape = RoundedCornerShape(0.dp),
+            .padding(vertical = NousSpacing.lg),
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // Author and timestamp
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                val authorDisplay = if (event.pubkey.length > 16) {
-                    "${event.pubkey.take(12)}..."
-                } else {
-                    event.pubkey
-                }
-                Text(
-                    text = authorDisplay,
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 11.sp,
-                    color = Gold,
-                )
-                Text(
-                    text = formatTimestamp(event.created_at),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = TextSecondary,
-                )
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Content
+        Text(
+            text = firstSentence,
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        if (rest.isNotBlank()) {
+            Spacer(Modifier.height(8.dp))
             Text(
-                text = event.content,
-                style = MaterialTheme.typography.bodyMedium,
-                color = TextPrimary,
-                lineHeight = 20.sp,
-            )
-
-            // Hashtags
-            if (tags.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(12.dp))
-                HorizontalDivider(color = BorderColor, thickness = 1.dp)
-                Spacer(modifier = Modifier.height(8.dp))
-
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    tags.forEach { tag ->
-                        Surface(
-                            modifier = Modifier
-                                .border(1.dp, Gold.copy(alpha = 0.3f), RoundedCornerShape(0.dp)),
-                            color = Gold.copy(alpha = 0.08f),
-                            shape = RoundedCornerShape(0.dp),
-                        ) {
-                            Text(
-                                text = "#$tag",
-                                fontSize = 11.sp,
-                                fontFamily = FontFamily.Monospace,
-                                color = Gold,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Kind indicator
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "kind:${event.kind}",
-                fontSize = 10.sp,
-                fontFamily = FontFamily.Monospace,
-                color = TextSecondary,
+                text = rest,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
             )
         }
+
+        Spacer(Modifier.height(NousSpacing.md))
+
+        // Author + timestamp meta
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            val author = if (event.pubkey.length > 18) "${event.pubkey.take(14)}…" else event.pubkey
+            MetaLabel(text = author)
+            MetaLabel(text = formatTimestamp(event.created_at))
+        }
+
+        if (tags.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = tags.joinToString("  ") { "#$it" },
+                style = NousMono,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+
+        Spacer(Modifier.height(NousSpacing.md))
+
+        // Engagement metrics
+        Row(modifier = Modifier.fillMaxWidth()) {
+            EngagementCell(label = "Kind", value = "${event.kind}", modifier = Modifier.weight(1f))
+            EngagementCell(label = "Replies", value = "0", modifier = Modifier.weight(1f))
+            EngagementCell(label = "Boosts", value = "0", modifier = Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun EngagementCell(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        MetaLabel(text = label)
+        Spacer(Modifier.height(2.dp))
+        Text(
+            text = value,
+            style = NousMono,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
     }
 }
 
@@ -346,6 +248,5 @@ private fun extractHashtags(text: String): List<String> {
 }
 
 private fun formatTimestamp(timestamp: String): String {
-    // Show date portion only for compact display
     return if (timestamp.length >= 10) timestamp.take(10) else timestamp
 }
