@@ -25,6 +25,7 @@ use ed25519_dalek::SigningKey;
 use nous_pouw::engine::{Engine, EngineConfig};
 use nous_pouw::net::{GossipNetwork, GossipNetworkConfig};
 use nous_pouw::node::{NodeConfig, PouwNode};
+use nous_pouw::rpc::{NodeHandle, RpcServer};
 use nous_pouw::sim::ConfigurableExecutor;
 use nous_pouw::state::{ChainState, WorkerId};
 use nous_pouw::store::Store;
@@ -65,6 +66,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let seed: u64 = parse(&args, "--seed", 1u64);
     let n_validators: usize = parse(&args, "--validators", 4usize);
     let stake: u64 = parse(&args, "--stake", 1_000u64);
+    let genesis_balance: u64 = parse(&args, "--genesis-balance", 0u64);
     let db_path: String = parse(&args, "--db", String::new());
     let mdns: bool = parse(&args, "--mdns", false);
 
@@ -95,6 +97,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let id = WorkerId::from_verifying_key(&sk.verifying_key());
         genesis.register_worker(id, stake, 1.0);
         genesis.validators.insert(id);
+        if genesis_balance > 0 {
+            genesis.workers.get_mut(&id).unwrap().balance = genesis_balance;
+            genesis.total_supply = genesis.total_supply.saturating_add(genesis_balance);
+        }
     }
 
     let net = GossipNetwork::spawn(
@@ -118,31 +124,51 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let engine = Engine::new(genesis, EngineConfig::default());
     let executor = ConfigurableExecutor::new(&all_sks);
-    let _node = PouwNode::spawn(
+    let node = Arc::new(PouwNode::spawn(
         my_sk,
         engine,
         executor,
         Arc::new(net),
         store,
-        NodeConfig::default(),
-    );
+        NodeConfig {
+            tick_ms: 250,
+            vote_timeout_ms: 5_000,
+            finality_threshold_micro: 666_667,
+            warmup_ms: 5_000,
+            min_peers_to_propose: 1,
+        },
+    ));
+
+    // Optional HTTP RPC server.
+    let rpc_addr: String = parse(&args, "--rpc", String::new());
+    let _rpc = if rpc_addr.is_empty() {
+        None
+    } else {
+        let bind = rpc_addr.parse().expect("invalid --rpc socket addr");
+        let r = RpcServer::spawn(node.clone() as Arc<dyn NodeHandle>, bind).await?;
+        println!("rpc listening on http://{}", r.local_addr);
+        Some(r)
+    };
+    let _node = node;
 
     // Just sleep forever; the node loop runs in a tokio task.
     println!(
         "nous-pouw-node started: idx={}/{} seed={}",
         my_idx, n_validators, seed
     );
-    let mut tick = tokio::time::interval(Duration::from_secs(5));
+    let mut tick = tokio::time::interval(Duration::from_secs(3));
     loop {
         tick.tick().await;
         let s = _node.state();
         println!(
-            "[idx={}] height={} supply={} validators={} workers={}",
+            "[idx={}] height={} supply={} validators={} workers={} peers={} mempool={}",
             my_idx,
             s.height,
             s.total_supply,
             s.validators.len(),
-            s.workers.len()
+            s.workers.len(),
+            _node.peer_count(),
+            _node.mempool_len(),
         );
     }
 }

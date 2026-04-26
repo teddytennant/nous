@@ -3,6 +3,7 @@
 
 use std::collections::VecDeque;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 
 use ed25519_dalek::SigningKey;
@@ -48,6 +49,7 @@ pub struct GossipNetwork {
     outbound: mpsc::UnboundedSender<Outbound>,
     inbound: Arc<Mutex<VecDeque<NetworkEvent>>>,
     local_addr: String,
+    peer_count: Arc<AtomicUsize>,
     task: Option<JoinHandle<()>>,
 }
 
@@ -88,6 +90,8 @@ impl GossipNetwork {
         let (out_tx, out_rx) = mpsc::unbounded_channel::<Outbound>();
         let inbound = Arc::new(Mutex::new(VecDeque::<NetworkEvent>::new()));
         let inbound_for_task = inbound.clone();
+        let peer_count = Arc::new(AtomicUsize::new(0));
+        let peer_count_for_task = peer_count.clone();
         let (addr_tx, addr_rx) = oneshot::channel::<String>();
 
         let task = tokio::spawn(task::run(
@@ -97,6 +101,7 @@ impl GossipNetwork {
             listen_addr_in,
             bootstrap,
             Some(addr_tx),
+            peer_count_for_task,
         ));
 
         // Wait for the first NewListenAddr (or fail loudly after a short
@@ -112,6 +117,7 @@ impl GossipNetwork {
             outbound: out_tx,
             inbound,
             local_addr,
+            peer_count,
             task: Some(task),
         })
     }
@@ -120,6 +126,13 @@ impl GossipNetwork {
     /// For an ephemeral `/tcp/0` listen, this contains the resolved port.
     pub fn local_addr(&self) -> String {
         self.local_addr.clone()
+    }
+
+    /// Number of peers currently connected at the libp2p layer.
+    /// `PouwNode` uses this to gate proposing until the gossipsub mesh has a
+    /// chance to form (otherwise the first round's proposal vanishes).
+    pub fn peer_count(&self) -> usize {
+        self.peer_count.load(Ordering::Relaxed)
     }
 }
 
@@ -138,6 +151,10 @@ impl Network for GossipNetwork {
         let mut buf = self.inbound.lock();
         let out = buf.drain(..).collect();
         out
+    }
+
+    fn peer_count(&self) -> usize {
+        self.peer_count.load(Ordering::Relaxed)
     }
 }
 

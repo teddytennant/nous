@@ -24,6 +24,8 @@ tokio = { workspace = true }
 futures = { workspace = true }
 libp2p = { workspace = true }
 parking_lot = "0.12"
+axum = { version = "0.8", features = ["json"] }
+tower = { version = "0.5", features = ["util"] }
 
 [dev-dependencies]
 proptest = { workspace = true }
@@ -39,6 +41,10 @@ path = "examples/devnet.rs"
 [[example]]
 name = "node"
 path = "examples/node.rs"
+
+[[example]]
+name = "pouw_cli"
+path = "examples/pouw_cli.rs"
 
 [[bench]]
 name = "round_throughput"

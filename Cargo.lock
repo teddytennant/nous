@@ -3566,6 +3566,7 @@ dependencies = [
 name = "nous-pouw"
 version = "0.1.0"
 dependencies = [
+ "axum 0.8.8",
  "blake3",
  "criterion",
  "ed25519-dalek",
@@ -3584,6 +3585,7 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.18",
  "tokio",
+ "tower 0.5.3",
  "tracing",
  "tracing-subscriber",
 ]

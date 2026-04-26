@@ -26,6 +26,7 @@ pub mod mint;
 pub mod net;
 pub mod network;
 pub mod node;
+pub mod rpc;
 pub mod quorum;
 pub mod receipt;
 pub mod selection;

@@ -20,6 +20,10 @@ pub enum Topic {
     Votes,
     /// Equivocation proofs.
     Slashes,
+    /// Block-sync requests (a node asking for missing blocks at heights H..K).
+    SyncRequest,
+    /// Block-sync responses (a peer replying with blocks).
+    SyncResponse,
 }
 
 /// One message observed on the wire.
@@ -36,6 +40,12 @@ pub struct NetworkEvent {
 pub trait Network: Send + Sync {
     fn publish(&self, topic: Topic, from: WorkerId, payload: Vec<u8>);
     fn drain(&self) -> Vec<NetworkEvent>;
+    /// Number of peers currently connected. Default is `usize::MAX` so
+    /// in-process simulators (which don't track real connections) never
+    /// trigger PouwNode's "wait for peers" gate.
+    fn peer_count(&self) -> usize {
+        usize::MAX
+    }
 }
 
 #[cfg(test)]

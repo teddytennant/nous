@@ -5,6 +5,7 @@
 
 use std::collections::VecDeque;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 
 use futures::StreamExt;
@@ -26,6 +27,8 @@ pub(crate) const ALL_TOPICS: &[Topic] = &[
     Topic::Blocks,
     Topic::Votes,
     Topic::Slashes,
+    Topic::SyncRequest,
+    Topic::SyncResponse,
 ];
 
 /// Stable wire-name mapping. Keep in sync with [`topic_from_wire`].
@@ -37,6 +40,8 @@ pub(crate) fn topic_to_wire(t: Topic) -> &'static str {
         Topic::Blocks => "pouw/blocks",
         Topic::Votes => "pouw/votes",
         Topic::Slashes => "pouw/slashes",
+        Topic::SyncRequest => "pouw/sync-req",
+        Topic::SyncResponse => "pouw/sync-resp",
     }
 }
 
@@ -48,6 +53,8 @@ pub(crate) fn topic_from_wire(s: &str) -> Option<Topic> {
         "pouw/blocks" => Some(Topic::Blocks),
         "pouw/votes" => Some(Topic::Votes),
         "pouw/slashes" => Some(Topic::Slashes),
+        "pouw/sync-req" => Some(Topic::SyncRequest),
+        "pouw/sync-resp" => Some(Topic::SyncResponse),
         _ => None,
     }
 }
@@ -138,6 +145,7 @@ pub(crate) async fn run(
     listen_addr: String,
     bootstrap: Vec<String>,
     listen_addr_tx: Option<oneshot::Sender<String>>,
+    peer_count: Arc<AtomicUsize>,
 ) {
     // Subscribe to every PoUW topic.
     for t in ALL_TOPICS {
@@ -232,9 +240,11 @@ pub(crate) async fn run(
                     SwarmEvent::ConnectionEstablished { peer_id, .. } => {
                         debug!(%peer_id, "pouw peer connected");
                         swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer_id);
+                        peer_count.fetch_add(1, Ordering::Relaxed);
                     }
                     SwarmEvent::ConnectionClosed { peer_id, .. } => {
                         debug!(%peer_id, "pouw peer disconnected");
+                        peer_count.fetch_sub(1, Ordering::Relaxed);
                     }
                     _ => {}
                 }
