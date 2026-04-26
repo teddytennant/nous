@@ -139,7 +139,13 @@ mod tests {
         (sk, w)
     }
 
-    fn transfer_tx(sk: &SigningKey, from: WorkerId, to: WorkerId, amt: u64, nonce: u64) -> Transaction {
+    fn transfer_tx(
+        sk: &SigningKey,
+        from: WorkerId,
+        to: WorkerId,
+        amt: u64,
+        nonce: u64,
+    ) -> Transaction {
         Transaction::new_signed(
             TxBody::Transfer {
                 from,
@@ -158,7 +164,8 @@ mod tests {
         let (sk, from) = worker_with_balance(&mut state, 100);
         let (_, to) = worker_with_balance(&mut state, 0);
         let mut mp = Mempool::new();
-        mp.insert(&state, transfer_tx(&sk, from, to, 10, 1)).unwrap();
+        mp.insert(&state, transfer_tx(&sk, from, to, 10, 1))
+            .unwrap();
         assert_eq!(mp.len(), 1);
         let taken = mp.take(&state, 100);
         assert_eq!(taken.len(), 1);
@@ -254,8 +261,10 @@ mod tests {
         let (sk_b, b) = worker_with_balance(&mut state, 100);
         let (_, dest) = worker_with_balance(&mut state, 0);
         let mut mp = Mempool::new();
-        mp.insert(&state, transfer_tx(&sk_b, b, dest, 1, 1)).unwrap();
-        mp.insert(&state, transfer_tx(&sk_a, a, dest, 1, 1)).unwrap();
+        mp.insert(&state, transfer_tx(&sk_b, b, dest, 1, 1))
+            .unwrap();
+        mp.insert(&state, transfer_tx(&sk_a, a, dest, 1, 1))
+            .unwrap();
         let taken = mp.take(&state, 10);
         // Both included; ordering is BTreeMap-stable on WorkerId.
         assert_eq!(taken.len(), 2);

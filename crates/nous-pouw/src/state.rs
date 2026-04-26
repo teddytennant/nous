@@ -185,9 +185,17 @@ impl ChainState {
             self.apply_mint(mint)?;
         }
 
-        // Apply transactions in canonical (sender, nonce) order.
+        // Apply transactions in canonical (sender, nonce) order; sum fees.
+        let mut fees_collected: u64 = 0;
         for tx in &block.body.transactions {
-            self.apply_transaction(tx)?;
+            let fee = self.apply_transaction(tx)?;
+            fees_collected = fees_collected.saturating_add(fee);
+        }
+        // Credit aggregated fees to the block leader.
+        if fees_collected > 0
+            && let Some(leader_info) = self.workers.get_mut(&block.header.leader)
+        {
+            leader_info.balance = leader_info.balance.saturating_add(fees_collected);
         }
 
         self.height = block.header.height;
@@ -237,10 +245,11 @@ impl ChainState {
         Ok(())
     }
 
-    /// Apply one transaction. Verifies signature, nonce, and balance/stake;
-    /// then mutates state. Caller is responsible for ensuring txs within a
-    /// block are processed in canonical order.
-    pub fn apply_transaction(&mut self, tx: &crate::tx::Transaction) -> Result<(), StateError> {
+    /// Apply one transaction. Verifies signature, nonce, balance/stake, and
+    /// the declared `tx.fee`; debits the fee from sender. Returns the fee
+    /// amount on success so the caller (block applier) can credit it to the
+    /// block leader.
+    pub fn apply_transaction(&mut self, tx: &crate::tx::Transaction) -> Result<u64, StateError> {
         use crate::tx::{TxBody, TxError};
 
         tx.verify_signature()?;
@@ -256,19 +265,45 @@ impl ChainState {
             }));
         }
 
+        // Fee comes out of sender balance up front. For Transfer/Stake the
+        // sender must cover (amount + fee).
+        let action_amount: u64 = match &tx.body {
+            TxBody::Transfer { amount, .. } | TxBody::Stake { amount, .. } => *amount,
+            _ => 0,
+        };
+        let total_debit = action_amount.saturating_add(tx.fee);
+        if matches!(tx.body, TxBody::Transfer { .. } | TxBody::Stake { .. })
+            && sender.balance < total_debit
+        {
+            return Err(StateError::Tx(TxError::InsufficientBalance {
+                have: sender.balance,
+                need: total_debit,
+            }));
+        }
+        // For Unstake / RegisterValidator the fee still comes from balance.
+        if matches!(
+            tx.body,
+            TxBody::Unstake { .. } | TxBody::RegisterValidator { .. }
+        ) && sender.balance < tx.fee
+        {
+            return Err(StateError::Tx(TxError::InsufficientBalance {
+                have: sender.balance,
+                need: tx.fee,
+            }));
+        }
+        sender.balance = sender.balance.saturating_sub(tx.fee);
+
         match &tx.body {
-            TxBody::Transfer { from: _, to, amount } => {
+            TxBody::Transfer {
+                from: _,
+                to,
+                amount,
+            } => {
                 if *amount == 0 {
                     return Err(StateError::Tx(TxError::ZeroAmount));
                 }
                 if to == &sender_id {
                     return Err(StateError::Tx(TxError::SelfTransfer));
-                }
-                if sender.balance < *amount {
-                    return Err(StateError::Tx(TxError::InsufficientBalance {
-                        have: sender.balance,
-                        need: *amount,
-                    }));
                 }
                 sender.balance -= amount;
                 sender.nonce += 1;
@@ -281,12 +316,6 @@ impl ChainState {
             TxBody::Stake { worker: _, amount } => {
                 if *amount == 0 {
                     return Err(StateError::Tx(TxError::ZeroAmount));
-                }
-                if sender.balance < *amount {
-                    return Err(StateError::Tx(TxError::InsufficientBalance {
-                        have: sender.balance,
-                        need: *amount,
-                    }));
                 }
                 sender.balance -= amount;
                 sender.stake = sender.stake.saturating_add(*amount);
@@ -320,7 +349,7 @@ impl ChainState {
                 self.validators.insert(sender_id);
             }
         }
-        Ok(())
+        Ok(tx.fee)
     }
 
     fn apply_slash(&mut self, slash: &SlashEvent) -> Result<(), StateError> {

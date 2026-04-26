@@ -110,16 +110,11 @@ where
     }
 
     fn block_at(&self, height: BlockHeight) -> Option<Block> {
-        // Best-effort: pull from the store via a fresh open if one exists.
-        // A future iteration will keep an Arc<Store> in the PouwNode itself
-        // so we avoid this minor hack; for now the recent_blocks cache plus
-        // store-backed sync responses cover most use cases.
-        let _ = height;
-        None
+        self.lookup_block_at(height)
     }
 
     fn head_block(&self) -> Option<Block> {
-        None
+        self.lookup_head_block()
     }
 
     fn workers(&self) -> std::collections::BTreeMap<WorkerId, crate::state::WorkerInfo> {
@@ -168,6 +163,8 @@ fn build_router(state: RpcState) -> Router {
         .route("/balance/{did}", get(get_balance))
         .route("/peers", get(get_peers))
         .route("/tx", post(post_tx))
+        .route("/head", get(get_head))
+        .route("/block/{height}", get(get_block_at))
         .with_state(state)
 }
 
@@ -177,6 +174,27 @@ async fn get_status(State(s): State<RpcState>) -> Json<NodeSnapshot> {
 
 async fn get_peers(State(s): State<RpcState>) -> Json<serde_json::Value> {
     Json(serde_json::json!({ "peer_count": s.handle.snapshot().peer_count }))
+}
+
+async fn get_head(State(s): State<RpcState>) -> Result<Json<Block>, (StatusCode, Json<ErrorBody>)> {
+    s.handle.head_block().map(Json).ok_or((
+        StatusCode::NOT_FOUND,
+        Json(ErrorBody {
+            error: "no finalized blocks yet".into(),
+        }),
+    ))
+}
+
+async fn get_block_at(
+    State(s): State<RpcState>,
+    Path(height): Path<BlockHeight>,
+) -> Result<Json<Block>, (StatusCode, Json<ErrorBody>)> {
+    s.handle.block_at(height).map(Json).ok_or((
+        StatusCode::NOT_FOUND,
+        Json(ErrorBody {
+            error: format!("no block at height {height}"),
+        }),
+    ))
 }
 
 async fn get_balance(
@@ -223,14 +241,10 @@ async fn post_tx(
     State(s): State<RpcState>,
     Json(req): Json<SubmitTxRequest>,
 ) -> Result<Json<SubmitTxResponse>, (StatusCode, Json<ErrorBody>)> {
-    let id = s.handle.submit_tx(req.tx).map_err(|e| {
-        (
-            StatusCode::BAD_REQUEST,
-            Json(ErrorBody {
-                error: e,
-            }),
-        )
-    })?;
+    let id = s
+        .handle
+        .submit_tx(req.tx)
+        .map_err(|e| (StatusCode::BAD_REQUEST, Json(ErrorBody { error: e })))?;
     Ok(Json(SubmitTxResponse {
         tx_id_hex: hex::encode(id),
     }))

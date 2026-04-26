@@ -106,12 +106,11 @@ impl GossipNetwork {
 
         // Wait for the first NewListenAddr (or fail loudly after a short
         // timeout — the listen_on call is synchronous-ish).
-        let local_addr =
-            match tokio::time::timeout(Duration::from_secs(5), addr_rx).await {
-                Ok(Ok(addr)) => addr,
-                Ok(Err(_)) => return Err("swarm task ended before listening".into()),
-                Err(_) => return Err("timed out waiting for listen address".into()),
-            };
+        let local_addr = match tokio::time::timeout(Duration::from_secs(5), addr_rx).await {
+            Ok(Ok(addr)) => addr,
+            Ok(Err(_)) => return Err("swarm task ended before listening".into()),
+            Err(_) => return Err("timed out waiting for listen address".into()),
+        };
 
         Ok(Self {
             outbound: out_tx,
@@ -148,9 +147,7 @@ impl Network for GossipNetwork {
     }
 
     fn drain(&self) -> Vec<NetworkEvent> {
-        let mut buf = self.inbound.lock();
-        let out = buf.drain(..).collect();
-        out
+        self.inbound.lock().drain(..).collect()
     }
 
     fn peer_count(&self) -> usize {

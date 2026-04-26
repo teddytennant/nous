@@ -140,7 +140,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             println!("{}", id_to_did(&id));
         }
         _ => {
-            eprintln!("usage: pouw_cli <status|balance|send-tx|stake|register-validator|did> [...]");
+            eprintln!(
+                "usage: pouw_cli <status|balance|send-tx|stake|register-validator|did> [...]"
+            );
             std::process::exit(1);
         }
     }
@@ -161,7 +163,9 @@ async fn http_get(url: &str) -> std::io::Result<String> {
     let mut buf = Vec::new();
     sock.read_to_end(&mut buf).await?;
     let s = String::from_utf8_lossy(&buf).to_string();
-    Ok(s.split_once("\r\n\r\n").map(|x| x.1.to_string()).unwrap_or(s))
+    Ok(s.split_once("\r\n\r\n")
+        .map(|x| x.1.to_string())
+        .unwrap_or(s))
 }
 
 async fn http_post_json(url: &str, body: &str) -> std::io::Result<String> {
@@ -181,5 +185,7 @@ async fn http_post_json(url: &str, body: &str) -> std::io::Result<String> {
     let mut buf = Vec::new();
     sock.read_to_end(&mut buf).await?;
     let s = String::from_utf8_lossy(&buf).to_string();
-    Ok(s.split_once("\r\n\r\n").map(|x| x.1.to_string()).unwrap_or(s))
+    Ok(s.split_once("\r\n\r\n")
+        .map(|x| x.1.to_string())
+        .unwrap_or(s))
 }

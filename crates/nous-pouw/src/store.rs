@@ -57,7 +57,12 @@ CREATE TABLE IF NOT EXISTS workers (
   stake     INTEGER NOT NULL,
   balance   INTEGER NOT NULL,
   trust     REAL    NOT NULL,
-  slashed   INTEGER NOT NULL
+  slashed   INTEGER NOT NULL,
+  nonce     INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS validators (
+  worker_id BLOB PRIMARY KEY
 );
 
 CREATE TABLE IF NOT EXISTS used_jobs (
@@ -72,6 +77,16 @@ CREATE TABLE IF NOT EXISTS used_worker_jobs (
 
 CREATE INDEX IF NOT EXISTS idx_blocks_hash ON blocks(hash);
 ";
+
+/// Best-effort one-shot migrations applied each open. Each ALTER is wrapped
+/// in `IF NOT EXISTS`-style logic via a try/swallow so re-running is safe.
+fn run_migrations(conn: &Connection) {
+    // Add `nonce` column to existing pre-fee-market databases.
+    let _ = conn.execute(
+        "ALTER TABLE workers ADD COLUMN nonce INTEGER NOT NULL DEFAULT 0",
+        [],
+    );
+}
 
 impl Store {
     /// Open or create the SQLite database at `path`. Runs migrations on first
@@ -96,6 +111,7 @@ impl Store {
         let _: Result<String, _> =
             conn.query_row("PRAGMA journal_mode = WAL", [], |row| row.get(0));
         conn.execute_batch(SCHEMA)?;
+        run_migrations(&conn);
         Ok(Self { conn })
     }
 
@@ -133,8 +149,8 @@ impl Store {
         tx.execute("DELETE FROM workers", [])?;
         {
             let mut stmt = tx.prepare(
-                "INSERT INTO workers (worker_id, stake, balance, trust, slashed) \
-                 VALUES (?1, ?2, ?3, ?4, ?5)",
+                "INSERT INTO workers (worker_id, stake, balance, trust, slashed, nonce) \
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
             )?;
             for (worker_id, info) in &state.workers {
                 stmt.execute(params![
@@ -143,7 +159,15 @@ impl Store {
                     info.balance as i64,
                     info.trust,
                     info.slashed as i64,
+                    info.nonce as i64,
                 ])?;
+            }
+        }
+        tx.execute("DELETE FROM validators", [])?;
+        {
+            let mut stmt = tx.prepare("INSERT INTO validators (worker_id) VALUES (?1)")?;
+            for v in &state.validators {
+                stmt.execute(params![&v.0[..]])?;
             }
         }
 
@@ -194,13 +218,14 @@ impl Store {
         // Workers
         let mut stmt = self
             .conn
-            .prepare("SELECT worker_id, stake, balance, trust, slashed FROM workers")?;
+            .prepare("SELECT worker_id, stake, balance, trust, slashed, nonce FROM workers")?;
         let rows = stmt.query_map([], |row| {
             let id_blob: Vec<u8> = row.get(0)?;
             let stake: i64 = row.get(1)?;
             let balance: i64 = row.get(2)?;
             let trust: f64 = row.get(3)?;
             let slashed: i64 = row.get(4)?;
+            let nonce: i64 = row.get(5)?;
             Ok((
                 WorkerId(blob_to_hash(&id_blob)),
                 WorkerInfo {
@@ -208,13 +233,23 @@ impl Store {
                     balance: balance as u64,
                     trust,
                     slashed: slashed != 0,
-                    nonce: 0,
+                    nonce: nonce as u64,
                 },
             ))
         })?;
         for row in rows {
             let (id, info) = row?;
             state.workers.insert(id, info);
+        }
+
+        // Validators
+        let mut stmt = self.conn.prepare("SELECT worker_id FROM validators")?;
+        let rows = stmt.query_map([], |row| {
+            let blob: Vec<u8> = row.get(0)?;
+            Ok(WorkerId(blob_to_hash(&blob)))
+        })?;
+        for row in rows {
+            state.validators.insert(row?);
         }
 
         // Used jobs
@@ -308,11 +343,9 @@ impl Store {
     pub fn head_height(&self) -> Result<BlockHeight, StoreError> {
         let h: Option<i64> = self
             .conn
-            .query_row(
-                "SELECT MAX(height) FROM blocks",
-                [],
-                |row| row.get::<_, Option<i64>>(0),
-            )
+            .query_row("SELECT MAX(height) FROM blocks", [], |row| {
+                row.get::<_, Option<i64>>(0)
+            })
             .optional()?
             .flatten();
         Ok(h.map(|x| x as BlockHeight).unwrap_or(0))

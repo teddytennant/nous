@@ -38,7 +38,10 @@ fn save_and_load_round_trip() {
 
     assert_eq!(loaded.height, live.height, "height matches");
     assert_eq!(loaded.head_hash, live.head_hash, "head_hash matches");
-    assert_eq!(loaded.total_supply, live.total_supply, "total_supply matches");
+    assert_eq!(
+        loaded.total_supply, live.total_supply,
+        "total_supply matches"
+    );
     assert_eq!(loaded.workers.len(), live.workers.len(), "worker count");
 
     for (id, info) in &live.workers {
@@ -67,7 +70,10 @@ fn iter_blocks_returns_all_in_order() {
     assert_eq!(blocks.len(), 5, "5 blocks");
     for (i, b) in blocks.iter().enumerate() {
         let expected_height = (i as u64) + 1;
-        assert_eq!(b.header.height, expected_height, "block {i} has height {expected_height}");
+        assert_eq!(
+            b.header.height, expected_height,
+            "block {i} has height {expected_height}"
+        );
         // Each block's hash must match its header digest.
         let lookup = store.block_by_hash(&b.hash()).expect("by_hash ok");
         assert!(lookup.is_some(), "block {i} found by hash");
@@ -97,7 +103,10 @@ fn block_at_and_block_by_hash() {
         assert_eq!(by_hash.hash(), hash);
     }
 
-    assert!(store.block_at(99).expect("ok").is_none(), "missing height -> None");
+    assert!(
+        store.block_at(99).expect("ok").is_none(),
+        "missing height -> None"
+    );
     assert!(
         store.block_by_hash(&[0u8; 32]).expect("ok").is_none(),
         "missing hash -> None"
@@ -162,7 +171,9 @@ fn idempotent_resave() {
     // and not error.
     let snapshot = h.engine.state.clone();
     store.save_block(&first, &snapshot).expect("resave ok");
-    store.save_block(&first, &snapshot).expect("resave again ok");
+    store
+        .save_block(&first, &snapshot)
+        .expect("resave again ok");
 
     let blocks = store.iter_blocks().expect("iter_blocks ok");
     assert_eq!(blocks.len(), 1, "still only one block after resaves");

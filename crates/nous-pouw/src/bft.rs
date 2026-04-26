@@ -85,7 +85,10 @@ pub enum BftError {
     #[error("invalid validator key")]
     InvalidKey,
     #[error("vote for wrong height: cert {cert}, vote {vote}")]
-    HeightMismatch { cert: BlockHeight, vote: BlockHeight },
+    HeightMismatch {
+        cert: BlockHeight,
+        vote: BlockHeight,
+    },
     #[error("vote for wrong block hash")]
     HashMismatch,
     #[error("voter is not in the active validator set")]
@@ -93,7 +96,10 @@ pub enum BftError {
     #[error("duplicate vote from {voter}")]
     DuplicateVote { voter: String },
     #[error("stake threshold not met: {stake_micro}/{required_micro}")]
-    BelowThreshold { stake_micro: u32, required_micro: u32 },
+    BelowThreshold {
+        stake_micro: u32,
+        required_micro: u32,
+    },
     #[error("no active validators")]
     NoValidators,
     #[error("equivocation detected from {voter}")]
@@ -274,7 +280,11 @@ mod tests {
     fn three_of_four_meets_two_thirds() {
         let (state, sks) = validator_set(4, 100);
         let h = block_hash(8);
-        let votes: Vec<_> = sks.iter().take(3).map(|sk| Vote::new_signed(2, h, sk)).collect();
+        let votes: Vec<_> = sks
+            .iter()
+            .take(3)
+            .map(|sk| Vote::new_signed(2, h, sk))
+            .collect();
         let cert = form_quorum_cert(2, h, votes, &state, 666_667).unwrap();
         assert!(cert.stake_micro >= 666_667);
     }
@@ -283,7 +293,11 @@ mod tests {
     fn two_of_four_misses_two_thirds() {
         let (state, sks) = validator_set(4, 100);
         let h = block_hash(9);
-        let votes: Vec<_> = sks.iter().take(2).map(|sk| Vote::new_signed(2, h, sk)).collect();
+        let votes: Vec<_> = sks
+            .iter()
+            .take(2)
+            .map(|sk| Vote::new_signed(2, h, sk))
+            .collect();
         let err = form_quorum_cert(2, h, votes, &state, 666_667).unwrap_err();
         assert!(matches!(err, BftError::BelowThreshold { .. }));
     }

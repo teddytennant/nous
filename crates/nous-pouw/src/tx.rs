@@ -179,16 +179,48 @@ mod tests {
     #[test]
     fn id_changes_with_nonce() {
         let (sk, w) = sk_pair();
-        let a = Transaction::new_signed(TxBody::Stake { worker: w, amount: 1 }, 1, 0, &sk);
-        let b = Transaction::new_signed(TxBody::Stake { worker: w, amount: 1 }, 2, 0, &sk);
+        let a = Transaction::new_signed(
+            TxBody::Stake {
+                worker: w,
+                amount: 1,
+            },
+            1,
+            0,
+            &sk,
+        );
+        let b = Transaction::new_signed(
+            TxBody::Stake {
+                worker: w,
+                amount: 1,
+            },
+            2,
+            0,
+            &sk,
+        );
         assert_ne!(a.id(), b.id());
     }
 
     #[test]
     fn id_is_deterministic() {
         let (sk, w) = sk_pair();
-        let a = Transaction::new_signed(TxBody::Stake { worker: w, amount: 5 }, 1, 0, &sk);
-        let b = Transaction::new_signed(TxBody::Stake { worker: w, amount: 5 }, 1, 0, &sk);
+        let a = Transaction::new_signed(
+            TxBody::Stake {
+                worker: w,
+                amount: 5,
+            },
+            1,
+            0,
+            &sk,
+        );
+        let b = Transaction::new_signed(
+            TxBody::Stake {
+                worker: w,
+                amount: 5,
+            },
+            1,
+            0,
+            &sk,
+        );
         assert_eq!(a.id(), b.id());
     }
 
@@ -205,8 +237,22 @@ mod tests {
             .sender(),
             w
         );
-        assert_eq!(TxBody::Stake { worker: w, amount: 1 }.sender(), w);
-        assert_eq!(TxBody::Unstake { worker: w, amount: 1 }.sender(), w);
+        assert_eq!(
+            TxBody::Stake {
+                worker: w,
+                amount: 1
+            }
+            .sender(),
+            w
+        );
+        assert_eq!(
+            TxBody::Unstake {
+                worker: w,
+                amount: 1
+            }
+            .sender(),
+            w
+        );
         assert_eq!(TxBody::RegisterValidator { worker: w }.sender(), w);
         let _ = sk;
     }
@@ -242,7 +288,15 @@ mod tests {
     #[test]
     fn serde_round_trip() {
         let (sk, w) = sk_pair();
-        let tx = Transaction::new_signed(TxBody::Stake { worker: w, amount: 5 }, 1, 0, &sk);
+        let tx = Transaction::new_signed(
+            TxBody::Stake {
+                worker: w,
+                amount: 5,
+            },
+            1,
+            0,
+            &sk,
+        );
         let json = serde_json::to_string(&tx).unwrap();
         let back: Transaction = serde_json::from_str(&json).unwrap();
         assert_eq!(tx, back);

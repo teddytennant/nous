@@ -132,9 +132,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         store,
         NodeConfig {
             tick_ms: 250,
-            vote_timeout_ms: 5_000,
+            // Long vote timeout so view_round seldom changes — when it does
+            // change at slightly different wall-clock times across nodes we
+            // get split-brain proposals.
+            vote_timeout_ms: 10_000,
             finality_threshold_micro: 666_667,
-            warmup_ms: 5_000,
+            // Long warmup so the gossipsub mesh reliably forms before any
+            // node tries to propose. Without this the first round's
+            // proposal can be lost and the chain forks immediately.
+            warmup_ms: 10_000,
             min_peers_to_propose: 1,
         },
     ));

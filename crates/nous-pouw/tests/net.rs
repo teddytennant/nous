@@ -14,7 +14,7 @@ async fn two_nodes_gossip_a_message() {
     let sk_a = SigningKey::generate(&mut OsRng);
     let sk_b = SigningKey::generate(&mut OsRng);
     let id_a = WorkerId::from_verifying_key(&sk_a.verifying_key());
-    let id_b = WorkerId::from_verifying_key(&sk_b.verifying_key());
+    let _id_b = WorkerId::from_verifying_key(&sk_b.verifying_key());
 
     let net_a = GossipNetwork::spawn(
         sk_a,
@@ -65,8 +65,6 @@ async fn two_nodes_gossip_a_message() {
         }
         tokio::time::sleep(Duration::from_millis(200)).await;
     }
-    // touch ids for clarity
-    let _ = id_b;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]

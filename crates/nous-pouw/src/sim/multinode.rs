@@ -71,7 +71,9 @@ impl MultiNodeDevnet {
     /// Spin up N validators with equal stake, registered + added to validator set.
     pub fn build(n_validators: usize, stake: u64, seed: u64, config: EngineConfig) -> Self {
         let mut rng = ChaCha20Rng::seed_from_u64(seed);
-        let sks: Vec<SigningKey> = (0..n_validators).map(|_| SigningKey::generate(&mut rng)).collect();
+        let sks: Vec<SigningKey> = (0..n_validators)
+            .map(|_| SigningKey::generate(&mut rng))
+            .collect();
 
         let mut genesis = ChainState::new();
         for sk in &sks {
@@ -217,8 +219,10 @@ impl MultiNodeDevnet {
 
     /// Convenience: run R rounds with one randomly-payloaded job each.
     pub fn run(&mut self, rounds: usize, seed: u64) -> MultiNodeReport {
-        let mut report = MultiNodeReport::default();
-        report.validators = self.nodes.len();
+        let mut report = MultiNodeReport {
+            validators: self.nodes.len(),
+            ..Default::default()
+        };
         let mut rng = ChaCha20Rng::seed_from_u64(seed);
         use rand::RngCore;
         for round in 0..rounds {
@@ -293,7 +297,10 @@ mod tests {
         let mut net = MultiNodeDevnet::build(4, 100, 2, cfg);
         net.make_first_n_byzantine(1); // 1/4 = 25% < 1/3
         let report = net.run(10, 100);
-        assert_eq!(report.finalized, 10, "10 blocks must finalize with 25% byzantine");
+        assert_eq!(
+            report.finalized, 10,
+            "10 blocks must finalize with 25% byzantine"
+        );
         assert_eq!(report.divergent_states, 0);
     }
 
@@ -346,7 +353,12 @@ mod tests {
         let donor_id = net.nodes[0].id;
         let recipient_id = net.nodes[1].id;
         for node in &mut net.nodes {
-            node.engine.state.workers.get_mut(&donor_id).unwrap().balance = 1_000;
+            node.engine
+                .state
+                .workers
+                .get_mut(&donor_id)
+                .unwrap()
+                .balance = 1_000;
         }
 
         let donor_sk = net.nodes[0].signing_key();

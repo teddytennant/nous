@@ -91,9 +91,13 @@ struct Inner<N: Network, E: WorkExecutor + Send + 'static> {
     /// When the in-flight block was set; used to time out stuck proposals.
     in_flight_at: Option<Instant>,
     last_qc: Option<VoteCertificate>,
-    epoch: u64,
     cfg: NodeConfig,
     started_at: Instant,
+    /// Wall-clock anchor used to compute the current view round (= number of
+    /// `vote_timeout_ms` windows that have elapsed since the last block
+    /// finalized). Every node sees the same view round modulo clock skew, so
+    /// they all agree on the leader for height H+1 at any given moment.
+    last_finalize_at: Instant,
     /// Last `RECENT_BLOCKS_CACHE` finalized blocks, by height. Served to
     /// peers that fall behind during mesh formation or churn.
     recent_blocks: BTreeMap<BlockHeight, Block>,
@@ -135,9 +139,9 @@ impl<N: Network + 'static, E: WorkExecutor + Send + 'static> PouwNode<N, E> {
             in_flight: None,
             in_flight_at: None,
             last_qc: None,
-            epoch: 0,
             cfg: cfg.clone(),
             started_at: Instant::now(),
+            last_finalize_at: Instant::now(),
             recent_blocks: BTreeMap::new(),
             pending_blocks: BTreeMap::new(),
             last_sync_req_at: None,
@@ -167,6 +171,39 @@ impl<N: Network + 'static, E: WorkExecutor + Send + 'static> PouwNode<N, E> {
     /// Mempool size (pending tx count).
     pub fn mempool_len(&self) -> usize {
         self.inner.lock().mempool.len()
+    }
+
+    /// Look up a block by height: first the in-memory recent_blocks LRU,
+    /// then fall back to the persisted store.
+    pub fn lookup_block_at(&self, height: BlockHeight) -> Option<Block> {
+        let g = self.inner.lock();
+        if let Some(b) = g.recent_blocks.get(&height) {
+            return Some(b.clone());
+        }
+        if let Some(store) = &g.store
+            && let Ok(Some(b)) = store.block_at(height)
+        {
+            return Some(b);
+        }
+        None
+    }
+
+    /// Latest finalized block, if any.
+    pub fn lookup_head_block(&self) -> Option<Block> {
+        let g = self.inner.lock();
+        let h = g.engine.state.height;
+        if h == 0 {
+            return None;
+        }
+        if let Some(b) = g.recent_blocks.get(&h) {
+            return Some(b.clone());
+        }
+        if let Some(store) = &g.store
+            && let Ok(Some(b)) = store.block_at(h)
+        {
+            return Some(b);
+        }
+        None
     }
 
     /// Submit a transaction to the local mempool + broadcast.
@@ -229,6 +266,7 @@ fn drive_one_tick<N: Network, E: WorkExecutor + Send>(g: &mut Inner<N, E>) {
                     hex::encode(&bh[..6])
                 );
                 cache_recent(&mut g.recent_blocks, in_flight.clone());
+                g.last_finalize_at = Instant::now();
                 // After advancing the head, see if any buffered future
                 // blocks are now applicable.
                 apply_pending_blocks(g);
@@ -238,7 +276,8 @@ fn drive_one_tick<N: Network, E: WorkExecutor + Send>(g: &mut Inner<N, E>) {
             g.pending_votes
                 .retain(|v| v.height > in_flight.header.height);
         } else if let Some(t0) = g.in_flight_at {
-            // Vote-timeout: drop a stale in-flight so the next leader can try.
+            // Vote-timeout: drop a stale in-flight so the next leader (per the
+            // current view round) can try.
             if t0.elapsed() > Duration::from_millis(g.cfg.vote_timeout_ms) {
                 debug!(
                     "in_flight block height={} timed out without QC, retrying",
@@ -256,23 +295,29 @@ fn drive_one_tick<N: Network, E: WorkExecutor + Send>(g: &mut Inner<N, E>) {
     let warmed_up = g.started_at.elapsed() >= Duration::from_millis(g.cfg.warmup_ms);
     let enough_peers = <N as Network>::peer_count(g.network.as_ref()) >= g.cfg.min_peers_to_propose;
 
-    if warmed_up
-        && enough_peers
-        && g.in_flight.is_none()
-        && is_leader_for_epoch(g.id, &g.engine.state, g.epoch)
-    {
+    if warmed_up && enough_peers && g.in_flight.is_none() && is_leader_for_next_block(g) {
         propose_block(g);
     }
-    g.epoch = g.epoch.wrapping_add(1);
 }
 
-fn is_leader_for_epoch(me: WorkerId, state: &ChainState, epoch: u64) -> bool {
-    let validators: Vec<WorkerId> = state.validators.iter().copied().collect();
+/// Wall-clock-driven view round for the current next-block slot. Every node
+/// computes the same value from `last_finalize_at` modulo clock skew, so the
+/// leader rotation is deterministic across the cluster: if the primary
+/// leader is slow / offline, the backup at view+1 takes over uniformly.
+fn current_view_round<N: Network, E: WorkExecutor + Send>(g: &Inner<N, E>) -> u64 {
+    let elapsed_ms = g.last_finalize_at.elapsed().as_millis() as u64;
+    elapsed_ms / g.cfg.vote_timeout_ms.max(1)
+}
+
+fn is_leader_for_next_block<N: Network, E: WorkExecutor + Send>(g: &Inner<N, E>) -> bool {
+    let validators: Vec<WorkerId> = g.engine.state.validators.iter().copied().collect();
     if validators.is_empty() {
         return false;
     }
-    let idx = (epoch as usize) % validators.len();
-    validators[idx] == me
+    let next_height = g.engine.state.height + 1;
+    let view = current_view_round(g);
+    let idx = ((next_height + view) as usize) % validators.len();
+    validators[idx] == g.id
 }
 
 fn propose_block<N: Network, E: WorkExecutor + Send>(g: &mut Inner<N, E>) {
@@ -315,7 +360,11 @@ fn propose_block<N: Network, E: WorkExecutor + Send>(g: &mut Inner<N, E>) {
     // The leader votes for its own block (gossipsub does not echo to the
     // sender, so without this we'd never reach quorum).
     let bh = block.hash();
-    let self_vote = Vote::new_signed(block.header.height, bh, &SigningKey::from_bytes(&g.sk.to_bytes()));
+    let self_vote = Vote::new_signed(
+        block.header.height,
+        bh,
+        &SigningKey::from_bytes(&g.sk.to_bytes()),
+    );
     let vote_payload = serde_json::to_vec(&self_vote).unwrap_or_default();
     if !vote_payload.is_empty() {
         g.network.publish(Topic::Votes, g.id, vote_payload);
@@ -429,19 +478,31 @@ fn handle_inbound_block<N: Network, E: WorkExecutor + Send>(g: &mut Inner<N, E>,
         request_sync_if_needed(g);
         return;
     }
-    // Sign + broadcast our vote on the next block.
+    // For height == want, the proposer is the height-based leader for this
+    // round. Multiple proposers can race during view-change drift: we vote
+    // for the FIRST verifiable block we see for this height and hold it as
+    // our in_flight; later proposals at the same height are ignored (a
+    // standard primary-backup BFT discipline that prevents accidental
+    // double-finalization on this branch).
+    if let Some(existing) = &g.in_flight
+        && existing.header.height == block.header.height
+    {
+        return;
+    }
     let bh = block.hash();
-    let vote = Vote::new_signed(block.header.height, bh, &SigningKey::from_bytes(&g.sk.to_bytes()));
+    let vote = Vote::new_signed(
+        block.header.height,
+        bh,
+        &SigningKey::from_bytes(&g.sk.to_bytes()),
+    );
     g.pending_votes.push(vote.clone());
     let payload = match serde_json::to_vec(&vote) {
         Ok(b) => b,
         Err(_) => return,
     };
     g.network.publish(Topic::Votes, g.id, payload);
-    if g.in_flight.is_none() {
-        g.in_flight = Some(block);
-        g.in_flight_at = Some(Instant::now());
-    }
+    g.in_flight = Some(block);
+    g.in_flight_at = Some(Instant::now());
 }
 
 fn request_sync_if_needed<N: Network, E: WorkExecutor + Send>(g: &mut Inner<N, E>) {
@@ -468,10 +529,7 @@ fn request_sync_if_needed<N: Network, E: WorkExecutor + Send>(g: &mut Inner<N, E
     if let Ok(bytes) = serde_json::to_vec(&req) {
         g.network.publish(Topic::SyncRequest, g.id, bytes);
         g.last_sync_req_at = Some(Instant::now());
-        debug!(
-            "sent sync request from {} to {}",
-            from_height, to_height
-        );
+        debug!("sent sync request from {} to {}", from_height, to_height);
     }
 }
 

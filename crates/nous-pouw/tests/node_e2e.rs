@@ -209,9 +209,7 @@ async fn transfer_tx_propagates_and_finalizes() {
             break;
         }
         if Instant::now() > deadline {
-            panic!(
-                "tx did not finalize across all nodes in time; balances = {recv_balances:?}"
-            );
+            panic!("tx did not finalize across all nodes in time; balances = {recv_balances:?}");
         }
         tokio::time::sleep(Duration::from_millis(500)).await;
     }
