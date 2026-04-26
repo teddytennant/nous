@@ -15,6 +15,11 @@ pub struct Cli {
     #[arg(long, global = true)]
     pub json: bool,
 
+    /// Disable ANSI color output. Honored alongside the `NO_COLOR` env var
+    /// (https://no-color.org); whichever is set wins.
+    #[arg(long, global = true)]
+    pub no_color: bool,
+
     /// Verbose logging
     #[arg(short, long, global = true)]
     pub verbose: bool,

@@ -28,6 +28,53 @@ impl Tab {
         }
     }
 
+    /// Meta-caps label — uppercase, used for the editorial tab strip and
+    /// section eyebrows. Tracking is the responsibility of the caller (see
+    /// [`crate::theme::Theme::meta`]).
+    pub fn label_caps(&self) -> &'static str {
+        match self {
+            Self::Feed => "FEED",
+            Self::Messages => "MESSAGES",
+            Self::Governance => "GOVERNANCE",
+            Self::Wallet => "WALLET",
+            Self::Marketplace => "MARKET",
+            Self::Browser => "BROWSER",
+            Self::Identity => "IDENTITY",
+            Self::Peers => "PEERS",
+            Self::Settings => "SETTINGS",
+        }
+    }
+
+    /// Subtitle for the editorial section eyebrow. One short clause in
+    /// stone, sentence case.
+    pub fn subtitle(&self) -> &'static str {
+        match self {
+            Self::Feed => "your timeline",
+            Self::Messages => "direct messages",
+            Self::Governance => "DAOs and proposals",
+            Self::Wallet => "balances and transactions",
+            Self::Marketplace => "listings and orders",
+            Self::Browser => "decentralized browsing",
+            Self::Identity => "your DID and keys",
+            Self::Peers => "network and reachability",
+            Self::Settings => "preferences",
+        }
+    }
+
+    /// Tab-specific keybinding hints, rendered as a meta-caps footer.
+    pub fn keys(&self) -> &'static [(&'static str, &'static str)] {
+        match self {
+            Self::Marketplace => &[
+                ("\u{2191}/\u{2193}", "select"),
+                ("\u{2190}/\u{2192}", "switch"),
+                ("ENTER", "open"),
+            ],
+            Self::Browser => &[("\u{2191}/\u{2193}", "select"), ("ENTER", "open")],
+            Self::Messages => &[("ENTER", "send"), ("\u{2191}/\u{2193}", "scroll")],
+            _ => &[("\u{2191}/\u{2193}", "scroll")],
+        }
+    }
+
     pub fn shortcut(&self) -> char {
         match self {
             Self::Feed => '1',

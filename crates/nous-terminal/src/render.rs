@@ -2,7 +2,14 @@
 //!
 //! These types represent the terminal's visual state in a way that any
 //! renderer (ratatui, browser canvas, Tauri webview, WASM) can consume.
-//! The Infinite Minimalism palette is the default.
+//! The default theme draws from the editorial palette in
+//! [`nous_design::palette`] — ink, ivory, stone, oxblood, sage, clay.
+
+use nous_design::palette;
+
+const fn rgb(c: (u8, u8, u8)) -> Color {
+    Color::Rgb(c.0, c.1, c.2)
+}
 
 /// A single terminal cell.
 #[derive(Debug, Clone, PartialEq)]
@@ -60,10 +67,11 @@ pub struct RenderRow {
     pub cells: Vec<Cell>,
 }
 
-/// Terminal color theme following Infinite Minimalism.
+/// Terminal color theme following the editorial design language.
 ///
-/// Deep blacks, near-white text, warm gold accent.
-/// European luxury: restrained, confident, quiet.
+/// Ink and ivory, a single oxblood accent. The ANSI table is mapped to the
+/// canonical palette: oxblood for "red," sage for "green," clay for "yellow,"
+/// stone for the muted variants. No teal, no violet, no secondary brand.
 #[derive(Debug, Clone)]
 pub struct TerminalTheme {
     pub background: Color,
@@ -92,30 +100,33 @@ pub struct TerminalTheme {
 
 impl Default for TerminalTheme {
     fn default() -> Self {
+        // Editorial: ink/ivory canvas, oxblood mark, sage/clay state.
         Self {
-            // Infinite Minimalism: deep black canvas
-            background: Color::Rgb(0, 0, 0),
-            foreground: Color::Rgb(224, 224, 224),
-            cursor: Color::Rgb(212, 175, 55),  // warm gold accent
-            selection: Color::Rgb(40, 40, 40), // subtle highlight
+            background: rgb(palette::INK),
+            foreground: rgb(palette::IVORY),
+            cursor: rgb(palette::OXBLOOD),
+            selection: rgb(palette::INK_2),
 
-            // Muted, desaturated ANSI — not garish
-            black: Color::Rgb(0, 0, 0),
-            red: Color::Rgb(190, 80, 70),
-            green: Color::Rgb(100, 180, 100),
-            yellow: Color::Rgb(212, 175, 55), // gold
-            blue: Color::Rgb(90, 140, 200),
-            magenta: Color::Rgb(160, 110, 180),
-            cyan: Color::Rgb(80, 180, 180),
-            white: Color::Rgb(200, 200, 200),
-            bright_black: Color::Rgb(80, 80, 80),
-            bright_red: Color::Rgb(220, 110, 100),
-            bright_green: Color::Rgb(130, 210, 130),
-            bright_yellow: Color::Rgb(240, 210, 90),
-            bright_blue: Color::Rgb(120, 170, 230),
-            bright_magenta: Color::Rgb(190, 140, 210),
-            bright_cyan: Color::Rgb(110, 210, 210),
-            bright_white: Color::Rgb(240, 240, 240),
+            // ANSI table mapped onto the eight-token editorial palette.
+            // No teal, no violet — magenta/cyan/blue collapse onto stone and
+            // ivory_dim so legacy programs still render legibly without
+            // introducing colors the design language doesn't allow.
+            black: rgb(palette::INK),
+            red: rgb(palette::OXBLOOD),
+            green: rgb(palette::SAGE),
+            yellow: rgb(palette::CLAY),
+            blue: rgb(palette::IVORY_DIM),
+            magenta: rgb(palette::OXBLOOD_DIM),
+            cyan: rgb(palette::STONE),
+            white: rgb(palette::IVORY_DIM),
+            bright_black: rgb(palette::STONE),
+            bright_red: rgb(palette::OXBLOOD),
+            bright_green: rgb(palette::SAGE),
+            bright_yellow: rgb(palette::CLAY),
+            bright_blue: rgb(palette::IVORY),
+            bright_magenta: rgb(palette::OXBLOOD),
+            bright_cyan: rgb(palette::IVORY_DIM),
+            bright_white: rgb(palette::IVORY),
         }
     }
 }
@@ -179,8 +190,15 @@ mod tests {
     #[test]
     fn theme_ansi_colors() {
         let theme = TerminalTheme::default();
-        assert_eq!(theme.black, Color::Rgb(0, 0, 0));
-        assert_eq!(theme.yellow, Color::Rgb(212, 175, 55)); // gold accent
+        // ink (#0E0E0C) is the canvas/black slot
+        assert_eq!(theme.black, Color::Rgb(0x0E, 0x0E, 0x0C));
+        // oxblood (#B23A3A) is the single accent → "red" slot, also cursor
+        assert_eq!(theme.red, Color::Rgb(0xB2, 0x3A, 0x3A));
+        assert_eq!(theme.cursor, Color::Rgb(0xB2, 0x3A, 0x3A));
+        // sage (#8FA48A) for positive state → "green"
+        assert_eq!(theme.green, Color::Rgb(0x8F, 0xA4, 0x8A));
+        // clay (#C2785A) for warning → "yellow"
+        assert_eq!(theme.yellow, Color::Rgb(0xC2, 0x78, 0x5A));
     }
 
     #[test]

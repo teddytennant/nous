@@ -26,7 +26,10 @@ nous-marketplace = { path = "../nous-marketplace" }
 nous-ai = { path = "../nous-ai" }
 nous-terminal = { path = "../nous-terminal" }
 nous-node = { path = "../nous-node" }
+nous-design = { path = "../nous-design" }
 clap = { workspace = true }
+indicatif = "0.17"
+is-terminal = "0.4"
 tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
