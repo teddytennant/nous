@@ -3,6 +3,8 @@
 
 pub mod byzantine;
 pub mod harness;
+pub mod multinode;
 
 pub use byzantine::{ByzantineKind, ConfigurableExecutor};
 pub use harness::{DevnetReport, Harness, HarnessBuilder};
+pub use multinode::{BftRoundReport, MultiNodeDevnet, MultiNodeReport, ValidatorNode};

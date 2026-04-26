@@ -9,11 +9,7 @@ use nous_pouw::state::WorkerId;
 use rand::rngs::OsRng;
 
 fn signed_header(sk: &SigningKey, height: u64, state_root: [u8; 32]) -> BlockHeader {
-    let body = BlockBody {
-        certs: vec![],
-        slashes: vec![],
-        mints: vec![],
-    };
+    let body = BlockBody::default();
     let mut hdr = BlockHeader {
         height,
         prev_hash: [0; 32],
@@ -22,6 +18,7 @@ fn signed_header(sk: &SigningKey, height: u64, state_root: [u8; 32]) -> BlockHea
         timestamp_ms: height,
         leader: WorkerId::from_verifying_key(&sk.verifying_key()),
         signature: vec![],
+        parent_qc: None,
     };
     sign_block(&mut hdr, sk);
     hdr

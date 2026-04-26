@@ -3,10 +3,12 @@
 use ed25519_dalek::{Signer as DalekSigner, SigningKey, Verifier};
 use serde::{Deserialize, Serialize};
 
+use crate::bft::VoteCertificate;
 use crate::mint::MintReceipt;
 use crate::quorum::QuorumCertificate;
 use crate::slashing::SlashEvent;
 use crate::state::{StateRoot, WorkerId};
+use crate::tx::Transaction;
 
 pub type BlockHeight = u64;
 pub type BlockHash = [u8; 32];
@@ -20,6 +22,10 @@ pub struct BlockHeader {
     pub timestamp_ms: u64,
     pub leader: WorkerId,
     pub signature: Vec<u8>,
+    /// Quorum certificate justifying the *previous* block as finalized.
+    /// `None` only at genesis.
+    #[serde(default)]
+    pub parent_qc: Option<VoteCertificate>,
 }
 
 impl BlockHeader {
@@ -33,11 +39,13 @@ impl BlockHeader {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct BlockBody {
     pub certs: Vec<QuorumCertificate>,
     pub slashes: Vec<SlashEvent>,
     pub mints: Vec<MintReceipt>,
+    #[serde(default)]
+    pub transactions: Vec<Transaction>,
 }
 
 impl BlockBody {
@@ -92,11 +100,7 @@ mod tests {
     use rand::rngs::OsRng;
 
     fn make_block(sk: &SigningKey, height: u64) -> Block {
-        let body = BlockBody {
-            certs: vec![],
-            slashes: vec![],
-            mints: vec![],
-        };
+        let body = BlockBody::default();
         let mut header = BlockHeader {
             height,
             prev_hash: [0; 32],
@@ -105,6 +109,7 @@ mod tests {
             timestamp_ms: 0,
             leader: WorkerId::from_verifying_key(&sk.verifying_key()),
             signature: vec![],
+            parent_qc: None,
         };
         sign_block(&mut header, sk);
         Block { header, body }
@@ -149,14 +154,11 @@ mod tests {
 
     #[test]
     fn body_hash_changes_with_contents() {
-        let body1 = BlockBody {
-            certs: vec![],
-            slashes: vec![],
-            mints: vec![],
-        };
+        let body1 = BlockBody::default();
         let body2 = BlockBody {
             certs: vec![],
             slashes: vec![],
+            transactions: vec![],
             mints: vec![MintReceipt {
                 recipient: [1; 32],
                 amount: 5,

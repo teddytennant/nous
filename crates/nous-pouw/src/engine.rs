@@ -92,13 +92,33 @@ impl Engine {
         leader_sk: &SigningKey,
         timestamp_ms: u64,
     ) -> Result<RoundOutcome, EngineError> {
+        self.step_full(executor, jobs, &[], leader_sk, timestamp_ms, None, true)
+    }
+
+    /// Build (and optionally apply) a block with the full BFT options.
+    ///
+    /// - `transactions`: the leader pulls these from its mempool and embeds them.
+    /// - `parent_qc`: justifies the *previous* block as finalized.
+    /// - `auto_apply`: if true, apply the resulting block to local state. Set
+    ///   to `false` in multi-validator BFT where the block is only applied
+    ///   after ⅔ vote certificate forms.
+    #[allow(clippy::too_many_arguments)]
+    pub fn step_full<E: WorkExecutor>(
+        &mut self,
+        executor: &mut E,
+        jobs: &[JobEnvelope],
+        transactions: &[crate::tx::Transaction],
+        leader_sk: &SigningKey,
+        timestamp_ms: u64,
+        parent_qc: Option<crate::bft::VoteCertificate>,
+        auto_apply: bool,
+    ) -> Result<RoundOutcome, EngineError> {
         self.epoch += 1;
         let prev_hash = self.state.head_hash;
         let leader = WorkerId::from_verifying_key(&leader_sk.verifying_key());
 
         let mut certs = Vec::new();
         let mut failed_jobs = Vec::new();
-        // Track all dissenting workers across all certs (deduped).
         let mut dissenters: std::collections::BTreeSet<WorkerId> = Default::default();
 
         for job in jobs {
@@ -145,32 +165,31 @@ impl Engine {
             certs,
             slashes,
             mints: vec![],
+            transactions: transactions.to_vec(),
         };
         let body_hash = body.hash();
 
-        // The block's state_root is the projected root *after* apply_block,
-        // which we compute by applying to a clone first.
+        // Project state to compute state_root: the root *after* apply_block.
         let mut projected = self.state.clone();
         let pre_height = projected.height;
         let mut header = BlockHeader {
             height: pre_height + 1,
             prev_hash,
-            state_root: [0; 32], // filled in below
+            state_root: [0; 32],
             body_hash,
             timestamp_ms,
             leader,
             signature: vec![],
+            parent_qc: parent_qc.clone(),
         };
         let mut probe_block = Block {
             header: header.clone(),
             body: body.clone(),
         };
-        // Sign + apply with placeholder state_root; then sign final.
         sign_block(&mut probe_block.header, leader_sk);
         projected.apply_block(&probe_block)?;
         header.state_root = projected.root();
 
-        // Final signed header.
         let mut final_header = header;
         sign_block(&mut final_header, leader_sk);
         let block = Block {
@@ -179,10 +198,17 @@ impl Engine {
         };
         verify_block(&block)?;
 
-        // Apply final block to *real* state. We can't reuse `projected`
-        // because its head_hash depends on the placeholder header.
-        self.state.apply_block(&block)?;
+        if auto_apply {
+            self.state.apply_block(&block)?;
+        }
         Ok(RoundOutcome { block, failed_jobs })
+    }
+
+    /// Apply a block produced by another validator (after BFT QC forms).
+    pub fn apply_external_block(&mut self, block: &Block) -> Result<(), EngineError> {
+        verify_block(block)?;
+        self.state.apply_block(block)?;
+        Ok(())
     }
 }
 

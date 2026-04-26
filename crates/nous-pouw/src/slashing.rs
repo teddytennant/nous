@@ -121,11 +121,7 @@ mod tests {
 
     fn header(sk: &SigningKey, height: u64, prev: [u8; 32], state_root: [u8; 32]) -> BlockHeader {
         let leader = WorkerId::from_verifying_key(&sk.verifying_key());
-        let body = BlockBody {
-            certs: vec![],
-            slashes: vec![],
-            mints: vec![],
-        };
+        let body = BlockBody::default();
         let mut hdr = BlockHeader {
             height,
             prev_hash: prev,
@@ -134,6 +130,7 @@ mod tests {
             timestamp_ms: 0,
             leader,
             signature: vec![],
+            parent_qc: None,
         };
         sign_block(&mut hdr, sk);
         hdr

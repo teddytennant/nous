@@ -3339,13 +3339,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "nous-design"
-version = "0.1.0"
-dependencies = [
- "ratatui",
-]
-
-[[package]]
 name = "nous-files"
 version = "0.1.0"
 dependencies = [
@@ -3576,16 +3569,23 @@ dependencies = [
  "blake3",
  "criterion",
  "ed25519-dalek",
+ "futures",
  "hex",
+ "libp2p",
  "nous-core",
  "nous-crypto",
+ "parking_lot",
  "proptest",
  "rand 0.8.5",
  "rand_chacha 0.3.1",
+ "rusqlite",
  "serde",
  "serde_json",
+ "tempfile",
  "thiserror 2.0.18",
+ "tokio",
  "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

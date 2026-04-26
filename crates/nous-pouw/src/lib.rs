@@ -17,21 +17,32 @@
 //! machine + sim. No I/O, no DB, no libp2p. The [`Network`] trait is sketched
 //! for v1; v0 testing uses the in-process simulator under [`sim`].
 
+pub mod bft;
 pub mod block;
 pub mod engine;
 pub mod envelope;
+pub mod mempool;
 pub mod mint;
+pub mod net;
 pub mod network;
+pub mod node;
 pub mod quorum;
 pub mod receipt;
 pub mod selection;
 pub mod sim;
 pub mod slashing;
 pub mod state;
+pub mod store;
+pub mod tx;
 
+pub use bft::{
+    BftError, Vote, VoteCertificate, detect_double_vote, form_quorum_cert, tally_by_block,
+    verify_quorum_cert,
+};
 pub use block::{Block, BlockBody, BlockHash, BlockHeader, BlockHeight, sign_block, verify_block};
 pub use engine::{Engine, EngineConfig, RoundOutcome};
 pub use envelope::{JobEnvelope, JobId, ModelPin};
+pub use mempool::{DEFAULT_MAX_TX_PER_BLOCK, Mempool};
 pub use mint::{MintReceipt, MintSink};
 pub use network::{Network, NetworkEvent, Topic};
 pub use quorum::{QuorumCertificate, QuorumError, form_quorum};
@@ -41,3 +52,4 @@ pub use receipt::{
 pub use selection::{select_workers, vrf_score};
 pub use slashing::{EquivocationProof, SlashEvent, SlashKind, detect_equivocation};
 pub use state::{ChainState, StateError, StateRoot, WorkerId, WorkerInfo};
+pub use tx::{Transaction, TxBody, TxError};

@@ -55,8 +55,7 @@ impl<'de> Deserialize<'de> for WorkerId {
 pub struct WorkerInfo {
     /// Tokens locked as collateral against misbehavior.
     pub stake: u64,
-    /// Earned balance (mint receipts minus transfers — for v0 we don't model
-    /// transfers, so this monotonically grows).
+    /// Spendable balance (mint receipts minus transfers out, plus transfers in).
     pub balance: u64,
     /// Subjective trust score in [0.0, 1.0]. Provided externally (e.g. by the
     /// axon `TrustScorer`); the chain just uses it for selection + quorum
@@ -64,6 +63,9 @@ pub struct WorkerInfo {
     pub trust: f64,
     /// Whether this worker is currently slashed (frozen out of selection).
     pub slashed: bool,
+    /// Per-sender monotonic transaction nonce (advanced by `apply_transaction`).
+    #[serde(default)]
+    pub nonce: u64,
 }
 
 impl WorkerInfo {
@@ -88,6 +90,8 @@ pub struct ChainState {
     pub height: BlockHeight,
     pub head_hash: BlockHash,
     pub workers: BTreeMap<WorkerId, WorkerInfo>,
+    /// Active validator set — workers eligible to sign BFT votes.
+    pub validators: BTreeSet<WorkerId>,
     /// Jobs whose mints have been applied — prevents double-mint per job.
     pub used_jobs: BTreeSet<JobId>,
     /// Per-(worker, job) mint guard — also prevents the same worker being
@@ -120,6 +124,8 @@ pub enum StateError {
     UnknownSlashTarget(String),
     #[error("quorum cert references unknown worker")]
     UnknownQuorumWorker,
+    #[error("transaction rejected: {0}")]
+    Tx(#[from] crate::tx::TxError),
     #[error("crypto error: {0}")]
     Crypto(#[from] nous_core::Error),
 }
@@ -179,6 +185,11 @@ impl ChainState {
             self.apply_mint(mint)?;
         }
 
+        // Apply transactions in canonical (sender, nonce) order.
+        for tx in &block.body.transactions {
+            self.apply_transaction(tx)?;
+        }
+
         self.height = block.header.height;
         self.head_hash = block.hash();
         self.finalized.insert(block.header.height, block.hash());
@@ -223,6 +234,92 @@ impl ChainState {
         self.workers.get_mut(&worker).unwrap().balance += mint.amount;
         self.used_worker_jobs.insert(pair);
         self.total_supply = self.total_supply.saturating_add(mint.amount);
+        Ok(())
+    }
+
+    /// Apply one transaction. Verifies signature, nonce, and balance/stake;
+    /// then mutates state. Caller is responsible for ensuring txs within a
+    /// block are processed in canonical order.
+    pub fn apply_transaction(&mut self, tx: &crate::tx::Transaction) -> Result<(), StateError> {
+        use crate::tx::{TxBody, TxError};
+
+        tx.verify_signature()?;
+        let sender_id = tx.body.sender();
+        let sender = self
+            .workers
+            .get_mut(&sender_id)
+            .ok_or(StateError::Tx(TxError::UnknownSender))?;
+        if tx.nonce != sender.nonce + 1 {
+            return Err(StateError::Tx(TxError::NonceMismatch {
+                expected: sender.nonce + 1,
+                actual: tx.nonce,
+            }));
+        }
+
+        match &tx.body {
+            TxBody::Transfer { from: _, to, amount } => {
+                if *amount == 0 {
+                    return Err(StateError::Tx(TxError::ZeroAmount));
+                }
+                if to == &sender_id {
+                    return Err(StateError::Tx(TxError::SelfTransfer));
+                }
+                if sender.balance < *amount {
+                    return Err(StateError::Tx(TxError::InsufficientBalance {
+                        have: sender.balance,
+                        need: *amount,
+                    }));
+                }
+                sender.balance -= amount;
+                sender.nonce += 1;
+                let to_info = self
+                    .workers
+                    .get_mut(to)
+                    .ok_or(StateError::Tx(TxError::UnknownRecipient))?;
+                to_info.balance = to_info.balance.saturating_add(*amount);
+            }
+            TxBody::Stake { worker: _, amount } => {
+                if *amount == 0 {
+                    return Err(StateError::Tx(TxError::ZeroAmount));
+                }
+                if sender.balance < *amount {
+                    return Err(StateError::Tx(TxError::InsufficientBalance {
+                        have: sender.balance,
+                        need: *amount,
+                    }));
+                }
+                sender.balance -= amount;
+                sender.stake = sender.stake.saturating_add(*amount);
+                sender.nonce += 1;
+            }
+            TxBody::Unstake { worker: _, amount } => {
+                if *amount == 0 {
+                    return Err(StateError::Tx(TxError::ZeroAmount));
+                }
+                if sender.stake < *amount {
+                    return Err(StateError::Tx(TxError::InsufficientStake {
+                        have: sender.stake,
+                        need: *amount,
+                    }));
+                }
+                sender.stake -= amount;
+                sender.balance = sender.balance.saturating_add(*amount);
+                sender.nonce += 1;
+            }
+            TxBody::RegisterValidator { worker: _ } => {
+                if self.validators.contains(&sender_id) {
+                    return Err(StateError::Tx(TxError::AlreadyValidator));
+                }
+                if sender.stake == 0 {
+                    return Err(StateError::Tx(TxError::InsufficientStake {
+                        have: 0,
+                        need: 1,
+                    }));
+                }
+                sender.nonce += 1;
+                self.validators.insert(sender_id);
+            }
+        }
         Ok(())
     }
 
@@ -326,6 +423,7 @@ mod tests {
             balance: 0,
             trust: 1.0,
             slashed: true,
+            nonce: 0,
         };
         assert_eq!(info.weight(), 0.0);
     }
@@ -337,6 +435,7 @@ mod tests {
             balance: 0,
             trust: 0.5,
             slashed: false,
+            nonce: 0,
         };
         assert_eq!(info.weight(), 500.0);
     }
