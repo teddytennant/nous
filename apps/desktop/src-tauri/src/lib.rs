@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 use nous_terminal::{Cell as TermCell, Color as TermColor, RenderRow, Terminal, TerminalConfig};
 use serde::{Deserialize, Serialize};
 use tauri::{
-    AppHandle, Listener, Manager, State,
+    AppHandle, Emitter, Listener, Manager, State,
     menu::{AboutMetadata, Menu, MenuItem, PredefinedMenuItem, Submenu},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
 };
@@ -437,9 +437,17 @@ fn terminal_screen(
 }
 
 // ── Native Menu Bar ──────────────────────────────────────────────────────
+//
+// Editorial chrome: a curated menu, no boilerplate. Custom items emit
+// `menu://...` events that the web app can listen on with
+// `getCurrent().listen('menu://...', ...)` — keeps the Rust side thin and
+// lets the web surface decide presentation. The standard predefined Edit
+// submenu is left in place so OS-native input affordances (undo/redo/copy)
+// stay correct in any text field; everything else is bespoke.
 
 fn setup_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
-    // App menu (macOS) — About, Services, Hide, Quit
+    // App menu (macOS) — About emits an event so the web app can render the
+    // editorial about pane; hide/quit stay native.
     let app_menu = Submenu::with_items(
         app,
         "Nous",
@@ -456,6 +464,14 @@ fn setup_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
                 }),
             )?,
             &PredefinedMenuItem::separator(app)?,
+            &MenuItem::with_id(
+                app,
+                "menu://app/preferences",
+                "Preferences…",
+                true,
+                Some("CmdOrCtrl+,"),
+            )?,
+            &PredefinedMenuItem::separator(app)?,
             &PredefinedMenuItem::services(app, None)?,
             &PredefinedMenuItem::separator(app)?,
             &PredefinedMenuItem::hide(app, None)?,
@@ -466,7 +482,37 @@ fn setup_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
         ],
     )?;
 
-    // Edit menu — Undo, Redo, Cut, Copy, Paste, Select All
+    // File — conversation / identity lifecycle.
+    let file_menu = Submenu::with_items(
+        app,
+        "File",
+        true,
+        &[
+            &MenuItem::with_id(
+                app,
+                "menu://file/new-conversation",
+                "New Conversation",
+                true,
+                Some("CmdOrCtrl+N"),
+            )?,
+            &MenuItem::with_id(
+                app,
+                "menu://file/new-identity-key",
+                "New Identity Key",
+                true,
+                Some("CmdOrCtrl+Shift+N"),
+            )?,
+            &PredefinedMenuItem::separator(app)?,
+            &MenuItem::with_id(app, "menu://file/import", "Import…", true, None::<&str>)?,
+            &MenuItem::with_id(app, "menu://file/export", "Export…", true, None::<&str>)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::close_window(app, None)?,
+        ],
+    )?;
+
+    // Edit — standard predefined items. Cheaper than re-implementing
+    // platform clipboard semantics; conditional placement (only when an
+    // input is focused) is a Tauri 3.x affordance — leaving as standard.
     let edit_menu = Submenu::with_items(
         app,
         "Edit",
@@ -482,43 +528,173 @@ fn setup_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
         ],
     )?;
 
-    // View menu — Reload, Force Reload, Full Screen
-    let view_menu = Submenu::with_items(
+    // Identity — sovereign-protocol controls.
+    let identity_menu = Submenu::with_items(
         app,
-        "View",
+        "Identity",
         true,
         &[
-            &MenuItem::with_id(app, "reload", "Reload", true, Some("CmdOrCtrl+R"))?,
             &MenuItem::with_id(
                 app,
-                "force_reload",
-                "Force Reload",
+                "menu://identity/show-did",
+                "Show DID",
                 true,
-                Some("CmdOrCtrl+Shift+R"),
+                None::<&str>,
+            )?,
+            &MenuItem::with_id(
+                app,
+                "menu://identity/copy-did",
+                "Copy DID",
+                true,
+                Some("CmdOrCtrl+Shift+C"),
             )?,
             &PredefinedMenuItem::separator(app)?,
-            &PredefinedMenuItem::fullscreen(app, None)?,
+            &MenuItem::with_id(
+                app,
+                "menu://identity/switch",
+                "Switch Identity",
+                true,
+                None::<&str>,
+            )?,
+            &MenuItem::with_id(
+                app,
+                "menu://identity/verify-credential",
+                "Verify Credential",
+                true,
+                None::<&str>,
+            )?,
+            &PredefinedMenuItem::separator(app)?,
+            &MenuItem::with_id(
+                app,
+                "menu://identity/sign-out",
+                "Sign Out",
+                true,
+                None::<&str>,
+            )?,
         ],
     )?;
 
-    // Window menu — Minimize, Maximize, Close
+    // Network — peers, relays, diagnostics.
+    let network_menu = Submenu::with_items(
+        app,
+        "Network",
+        true,
+        &[
+            &MenuItem::with_id(
+                app,
+                "menu://network/connect",
+                "Connect",
+                true,
+                None::<&str>,
+            )?,
+            &MenuItem::with_id(
+                app,
+                "menu://network/disconnect",
+                "Disconnect",
+                true,
+                None::<&str>,
+            )?,
+            &PredefinedMenuItem::separator(app)?,
+            &MenuItem::with_id(
+                app,
+                "menu://network/show-peers",
+                "Show Peers",
+                true,
+                None::<&str>,
+            )?,
+            &MenuItem::with_id(
+                app,
+                "menu://network/diagnostics",
+                "Diagnostics",
+                true,
+                None::<&str>,
+            )?,
+            &MenuItem::with_id(
+                app,
+                "menu://network/open-relay",
+                "Open Relay",
+                true,
+                Some("CmdOrCtrl+R"),
+            )?,
+        ],
+    )?;
+
+    // Window — Minimize, Zoom (maximize), Bring All to Front. The last
+    // item is custom (no predefined helper in this Tauri version) and
+    // emits `menu://window/bring-all-to-front` — the web app can ignore
+    // it on non-macOS platforms.
     let window_menu = Submenu::with_items(
         app,
         "Window",
         true,
         &[
             &PredefinedMenuItem::minimize(app, None)?,
-            &PredefinedMenuItem::maximize(app, None)?,
+            &PredefinedMenuItem::maximize(app, Some("Zoom"))?,
             &PredefinedMenuItem::separator(app)?,
-            &PredefinedMenuItem::close_window(app, None)?,
+            &MenuItem::with_id(
+                app,
+                "menu://window/bring-all-to-front",
+                "Bring All to Front",
+                true,
+                None::<&str>,
+            )?,
         ],
     )?;
 
-    Menu::with_items(app, &[&app_menu, &edit_menu, &view_menu, &window_menu])
+    // Help — docs, shortcuts, issue, about.
+    let help_menu = Submenu::with_items(
+        app,
+        "Help",
+        true,
+        &[
+            &MenuItem::with_id(
+                app,
+                "menu://help/documentation",
+                "Documentation",
+                true,
+                None::<&str>,
+            )?,
+            &MenuItem::with_id(
+                app,
+                "menu://help/shortcuts",
+                "Keyboard Shortcuts",
+                true,
+                None::<&str>,
+            )?,
+            &MenuItem::with_id(
+                app,
+                "menu://help/report-issue",
+                "Report Issue",
+                true,
+                None::<&str>,
+            )?,
+            &PredefinedMenuItem::separator(app)?,
+            &MenuItem::with_id(app, "menu://help/about", "About", true, None::<&str>)?,
+        ],
+    )?;
+
+    Menu::with_items(
+        app,
+        &[
+            &app_menu,
+            &file_menu,
+            &edit_menu,
+            &identity_menu,
+            &network_menu,
+            &window_menu,
+            &help_menu,
+        ],
+    )
 }
 
+/// Forward `menu://...` IDs to the web app as Tauri events. The web app
+/// decides what to do — this keeps editorial menu structure in one place
+/// (Rust) and behaviour in another (web). A handful of legacy IDs (reload,
+/// force_reload) are still handled in Rust because they need direct webview
+/// access.
 fn handle_menu_event(app: &AppHandle, event: tauri::menu::MenuEvent) {
-    match event.id().as_ref() {
+    let id = event.id().as_ref().to_string();
+    match id.as_str() {
         "reload" => {
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.eval("window.location.reload()");
@@ -531,65 +707,91 @@ fn handle_menu_event(app: &AppHandle, event: tauri::menu::MenuEvent) {
                 );
             }
         }
+        // TODO: when an item needs IPC plumbing (e.g. New Identity Key
+        // calling into nous-identity), add a dedicated #[tauri::command]
+        // and invoke it from the web event handler.
+        other if other.starts_with("menu://") => {
+            let _ = app.emit(other, ());
+        }
         _ => {}
     }
 }
 
 // ── System Tray ───────────────────────────────────────────────────────────
+//
+// Editorial tray: status (disabled, used as a quiet header), Open Nous,
+// Copy DID, Quit. Tooltip is mono-formatted: `nous · 12 peers · did:key:z6Mk…`.
+// Currently the runtime exposes peer count only via `get_node_status` (a
+// pull command) — there is no push signal. The tray tooltip is therefore
+// seeded with a placeholder. TODO: when nous-core exposes a peer-count
+// stream (e.g. via a tokio broadcast channel or a Tauri event), call
+// `tray.set_tooltip(Some(format_tray_tooltip(peers, did)))` from a
+// subscriber so the tooltip reflects live state.
+
+const TRAY_STATUS_PLACEHOLDER: &str = "nous · — peers";
+
+/// Build the editorial tray tooltip in `nous · N peers · did:key:z6Mk…`
+/// format. The DID is truncated to 14 chars with an ellipsis.
+fn format_tray_tooltip(peers: u32, did: Option<&str>) -> String {
+    match did {
+        Some(d) if !d.is_empty() => {
+            let truncated = if d.chars().count() > 14 {
+                let head: String = d.chars().take(13).collect();
+                format!("{head}…")
+            } else {
+                d.to_string()
+            };
+            format!("nous · {peers} peers · {truncated}")
+        }
+        _ => format!("nous · {peers} peers"),
+    }
+}
 
 fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
-    let show = MenuItem::with_id(app, "show", "Show Nous", true, None::<&str>)?;
-    let sep1 = PredefinedMenuItem::separator(app)?;
-
-    // Quick navigation actions
-    let nav_dashboard = MenuItem::with_id(app, "nav_dashboard", "Dashboard", true, None::<&str>)?;
-    let nav_messages = MenuItem::with_id(app, "nav_messages", "Messages", true, None::<&str>)?;
-    let nav_wallet = MenuItem::with_id(app, "nav_wallet", "Wallet", true, None::<&str>)?;
-    let sep2 = PredefinedMenuItem::separator(app)?;
-
-    // Utility actions
-    let copy_did = MenuItem::with_id(app, "copy_did", "Copy DID", true, None::<&str>)?;
-    let sep3 = PredefinedMenuItem::separator(app)?;
-
-    let quit = MenuItem::with_id(app, "quit", "Quit Nous", true, None::<&str>)?;
-    let menu = Menu::with_items(
+    // Status is a disabled item — reads as a quiet header, the same way
+    // an editorial standfirst introduces a column.
+    let status = MenuItem::with_id(
         app,
-        &[
-            &show, &sep1, &nav_dashboard, &nav_messages, &nav_wallet, &sep2, &copy_did, &sep3,
-            &quit,
-        ],
+        "tray_status",
+        TRAY_STATUS_PLACEHOLDER,
+        false,
+        None::<&str>,
     )?;
+    let sep1 = PredefinedMenuItem::separator(app)?;
+    let open = MenuItem::with_id(app, "tray_open", "Open Nous", true, None::<&str>)?;
+    let copy_did = MenuItem::with_id(
+        app,
+        "menu://identity/copy-did",
+        "Copy DID",
+        true,
+        None::<&str>,
+    )?;
+    let sep2 = PredefinedMenuItem::separator(app)?;
+    let quit = MenuItem::with_id(app, "tray_quit", "Quit", true, None::<&str>)?;
 
+    let menu = Menu::with_items(app, &[&status, &sep1, &open, &copy_did, &sep2, &quit])?;
+
+    // The tray icon itself is supplied by `tauri.conf.json` →
+    // `app.trayIcon.iconPath` (baked in via `tauri::generate_context!`),
+    // pointing at `icons/tray-icon.png` — the new editorial mark at 32×32.
+    // `icon_as_template(true)` tells macOS to render it monochrome against
+    // the menubar, so the oxblood mark doesn't read as a fleck of colour in
+    // a row of system glyphs. (`iconAsTemplate` in conf.json sets the same
+    // bit on first construction; we re-assert it here for clarity.)
     let _tray = TrayIconBuilder::new()
         .menu(&menu)
-        .tooltip("Nous — Sovereign Protocol")
+        .icon_as_template(true)
+        .tooltip(format_tray_tooltip(0, None))
         .on_menu_event(move |app, event| match event.id.as_ref() {
-            "show" => {
+            "tray_open" => {
                 show_main_window(app);
             }
-            "nav_dashboard" | "nav_messages" | "nav_wallet" => {
-                let route = match event.id.as_ref() {
-                    "nav_dashboard" => "/dashboard",
-                    "nav_messages" => "/messages",
-                    "nav_wallet" => "/wallet",
-                    _ => "/dashboard",
-                };
-                show_main_window(app);
-                if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.eval(&format!(
-                        "window.location.href = '{route}'"
-                    ));
-                }
-            }
-            "copy_did" => {
-                if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.eval(
-                        "navigator.clipboard.writeText(localStorage.getItem('nous_did') || '')"
-                    );
-                }
-            }
-            "quit" => {
+            "tray_quit" => {
                 app.exit(0);
+            }
+            other if other.starts_with("menu://") => {
+                show_main_window(app);
+                let _ = app.emit(other, ());
             }
             _ => {}
         })
@@ -661,6 +863,28 @@ pub fn run() {
             let menu = setup_menu(handle)?;
             app.set_menu(menu)?;
             setup_tray(handle)?;
+
+            // Editorial ink-splash: kill the white flash that macOS WKWebView
+            // sometimes paints on cold launch before the web bundle hydrates.
+            // `tauri.conf.json` already declares `backgroundColor: #0E0E0C`
+            // for both window and webview, but the Cocoa side occasionally
+            // ignores the webview value on the very first paint. Belt and
+            // suspenders: (1) re-assert the colour via the runtime API,
+            // (2) inject a tiny `<style>` so the html/body surface stays
+            // ink even if the bundle is slow to attach. The overlay
+            // disappears naturally as soon as the web app paints its own
+            // background. `--ink` is `#0E0E0C` from `docs/design/tokens.json`.
+            if let Some(window) = handle.get_webview_window("main") {
+                let _ = window.set_background_color(Some(tauri::window::Color(
+                    0x0E, 0x0E, 0x0C, 0xFF,
+                )));
+                let _ = window.eval(
+                    "(() => { const s = document.createElement('style'); \
+                     s.id = '__nous_ink_splash'; \
+                     s.textContent = 'html,body{background:#0E0E0C !important;margin:0;}'; \
+                     document.head && document.head.appendChild(s); })();",
+                );
+            }
 
             // Deep link handler: navigate the webview to the path from nous:// URLs
             let app_handle = handle.clone();
@@ -786,5 +1010,27 @@ mod tests {
         // Query strings and special chars are blocked
         assert_eq!(parse_deep_link("\"nous://x?a=b\""), None);
         assert_eq!(parse_deep_link("\"nous://x'alert(1)\""), None);
+    }
+
+    #[test]
+    fn tray_tooltip_no_did() {
+        assert_eq!(format_tray_tooltip(0, None), "nous · 0 peers");
+        assert_eq!(format_tray_tooltip(12, Some("")), "nous · 12 peers");
+    }
+
+    #[test]
+    fn tray_tooltip_truncates_long_did() {
+        let did = "did:key:z6MkfRiHSomeLongIdentifier";
+        let out = format_tray_tooltip(12, Some(did));
+        assert!(out.starts_with("nous · 12 peers · "));
+        // "did:key:z6Mkf" + ellipsis = 14 chars total
+        assert!(out.ends_with("did:key:z6Mkf…"));
+    }
+
+    #[test]
+    fn tray_tooltip_keeps_short_did() {
+        let did = "did:key:zShort";
+        let out = format_tray_tooltip(3, Some(did));
+        assert_eq!(out, "nous · 3 peers · did:key:zShort");
     }
 }
