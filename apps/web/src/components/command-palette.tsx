@@ -425,7 +425,7 @@ export function CommandPalette() {
                       >
                         <Icon
                           className={`w-4 h-4 shrink-0 ${
-                            isSelected ? "text-[#d4af37]" : "text-neutral-600"
+                            isSelected ? "text-[#B23A3A]" : "text-neutral-600"
                           }`}
                         />
                         <div className="flex-1 min-w-0">

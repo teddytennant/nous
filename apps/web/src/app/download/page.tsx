@@ -270,13 +270,13 @@ function PlatformCard({
       id={`platform-${id}`}
       className={`relative border rounded-md transition-all duration-200 ${
         isDetected
-          ? "border-[#d4af37]/40 bg-[#d4af37]/[0.02]"
+          ? "border-[#B23A3A]/40 bg-[#B23A3A]/[0.02]"
           : "border-white/[0.06] bg-black hover:border-white/10"
       }`}
     >
       {isDetected && (
         <div className="absolute -top-3 left-6">
-          <span className="text-[10px] font-mono uppercase tracking-[0.15em] bg-[#d4af37] text-black px-3 py-1 rounded-sm">
+          <span className="text-[10px] font-mono uppercase tracking-[0.15em] bg-[#B23A3A] text-black px-3 py-1 rounded-sm">
             Detected
           </span>
         </div>
@@ -288,12 +288,12 @@ function PlatformCard({
           <div
             className={`w-12 h-12 rounded-md flex items-center justify-center transition-colors duration-200 ${
               isDetected
-                ? "bg-[#d4af37]/10 border border-[#d4af37]/20"
+                ? "bg-[#B23A3A]/10 border border-[#B23A3A]/20"
                 : "bg-white/[0.04] border border-white/[0.06]"
             }`}
           >
             <IconComponent
-              className={`w-5 h-5 ${isDetected ? "text-[#d4af37]" : "text-neutral-400"}`}
+              className={`w-5 h-5 ${isDetected ? "text-[#B23A3A]" : "text-neutral-400"}`}
             />
           </div>
           <div>
@@ -314,7 +314,7 @@ function PlatformCard({
                 className="group flex items-center justify-between p-3 rounded-sm border border-white/[0.04] hover:border-white/10 hover:bg-white/[0.02] transition-all duration-200"
               >
                 <div className="flex items-center gap-3">
-                  <Download className="w-4 h-4 text-neutral-600 group-hover:text-[#d4af37] transition-colors duration-200" />
+                  <Download className="w-4 h-4 text-neutral-600 group-hover:text-[#B23A3A] transition-colors duration-200" />
                   <div>
                     <span className="text-sm font-light text-neutral-300 group-hover:text-white transition-colors duration-200">
                       {dl.label}
@@ -447,7 +447,7 @@ function VerifyDownload() {
     <div
       className={`relative border rounded-md transition-all duration-200 ${
         dragOver
-          ? "border-[#d4af37]/40 bg-[#d4af37]/[0.02]"
+          ? "border-[#B23A3A]/40 bg-[#B23A3A]/[0.02]"
           : "border-white/[0.06] hover:border-white/10"
       }`}
       onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -490,7 +490,7 @@ function VerifyDownload() {
 
         {hashing && (
           <div className="flex items-center justify-center gap-3 py-8">
-            <Loader2 className="w-5 h-5 text-[#d4af37] animate-spin" />
+            <Loader2 className="w-5 h-5 text-[#B23A3A] animate-spin" />
             <span className="text-sm text-neutral-400 font-light">
               Computing SHA-256...
             </span>
@@ -624,7 +624,7 @@ export default function DownloadPage() {
       <section className="px-6 pt-32 pb-16 max-w-6xl mx-auto w-full">
         <div className="max-w-2xl">
           <h1 className="text-4xl sm:text-5xl font-extralight tracking-[-0.04em] mb-4">
-            Download <span className="text-[#d4af37]">Nous</span>
+            Download <span className="text-[#B23A3A]">Nous</span>
           </h1>
           <p className="text-base sm:text-lg text-neutral-400 font-light leading-relaxed mb-8">
             Available on every major platform. One app, one identity, everywhere.
@@ -654,7 +654,7 @@ export default function DownloadPage() {
       </section>
 
       {/* Divider */}
-      <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      <div className="w-full h-px bg-rule" />
 
       {/* Platform nav */}
       <section className="px-6 py-4 max-w-6xl mx-auto w-full">
@@ -669,7 +669,7 @@ export default function DownloadPage() {
                 href={`#platform-${key}`}
                 className={`flex items-center gap-2 px-4 py-2 rounded-md text-xs font-light whitespace-nowrap transition-all duration-200 ${
                   isActive
-                    ? "bg-[#d4af37]/10 text-[#d4af37] border border-[#d4af37]/20"
+                    ? "bg-[#B23A3A]/10 text-[#B23A3A] border border-[#B23A3A]/20"
                     : "text-neutral-500 hover:text-white hover:bg-white/[0.03] border border-transparent"
                 }`}
               >
@@ -701,7 +701,7 @@ export default function DownloadPage() {
       </section>
 
       {/* Divider */}
-      <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      <div className="w-full h-px bg-rule" />
 
       {/* Verification section */}
       <section className="px-6 py-20 max-w-6xl mx-auto w-full">

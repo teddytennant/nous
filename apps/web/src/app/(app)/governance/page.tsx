@@ -330,7 +330,7 @@ export default function GovernancePage() {
 
   function statusColor(status: string): string {
     const s = status.toLowerCase();
-    if (s === "active") return "text-[#d4af37]";
+    if (s === "active") return "text-[#B23A3A]";
     if (s === "passed" || s === "executed") return "text-emerald-600";
     if (s === "rejected" || s === "cancelled") return "text-red-700";
     return "text-neutral-600";
@@ -353,7 +353,7 @@ export default function GovernancePage() {
             className={cn(
               "text-xs font-mono uppercase tracking-[0.2em] pb-1 transition-colors",
               tab === t
-                ? "text-[#d4af37] border-b border-[#d4af37]"
+                ? "text-[#B23A3A] border-b border-[#B23A3A]"
                 : "text-neutral-600 hover:text-neutral-400"
             )}
           >
@@ -390,7 +390,7 @@ export default function GovernancePage() {
                 if (daos.length > 0 && !propDaoId) setPropDaoId(daos[0].id);
                 setShowProposalForm(true);
               }}
-              className="text-xs font-mono uppercase tracking-wider border-white/10 hover:border-[#d4af37] hover:text-[#d4af37]"
+              className="text-xs font-mono uppercase tracking-wider border-white/10 hover:border-[#B23A3A] hover:text-[#B23A3A]"
             >
               New Proposal
             </Button>
@@ -419,7 +419,7 @@ export default function GovernancePage() {
                       className={cn(
                         "text-[10px] font-mono uppercase tracking-wider px-3 py-1.5 rounded-sm transition-all duration-150",
                         statusFilter === f.key
-                          ? "bg-[#d4af37]/10 text-[#d4af37] border border-[#d4af37]/20"
+                          ? "bg-[#B23A3A]/10 text-[#B23A3A] border border-[#B23A3A]/20"
                           : "text-neutral-600 hover:text-neutral-400 border border-transparent hover:border-white/[0.06]"
                       )}
                     >
@@ -539,7 +539,7 @@ export default function GovernancePage() {
                     setShowProposalForm(true);
                     if (daos.length > 0 && !propDaoId) setPropDaoId(daos[0].id);
                   }}
-                  className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150"
+                  className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#B23A3A]/30 text-[#B23A3A] hover:bg-[#B23A3A]/5 transition-all duration-150"
                 >
                   New Proposal
                 </button>
@@ -552,7 +552,7 @@ export default function GovernancePage() {
               </p>
               <button
                 onClick={() => setStatusFilter("all")}
-                className="text-[10px] font-mono uppercase tracking-wider text-neutral-600 hover:text-[#d4af37] transition-colors"
+                className="text-[10px] font-mono uppercase tracking-wider text-neutral-600 hover:text-[#B23A3A] transition-colors"
               >
                 Show all proposals
               </button>
@@ -573,7 +573,7 @@ export default function GovernancePage() {
                     data-list-item
                     className={cn(
                       "relative bg-transparent border-0 rounded-none cursor-pointer transition-colors duration-150",
-                      isNavSelected && "bg-[#d4af37]/[0.015]",
+                      isNavSelected && "bg-[#B23A3A]/[0.015]",
                       selectedId === p.id
                         ? "bg-white/[0.02]"
                         : !isNavSelected && "hover:bg-white/[0.01]"
@@ -584,7 +584,7 @@ export default function GovernancePage() {
                     }}
                   >
                     {isNavSelected && (
-                      <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[#d4af37] rounded-full" />
+                      <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[#B23A3A] rounded-full" />
                     )}
                     <CardContent className="p-5">
                       <div className="flex items-start justify-between mb-3">
@@ -695,7 +695,7 @@ export default function GovernancePage() {
               variant="outline"
               size="sm"
               onClick={() => setShowDaoForm(true)}
-              className="text-xs font-mono uppercase tracking-wider border-white/10 hover:border-[#d4af37] hover:text-[#d4af37]"
+              className="text-xs font-mono uppercase tracking-wider border-white/10 hover:border-[#B23A3A] hover:text-[#B23A3A]"
             >
               Create DAO
             </Button>
@@ -753,7 +753,7 @@ export default function GovernancePage() {
               action={
                 <button
                   onClick={() => setShowDaoForm(true)}
-                  className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150"
+                  className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#B23A3A]/30 text-[#B23A3A] hover:bg-[#B23A3A]/5 transition-all duration-150"
                 >
                   Create DAO
                 </button>
@@ -844,7 +844,7 @@ export default function GovernancePage() {
                 setShowDelegateForm(true);
                 loadDelegations();
               }}
-              className="text-xs font-mono uppercase tracking-wider border-white/10 hover:border-[#d4af37] hover:text-[#d4af37]"
+              className="text-xs font-mono uppercase tracking-wider border-white/10 hover:border-[#B23A3A] hover:text-[#B23A3A]"
             >
               Delegate
             </Button>
@@ -922,7 +922,7 @@ export default function GovernancePage() {
                         <p className="text-sm font-mono">
                           <span className="text-neutral-600">to </span>
                           <Tooltip content={d.to_did} side="bottom">
-                            <span className="text-[#d4af37] cursor-default hover:text-[#c4a030] transition-colors">
+                            <span className="text-[#B23A3A] cursor-default hover:text-[#7A2A2A] transition-colors">
                               {d.to_did.length > 24
                                 ? `${d.to_did.slice(0, 12)}...${d.to_did.slice(-8)}`
                                 : d.to_did}
@@ -990,12 +990,12 @@ export default function GovernancePage() {
                                   <span
                                     className={cn(
                                       "text-xs font-mono font-medium",
-                                      gained ? "text-[#d4af37]" : lost ? "text-neutral-600" : "text-neutral-300"
+                                      gained ? "text-[#B23A3A]" : lost ? "text-neutral-600" : "text-neutral-300"
                                     )}
                                   >
                                     {p.effective_credits}
                                     {delta !== 0 && (
-                                      <span className={cn("text-[10px] ml-1", gained ? "text-[#d4af37]/60" : "text-neutral-700")}>
+                                      <span className={cn("text-[10px] ml-1", gained ? "text-[#B23A3A]/60" : "text-neutral-700")}>
                                         {delta > 0 ? `+${delta}` : delta}
                                       </span>
                                     )}
@@ -1014,7 +1014,7 @@ export default function GovernancePage() {
                                   className={cn(
                                     "absolute inset-y-0 left-0 rounded-full power-bar-enter",
                                     gained
-                                      ? "bg-[#d4af37]/50"
+                                      ? "bg-[#B23A3A]/50"
                                       : lost
                                         ? "bg-neutral-600/50"
                                         : "bg-white/[0.15]"
@@ -1027,7 +1027,7 @@ export default function GovernancePage() {
                                 {/* Gold glow on gained power */}
                                 {gained && (
                                   <div
-                                    className="absolute inset-y-0 left-0 rounded-full bg-[#d4af37]/20 blur-[2px] power-bar-enter"
+                                    className="absolute inset-y-0 left-0 rounded-full bg-[#B23A3A]/20 blur-[2px] power-bar-enter"
                                     style={{
                                       width: `${effectivePct}%`,
                                       animationDelay: "200ms",
@@ -1046,7 +1046,7 @@ export default function GovernancePage() {
                           <span className="text-[10px] font-mono text-neutral-600">Base</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="w-3 h-1.5 rounded-full bg-[#d4af37]/50" />
+                          <div className="w-3 h-1.5 rounded-full bg-[#B23A3A]/50" />
                           <span className="text-[10px] font-mono text-neutral-600">Gained via delegation</span>
                         </div>
                         <div className="flex items-center gap-2">

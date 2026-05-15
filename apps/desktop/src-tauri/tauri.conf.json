@@ -25,26 +25,28 @@
         "title": "Nous",
         "width": 1200,
         "height": 800,
-        "minWidth": 800,
+        "minWidth": 960,
         "minHeight": 600,
         "decorations": true,
         "transparent": false,
-        "center": true
+        "center": true,
+        "backgroundColor": "#0E0E0C",
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "trafficLightPosition": { "x": 16, "y": 18 }
       }
     ],
     "trayIcon": {
-      "iconPath": "icons/icon.png",
+      "iconPath": "icons/tray-icon.png",
       "iconAsTemplate": true,
-      "tooltip": "Nous — Sovereign Protocol"
+      "tooltip": "nous"
     },
     "security": {
       "csp": "default-src 'self'; connect-src 'self' http://localhost:8080 https://api.github.com; style-src 'self' 'unsafe-inline'; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob:; script-src 'self' 'unsafe-inline'"
     }
   },
   "plugins": {
-    "notification": {
-      "sound": true
-    },
+    "notification": null,
     "deep-link": {
       "desktop": {
         "schemes": ["nous"]

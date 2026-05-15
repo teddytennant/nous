@@ -172,8 +172,9 @@ mod tests {
     #[test]
     fn theme_default_is_dark() {
         let theme = TerminalTheme::default();
-        assert_eq!(theme.background, Color::Rgb(0, 0, 0));
-        assert_eq!(theme.foreground, Color::Rgb(224, 224, 224));
+        // Editorial palette: --ink #0E0E0C surface, --ivory #EFEAE0 text.
+        assert_eq!(theme.background, Color::Rgb(0x0E, 0x0E, 0x0C));
+        assert_eq!(theme.foreground, Color::Rgb(0xEF, 0xEA, 0xE0));
     }
 
     #[cfg(unix)]

@@ -1,75 +1,105 @@
 package com.nous.app.ui.theme
 
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.Typography
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.unit.dp
 
-// Infinite Minimalism — deep black, warm gold accent
-private val NousColors = darkColorScheme(
-    primary = Color(0xFFD4AF37),         // warm gold
-    onPrimary = Color.Black,
-    primaryContainer = Color(0xFF1A1400),
-    secondary = Color(0xFFA3A3A3),       // muted grey
-    onSecondary = Color.Black,
-    background = Color.Black,
-    onBackground = Color(0xFFFAFAFA),
-    surface = Color(0xFF0A0A0A),
-    onSurface = Color(0xFFFAFAFA),
-    surfaceVariant = Color(0xFF111111),
-    onSurfaceVariant = Color(0xFF737373),
-    outline = Color(0xFF1A1A1A),
-    outlineVariant = Color(0xFF111111),
-    error = Color(0xFFEF4444),
+// ─── Editorial color schemes ──────────────────────────────────────────────────
+//
+// Material3 names are preserved (primary / onPrimary / surface / outline …)
+// but their values are remapped to the new palette so existing `colorScheme`
+// references in screens continue to compile and read sensibly. Hairlines map
+// to `outline`; tertiary state goes through Material's `tertiary` slot.
+
+private val NousDarkColors = darkColorScheme(
+    primary = Oxblood,
+    onPrimary = Ivory,
+    primaryContainer = OxbloodDim,
+    onPrimaryContainer = Ivory,
+    secondary = IvoryDim,
+    onSecondary = Ink,
+    secondaryContainer = Ink2,
+    onSecondaryContainer = Ivory,
+    tertiary = Sage,
+    onTertiary = Ink,
+    background = Ink,
+    onBackground = Ivory,
+    surface = Ink,
+    onSurface = Ivory,
+    surfaceVariant = Ink2,
+    onSurfaceVariant = IvoryDim,
+    surfaceTint = Ink,         // disable Material's tonal-elevation tint
+    outline = Rule,            // hairlines
+    outlineVariant = Rule,
+    error = Clay,
+    onError = Ink,
+    errorContainer = Clay,
+    onErrorContainer = Ink,
 )
 
-private val NousTypography = Typography(
-    headlineLarge = TextStyle(
-        fontWeight = FontWeight.ExtraLight,
-        fontSize = 28.sp,
-        letterSpacing = (-0.02).sp,
-    ),
-    headlineMedium = TextStyle(
-        fontWeight = FontWeight.Light,
-        fontSize = 22.sp,
-        letterSpacing = (-0.02).sp,
-    ),
-    titleLarge = TextStyle(
-        fontWeight = FontWeight.Light,
-        fontSize = 18.sp,
-        letterSpacing = (-0.01).sp,
-    ),
-    titleMedium = TextStyle(
-        fontWeight = FontWeight.Normal,
-        fontSize = 14.sp,
-        letterSpacing = 0.08.sp,
-    ),
-    bodyLarge = TextStyle(
-        fontWeight = FontWeight.Light,
-        fontSize = 14.sp,
-        lineHeight = 22.sp,
-    ),
-    bodyMedium = TextStyle(
-        fontWeight = FontWeight.Light,
-        fontSize = 13.sp,
-        lineHeight = 20.sp,
-    ),
-    labelSmall = TextStyle(
-        fontWeight = FontWeight.Normal,
-        fontSize = 11.sp,
-        letterSpacing = 0.08.sp,
-    ),
+private val NousLightColors = lightColorScheme(
+    primary = Oxblood,
+    onPrimary = Paper,
+    primaryContainer = OxbloodDim,
+    onPrimaryContainer = Paper,
+    secondary = IvoryDimLight,
+    onSecondary = Paper,
+    secondaryContainer = Paper,
+    onSecondaryContainer = InkText,
+    tertiary = SageLight,
+    onTertiary = Paper,
+    background = Paper,
+    onBackground = InkText,
+    surface = Paper,
+    onSurface = InkText,
+    surfaceVariant = Paper,
+    onSurfaceVariant = StoneLight,
+    surfaceTint = Paper,
+    outline = Hairline,
+    outlineVariant = Hairline,
+    error = ClayLight,
+    onError = Paper,
+    errorContainer = ClayLight,
+    onErrorContainer = Paper,
+)
+
+// ─── Shapes — sharp by default ────────────────────────────────────────────────
+//
+// Editorial radii: 0 / 2 / 4 / pill. Anything rounder reads as software.
+// Material3 maps small/medium/large to component categories — buttons, cards,
+// dialogs. We keep the hierarchy flat: 2dp / 4dp / 4dp.
+
+private val NousShapes = Shapes(
+    extraSmall = RoundedCornerShape(0.dp),
+    small = RoundedCornerShape(2.dp),
+    medium = RoundedCornerShape(4.dp),
+    large = RoundedCornerShape(4.dp),
+    extraLarge = RoundedCornerShape(4.dp),
 )
 
 @Composable
-fun NousTheme(content: @Composable () -> Unit) {
+fun NousTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    content: @Composable () -> Unit,
+) {
+    val colors = if (darkTheme) NousDarkColors else NousLightColors
     MaterialTheme(
-        colorScheme = NousColors,
+        colorScheme = colors,
         typography = NousTypography,
-        content = content,
-    )
+        shapes = NousShapes,
+    ) {
+        // Replace Material's expanding ripple with the flat 12% oxblood overlay
+        // for every `clickable`, `selectable`, `combinedClickable`, etc., that
+        // doesn't pass an explicit indication.
+        CompositionLocalProvider(LocalIndication provides OxbloodPressIndication) {
+            content()
+        }
+    }
 }

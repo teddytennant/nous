@@ -19,7 +19,7 @@ export default function Error({
     <div className="flex flex-col items-center justify-center min-h-screen px-6">
       {/* Animated gradient orb */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] opacity-[0.04] pointer-events-none">
-        <div className="w-full h-full rounded-full bg-[radial-gradient(circle,#d4af37_0%,transparent_70%)] animate-[pulse_6s_ease-in-out_infinite]" />
+        <div className="w-full h-full rounded-full bg-[radial-gradient(circle,#B23A3A_0%,transparent_70%)] animate-[pulse_6s_ease-in-out_infinite]" />
       </div>
 
       <div className="relative text-center max-w-md">
@@ -29,7 +29,7 @@ export default function Error({
 
         <h1 className="text-6xl sm:text-7xl font-extralight tracking-[-0.05em] mb-4">
           <span className="text-white">Something</span>{" "}
-          <span className="text-[#d4af37]">broke</span>
+          <span className="text-[#B23A3A]">broke</span>
         </h1>
 
         <p className="text-sm text-neutral-500 font-light leading-relaxed mb-4">
@@ -56,7 +56,7 @@ export default function Error({
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <button
             onClick={() => unstable_retry()}
-            className="group flex items-center gap-2 bg-[#d4af37] text-black px-8 py-3 rounded-md text-sm font-medium hover:bg-[#c4a030] transition-colors duration-200"
+            className="group flex items-center gap-2 bg-[#B23A3A] text-black px-8 py-3 rounded-md text-sm font-medium hover:bg-[#7A2A2A] transition-colors duration-200"
           >
             <RotateCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-300" />
             Try Again

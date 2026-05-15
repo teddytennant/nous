@@ -145,7 +145,7 @@ function ToastItem({
                 t.action!.onClick();
                 onDismiss(t.id);
               }}
-              className="mt-2 text-xs font-medium text-[#d4af37] hover:text-[#e5c548] transition-colors duration-150"
+              className="mt-2 text-xs font-medium text-[#B23A3A] hover:text-[#e5c548] transition-colors duration-150"
             >
               {t.action.label}
             </button>

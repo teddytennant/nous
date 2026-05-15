@@ -174,7 +174,7 @@ export function GitHubStats() {
               className="bg-black p-5 sm:p-6 group hover:bg-white/[0.02] transition-colors duration-200"
             >
               <div className="flex items-center gap-2 mb-2">
-                <Icon className="w-3.5 h-3.5 text-neutral-600 group-hover:text-[#d4af37] transition-colors duration-200" />
+                <Icon className="w-3.5 h-3.5 text-neutral-600 group-hover:text-[#B23A3A] transition-colors duration-200" />
                 <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-700">
                   {metric.label}
                 </span>

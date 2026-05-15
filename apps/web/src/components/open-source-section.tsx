@@ -50,10 +50,10 @@ function generateActivity(): number[] {
 function cellColor(v: number): string {
   if (v === 0) return "rgba(255,255,255,0.03)";
   if (v < 0.15) return "rgba(255,255,255,0.07)";
-  if (v < 0.35) return "rgba(212,175,55,0.14)";
-  if (v < 0.55) return "rgba(212,175,55,0.28)";
-  if (v < 0.75) return "rgba(212,175,55,0.42)";
-  return "rgba(212,175,55,0.6)";
+  if (v < 0.35) return "rgba(178,58,58,0.14)";
+  if (v < 0.55) return "rgba(178,58,58,0.28)";
+  if (v < 0.75) return "rgba(178,58,58,0.42)";
+  return "rgba(178,58,58,0.6)";
 }
 
 // ── Dates + commit counts ───────────────────────────────────────────────
@@ -284,7 +284,7 @@ export function OpenSourceSection() {
               {streaks.current > 0 && (
                 <>
                   <span className="text-neutral-800">·</span>
-                  <span className="text-[9px] font-mono text-[#d4af37]/60">
+                  <span className="text-[9px] font-mono text-[#B23A3A]/60">
                     {streaks.current}-day current streak
                   </span>
                 </>
@@ -322,7 +322,7 @@ export function OpenSourceSection() {
           href={`https://github.com/${GITHUB_REPO}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="group flex items-center gap-3 px-6 py-3 border border-white/[0.08] rounded-md hover:border-[#d4af37]/30 hover:bg-[#d4af37]/[0.02] transition-all duration-200"
+          className="group flex items-center gap-3 px-6 py-3 border border-white/[0.08] rounded-md hover:border-[#B23A3A]/30 hover:bg-[#B23A3A]/[0.02] transition-all duration-200"
         >
           <GithubIcon className="w-5 h-5 text-neutral-400 group-hover:text-white transition-colors duration-200" />
           <span className="text-sm font-light text-neutral-300 group-hover:text-white transition-colors duration-200">
@@ -333,7 +333,7 @@ export function OpenSourceSection() {
           href={`https://github.com/${GITHUB_REPO}/tree/main/crates`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs text-neutral-600 hover:text-[#d4af37] transition-colors duration-200 link-underline"
+          className="text-xs text-neutral-600 hover:text-[#B23A3A] transition-colors duration-200 link-underline"
         >
           Browse the source
         </a>

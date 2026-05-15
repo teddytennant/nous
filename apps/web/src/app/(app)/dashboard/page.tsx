@@ -240,10 +240,10 @@ function QuickActionCard({
   return (
     <Link
       href={action.href}
-      className="group flex items-center gap-4 p-4 border border-white/[0.06] rounded-sm hover:border-[#d4af37]/20 hover:bg-[#d4af37]/[0.02] transition-all duration-200 card-lift"
+      className="group flex items-center gap-4 p-4 border border-white/[0.06] rounded-sm hover:border-[#B23A3A]/20 hover:bg-[#B23A3A]/[0.02] transition-all duration-200 card-lift"
     >
-      <div className="w-10 h-10 rounded-md bg-white/[0.04] border border-white/[0.06] flex items-center justify-center group-hover:border-[#d4af37]/20 group-hover:bg-[#d4af37]/[0.04] transition-colors duration-200 shrink-0">
-        <Icon className="w-4 h-4 text-neutral-500 group-hover:text-[#d4af37] transition-colors duration-200" />
+      <div className="w-10 h-10 rounded-md bg-white/[0.04] border border-white/[0.06] flex items-center justify-center group-hover:border-[#B23A3A]/20 group-hover:bg-[#B23A3A]/[0.04] transition-colors duration-200 shrink-0">
+        <Icon className="w-4 h-4 text-neutral-500 group-hover:text-[#B23A3A] transition-colors duration-200" />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-neutral-200 group-hover:text-white transition-colors duration-200">
@@ -253,7 +253,7 @@ function QuickActionCard({
           {action.description}
         </p>
       </div>
-      <ArrowRight className="w-3.5 h-3.5 text-neutral-800 group-hover:text-[#d4af37] group-hover:translate-x-0.5 transition-all duration-200 shrink-0" />
+      <ArrowRight className="w-3.5 h-3.5 text-neutral-800 group-hover:text-[#B23A3A] group-hover:translate-x-0.5 transition-all duration-200 shrink-0" />
     </Link>
   );
 }
@@ -395,7 +395,7 @@ export default function DashboardPage() {
             <h1 className="text-3xl sm:text-4xl font-extralight tracking-[-0.03em] mb-1">
               {greeting}
               {displayName && (
-                <span className="text-[#d4af37]">, {displayName}</span>
+                <span className="text-[#B23A3A]">, {displayName}</span>
               )}
             </h1>
             <p className="text-sm text-neutral-500 font-light">
@@ -476,8 +476,8 @@ export default function DashboardPage() {
               data: weeklyActivity.posts,
               total: Math.round(weeklyActivity.posts.reduce((a, b) => a + b, 0)),
               icon: Users,
-              color: "rgba(212, 175, 55, 0.5)",
-              barColor: "rgba(212, 175, 55, 0.15)",
+              color: "rgba(178, 58, 58, 0.5)",
+              barColor: "rgba(178, 58, 58, 0.15)",
             },
             {
               label: "Messages",
@@ -552,7 +552,7 @@ export default function DashboardPage() {
           </h2>
           <Link
             href="/wallet"
-            className="text-[10px] font-mono text-neutral-700 hover:text-[#d4af37] transition-colors duration-200 flex items-center gap-1"
+            className="text-[10px] font-mono text-neutral-700 hover:text-[#B23A3A] transition-colors duration-200 flex items-center gap-1"
           >
             Manage
             <ArrowRight className="w-3 h-3" />
@@ -586,7 +586,7 @@ export default function DashboardPage() {
                 </div>
               ))}
               <div className="px-4 py-3 flex items-center">
-                <ArrowRight className="w-3.5 h-3.5 text-neutral-800 group-hover:text-[#d4af37] group-hover:translate-x-0.5 transition-all duration-200" />
+                <ArrowRight className="w-3.5 h-3.5 text-neutral-800 group-hover:text-[#B23A3A] group-hover:translate-x-0.5 transition-all duration-200" />
               </div>
             </Link>
           );
@@ -615,7 +615,7 @@ export default function DashboardPage() {
             </h2>
             <Link
               href="/social"
-              className="text-[10px] font-mono text-neutral-700 hover:text-[#d4af37] transition-colors duration-200 flex items-center gap-1"
+              className="text-[10px] font-mono text-neutral-700 hover:text-[#B23A3A] transition-colors duration-200 flex items-center gap-1"
             >
               View all
               <ArrowRight className="w-3 h-3" />

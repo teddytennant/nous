@@ -1,4 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <rect width="512" height="512" rx="0" fill="#000"/>
-  <path d="M128 400V112h56l160 216V112h48v288h-56L176 184v216z" fill="#d4af37"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Nous">
+  <!-- Editorial mark: a hairline circumflex over a hairline rule.
+       The mark reads as a small accent above a baseline — like an n with
+       an editorial mark, or an aperture-mind glyph. Single oxblood stroke
+       on the ink surface. Stroke widths scale up to remain visible at 16px. -->
+  <rect width="512" height="512" fill="#0E0E0C"/>
+  <g fill="none" stroke="#B23A3A" stroke-linecap="square" stroke-linejoin="miter">
+    <!-- circumflex: two strokes meeting at an apex, sitting above center -->
+    <path d="M176 232 L256 168 L336 232" stroke-width="14"/>
+    <!-- hairline rule, slightly inset from the edges -->
+    <line x1="120" y1="328" x2="392" y2="328" stroke-width="10"/>
+  </g>
 </svg>

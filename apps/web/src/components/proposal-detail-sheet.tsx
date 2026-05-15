@@ -46,7 +46,7 @@ function timeRemaining(votingEnds: string): string {
 
 function statusColor(status: string): string {
   const s = status.toLowerCase();
-  if (s === "active") return "text-[#d4af37]";
+  if (s === "active") return "text-[#B23A3A]";
   if (s === "passed" || s === "executed") return "text-emerald-500";
   if (s === "rejected" || s === "cancelled") return "text-red-500";
   return "text-neutral-500";
@@ -54,7 +54,7 @@ function statusColor(status: string): string {
 
 function statusBg(status: string): string {
   const s = status.toLowerCase();
-  if (s === "active") return "bg-[#d4af37]/10 border-[#d4af37]/20";
+  if (s === "active") return "bg-[#B23A3A]/10 border-[#B23A3A]/20";
   if (s === "passed" || s === "executed")
     return "bg-emerald-500/10 border-emerald-500/20";
   if (s === "rejected" || s === "cancelled")
@@ -94,7 +94,7 @@ function getTimelineStages(proposal: ProposalResponse): TimelineStage[] {
       date: proposal.voting_starts,
       reached: now >= voteStart || isFinished,
       current: now >= voteStart && now < voteEnd && !isFinished,
-      color: "bg-[#d4af37]",
+      color: "bg-[#B23A3A]",
     },
     {
       label: "Voting Closed",
@@ -139,7 +139,7 @@ function DetailTimeline({ proposal }: { proposal: ProposalResponse }) {
           style={{
             width: `${progress}%`,
             background:
-              "linear-gradient(90deg, rgba(255,255,255,0.25), rgba(212,175,55,0.4))",
+              "linear-gradient(90deg, rgba(255,255,255,0.25), rgba(178,58,58,0.4))",
           }}
         />
 
@@ -159,18 +159,18 @@ function DetailTimeline({ proposal }: { proposal: ProposalResponse }) {
                   ? `${stage.color} border-transparent`
                   : "bg-transparent border-white/20",
                 stage.current &&
-                  "ring-2 ring-[#d4af37]/30 ring-offset-1 ring-offset-black"
+                  "ring-2 ring-[#B23A3A]/30 ring-offset-1 ring-offset-black"
               )}
             >
               {stage.current && (
-                <span className="absolute inset-0 rounded-full bg-[#d4af37]/40 animate-ping" />
+                <span className="absolute inset-0 rounded-full bg-[#B23A3A]/40 animate-ping" />
               )}
             </div>
             <span
               className={cn(
                 "text-[9px] font-mono uppercase tracking-wider mt-2 whitespace-nowrap",
                 stage.current
-                  ? "text-[#d4af37]"
+                  ? "text-[#B23A3A]"
                   : stage.reached
                     ? "text-neutral-400"
                     : "text-neutral-700"
@@ -367,7 +367,7 @@ function QuorumMeter({
           />
           {/* Threshold marker */}
           <div
-            className="absolute top-0 bottom-0 w-px bg-[#d4af37]/60"
+            className="absolute top-0 bottom-0 w-px bg-[#B23A3A]/60"
             style={{ left: `${threshold * 100}%` }}
           />
         </div>
@@ -479,7 +479,7 @@ export function ProposalDetailSheet({
               className="flex items-center gap-1.5 text-[10px] font-mono text-neutral-700 hover:text-neutral-400 transition-colors duration-150"
             >
               {copied ? (
-                <Check size={10} className="text-[#d4af37]" />
+                <Check size={10} className="text-[#B23A3A]" />
               ) : (
                 <Copy size={10} />
               )}

@@ -7,6 +7,7 @@ license.workspace = true
 
 [dependencies]
 nous-core = { path = "../nous-core" }
+nous-design = { path = "../nous-design" }
 vt100-ctt = "0.17"
 thiserror = { workspace = true }
 tokio = { workspace = true }

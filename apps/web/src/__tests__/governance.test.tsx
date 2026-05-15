@@ -248,7 +248,7 @@ describe("Governance page", () => {
     it("defaults to analytics tab", async () => {
       await renderGovernance(MOCK_DID);
       const analyticsBtn = screen.getByText("analytics");
-      expect(analyticsBtn.className).toContain("d4af37");
+      expect(analyticsBtn.className).toContain("B23A3A");
     });
 
     it("renders GovernanceAnalytics on analytics tab", async () => {

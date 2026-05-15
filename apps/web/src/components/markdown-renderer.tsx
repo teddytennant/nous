@@ -38,13 +38,13 @@ function CodeBlock({
         </span>
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1.5 text-[10px] font-mono text-neutral-600 hover:text-[#d4af37] transition-colors duration-150"
+          className="flex items-center gap-1.5 text-[10px] font-mono text-neutral-600 hover:text-[#B23A3A] transition-colors duration-150"
           title="Copy code"
         >
           {copied ? (
             <>
-              <Check size={11} className="text-[#d4af37]" />
-              <span className="text-[#d4af37]">Copied</span>
+              <Check size={11} className="text-[#B23A3A]" />
+              <span className="text-[#B23A3A]">Copied</span>
             </>
           ) : (
             <>
@@ -78,7 +78,7 @@ const components = {
     }
 
     return (
-      <code className="text-[13px] font-mono bg-white/[0.06] border border-white/[0.04] px-1.5 py-0.5 rounded-sm text-[#d4af37]">
+      <code className="text-[13px] font-mono bg-white/[0.06] border border-white/[0.04] px-1.5 py-0.5 rounded-sm text-[#B23A3A]">
         {children}
       </code>
     );
@@ -154,7 +154,7 @@ const components = {
 
   blockquote(props: ComponentPropsWithoutRef<"blockquote">) {
     return (
-      <blockquote className="border-l-2 border-[#d4af37]/30 pl-4 my-3 first:mt-0 last:mb-0">
+      <blockquote className="border-l-2 border-[#B23A3A]/30 pl-4 my-3 first:mt-0 last:mb-0">
         <div className="text-neutral-400 italic">{props.children}</div>
       </blockquote>
     );
@@ -195,7 +195,7 @@ const components = {
         href={props.href}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-[#d4af37] hover:text-[#e5c348] underline underline-offset-2 decoration-[#d4af37]/30 hover:decoration-[#d4af37]/60 transition-colors duration-150"
+        className="text-[#B23A3A] hover:text-[#e5c348] underline underline-offset-2 decoration-[#B23A3A]/30 hover:decoration-[#B23A3A]/60 transition-colors duration-150"
       >
         {props.children}
       </a>

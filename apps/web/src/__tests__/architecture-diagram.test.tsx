@@ -237,7 +237,7 @@ describe("ArchitectureDiagram", () => {
       const circles = particlesGroup.querySelectorAll("circle");
       const goldCircles = Array.from(circles).filter(
         (c) =>
-          c.getAttribute("r") === "2" && c.getAttribute("fill") === "#d4af37",
+          c.getAttribute("r") === "2" && c.getAttribute("fill") === "#B23A3A",
       );
       expect(goldCircles.length).toBe(8);
     });
@@ -257,11 +257,11 @@ describe("ArchitectureDiagram", () => {
       const { container } = render(<ArchitectureDiagram />);
       const particlesGroup = container.querySelector(".arch-particles")!;
       const circles = particlesGroup.querySelectorAll("circle");
-      // Secondary particles: r=1.5, fill=#d4af37, opacity=0.12
+      // Secondary particles: r=1.5, fill=#B23A3A, opacity=0.12
       const secondaryParticles = Array.from(circles).filter(
         (c) =>
           c.getAttribute("r") === "1.5" &&
-          c.getAttribute("fill") === "#d4af37" &&
+          c.getAttribute("fill") === "#B23A3A" &&
           c.getAttribute("opacity") === "0.12",
       );
       expect(secondaryParticles.length).toBe(6);
@@ -290,7 +290,7 @@ describe("ArchitectureDiagram", () => {
       const mainCircle = Array.from(updatedCircle).find(
         (c) => c.getAttribute("r") === String(NODE_R),
       );
-      expect(mainCircle!.getAttribute("fill")).toBe("rgba(212,175,55,0.05)");
+      expect(mainCircle!.getAttribute("fill")).toBe("rgba(178,58,58,0.05)");
     });
 
     it("hovering a subsystem node changes its stroke to gold", () => {
@@ -304,7 +304,7 @@ describe("ArchitectureDiagram", () => {
       const mainCircle = Array.from(updatedCircles).find(
         (c) => c.getAttribute("r") === String(NODE_R),
       );
-      expect(mainCircle!.getAttribute("stroke")).toBe("rgba(212,175,55,0.4)");
+      expect(mainCircle!.getAttribute("stroke")).toBe("rgba(178,58,58,0.4)");
     });
 
     it("hovering a subsystem changes the primary connection line stroke", () => {
@@ -314,7 +314,7 @@ describe("ArchitectureDiagram", () => {
 
       const lines = container.querySelectorAll("line.arch-line");
       // First line (index 0) should be highlighted
-      expect(lines[0].getAttribute("stroke")).toBe("rgba(212,175,55,0.45)");
+      expect(lines[0].getAttribute("stroke")).toBe("rgba(178,58,58,0.45)");
       // Other lines should remain default
       expect(lines[1].getAttribute("stroke")).toBe("rgba(255,255,255,0.05)");
     });
@@ -423,7 +423,7 @@ describe("ArchitectureDiagram", () => {
       for (const card of cards) {
         const dot = card.querySelector(".rounded-full");
         expect(dot).toBeDefined();
-        expect(dot!.className).toContain("bg-[#d4af37]/30");
+        expect(dot!.className).toContain("bg-[#B23A3A]/30");
       }
     });
   });

@@ -194,7 +194,7 @@ export function MiniBarChart({
   width = 80,
   height = 28,
   barColor = "rgba(255, 255, 255, 0.08)",
-  activeBarColor = "rgba(212, 175, 55, 0.5)",
+  activeBarColor = "rgba(178, 58, 58, 0.5)",
   className,
 }: MiniBarChartProps) {
   if (data.length === 0) return null;

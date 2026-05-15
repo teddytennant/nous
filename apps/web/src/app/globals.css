@@ -4,12 +4,37 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ──────────────────────────────────────────────────────────────────────────
+ * Tailwind v4 inline theme.
+ * Editorial language: serif display, sans body, mono data; sharp radius;
+ * single oxblood accent; hairline rules over borders.
+ * ──────────────────────────────────────────────────────────────────────── */
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
+  /* Three font families. `font-display` = Source Serif 4 (editorial display).
+   * `font-sans` = Geist (headings/body). `font-mono` = Geist Mono (data). */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-source-serif), Georgia, "Times New Roman", serif;
   --font-heading: var(--font-sans);
+  --font-serif: var(--font-source-serif), Georgia, "Times New Roman", serif;
+
+  /* Editorial type scale (rem) */
+  --text-3xs: 0.625rem;
+  --text-2xs: 0.6875rem;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.25rem;
+  --text-4xl: 3rem;
+  --text-5xl: 4.5rem;
+
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -39,49 +64,147 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Radius — editorial. 0/2/4/pill. No 8/12/16. */
+  --radius-sm: 0px;
+  --radius-md: 2px;
+  --radius-lg: 4px;
+  --radius-xl: 4px;
+  --radius-2xl: 4px;
+  --radius-3xl: 4px;
+  --radius-4xl: 9999px;
+
+  /* Editorial raw tokens, exposed so Tailwind can render `bg-oxblood` etc. */
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ivory: var(--ivory);
+  --color-ivory-dim: var(--ivory-dim);
+  --color-stone: var(--stone);
+  --color-rule: var(--rule);
+  --color-oxblood: var(--oxblood);
+  --color-oxblood-dim: var(--oxblood-dim);
+  --color-sage: var(--sage);
+  --color-clay: var(--clay);
+  --color-paper: var(--ivory);
 }
 
-/* Infinite Minimalism — dark mode default */
+/* ──────────────────────────────────────────────────────────────────────────
+ * Editorial design tokens. Source of truth: docs/design/tokens.json.
+ * Dark is the default; light is a first-class variant.
+ *
+ * Token names that downstream Tailwind/shadcn components already reference
+ * (--background, --foreground, --primary, --border, --ring, etc.) are
+ * preserved — only their values move to the new palette. New raw tokens
+ * (--ink, --ivory, --oxblood, ...) are added alongside for direct use.
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/* Light mode — variant. Overridden by the dark block below for default. */
 :root {
-  --background: #000000;
-  --foreground: #fafafa;
-  --card: #0a0a0a;
-  --card-foreground: #fafafa;
-  --popover: #0a0a0a;
-  --popover-foreground: #fafafa;
-  --primary: #fafafa;
-  --primary-foreground: #000000;
-  --secondary: #111111;
-  --secondary-foreground: #fafafa;
-  --muted: #111111;
-  --muted-foreground: #737373;
-  --accent: #111111;
-  --accent-foreground: #fafafa;
-  --destructive: #dc2626;
-  --border: #1a1a1a;
-  --input: #1a1a1a;
-  --ring: #404040;
-  --chart-1: #fafafa;
-  --chart-2: #737373;
-  --chart-3: #525252;
-  --chart-4: #404040;
-  --chart-5: #262626;
-  --radius: 0.5rem;
-  --sidebar: #0a0a0a;
-  --sidebar-foreground: #fafafa;
-  --sidebar-primary: #fafafa;
-  --sidebar-primary-foreground: #000000;
-  --sidebar-accent: #111111;
-  --sidebar-accent-foreground: #fafafa;
-  --sidebar-border: #1a1a1a;
-  --sidebar-ring: #404040;
+  /* Raw editorial tokens */
+  --paper: #f4f1ea;
+  --ink: #14130f;            /* in light mode, "ink" is text (ink-text) */
+  --ink-text: #14130f;
+  --ink-2: #ffffff;          /* raised surface in light mode */
+  --ivory: #f4f1ea;          /* page surface */
+  --ivory-dim: #5a564e;
+  --stone: #8a8478;
+  --rule: #dcd7cc;
+  --oxblood: #b23a3a;
+  --oxblood-dim: #7a2a2a;
+  --sage: #6e8468;
+  --clay: #a4604a;
+
+  /* Semantic remap for Tailwind/shadcn consumers */
+  --background: var(--paper);
+  --foreground: var(--ink-text);
+  --card: #ffffff;
+  --card-foreground: var(--ink-text);
+  --popover: #ffffff;
+  --popover-foreground: var(--ink-text);
+  --primary: var(--oxblood);
+  --primary-foreground: var(--paper);
+  --secondary: var(--paper);
+  --secondary-foreground: var(--ink-text);
+  --muted: #ebe6dc;
+  --muted-foreground: var(--stone);
+  --accent: var(--oxblood);
+  --accent-foreground: var(--paper);
+  --destructive: var(--clay);
+  --border: var(--rule);
+  --input: var(--rule);
+  --ring: var(--oxblood);
+
+  /* Chart series — restrained, mono-leaning ramp */
+  --chart-1: var(--ink-text);
+  --chart-2: var(--stone);
+  --chart-3: var(--oxblood);
+  --chart-4: var(--sage);
+  --chart-5: var(--clay);
+
+  /* Sidebar chrome */
+  --sidebar: #ffffff;
+  --sidebar-foreground: var(--ink-text);
+  --sidebar-primary: var(--oxblood);
+  --sidebar-primary-foreground: var(--paper);
+  --sidebar-accent: #ebe6dc;
+  --sidebar-accent-foreground: var(--ink-text);
+  --sidebar-border: var(--rule);
+  --sidebar-ring: var(--oxblood);
+
+  /* Editorial radius — panels max 4px, sharp by default */
+  --radius: 4px;
+}
+
+/* Dark mode — default. Apply by adding `class="dark"` to <html>. */
+.dark {
+  /* Raw editorial tokens */
+  --ink: #0e0e0c;
+  --ink-2: #161613;
+  --ivory: #efeae0;
+  --ivory-dim: #c9c3b6;
+  --stone: #6f6a60;
+  --rule: #1f1d1a;
+  --oxblood: #b23a3a;
+  --oxblood-dim: #7a2a2a;
+  --sage: #8fa48a;
+  --clay: #c2785a;
+
+  /* Semantic remap */
+  --background: var(--ink);
+  --foreground: var(--ivory);
+  --card: var(--ink-2);
+  --card-foreground: var(--ivory);
+  --popover: var(--ink-2);
+  --popover-foreground: var(--ivory);
+  --primary: var(--oxblood);
+  --primary-foreground: var(--ivory);
+  --secondary: var(--ink-2);
+  --secondary-foreground: var(--ivory);
+  --muted: var(--ink-2);
+  --muted-foreground: var(--stone);
+  --accent: var(--oxblood);
+  --accent-foreground: var(--ivory);
+  --destructive: var(--clay);
+  --border: var(--rule);
+  --input: var(--rule);
+  --ring: var(--oxblood);
+
+  /* Chart series */
+  --chart-1: var(--ivory);
+  --chart-2: var(--ivory-dim);
+  --chart-3: var(--oxblood);
+  --chart-4: var(--sage);
+  --chart-5: var(--clay);
+
+  /* Sidebar chrome */
+  --sidebar: var(--ink-2);
+  --sidebar-foreground: var(--ivory);
+  --sidebar-primary: var(--oxblood);
+  --sidebar-primary-foreground: var(--ivory);
+  --sidebar-accent: var(--ink-2);
+  --sidebar-accent-foreground: var(--ivory);
+  --sidebar-border: var(--rule);
+  --sidebar-ring: var(--oxblood);
 }
 
 @layer base {
@@ -96,1030 +219,255 @@
   }
 }
 
-/* Typography — Swiss discipline */
-h1, h2, h3, h4, h5, h6 {
+/* Editorial typography defaults
+ * Display headings use Source Serif 4; sub-headings stay sans (Geist).
+ * Hierarchy comes from size and the serif/sans shift, not weight contrast. */
+h1, h2 {
+  font-family: var(--font-source-serif), Georgia, "Times New Roman", serif;
+  font-weight: 400;
   letter-spacing: -0.02em;
-  font-weight: 300;
+  line-height: 1.15;
+}
+h3, h4, h5, h6 {
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
 }
 
-/* Motion with purpose */
+/* Motion: a single deceleration curve across the system.
+ * Phase 2 cull: only state-change transitions (160ms) and page enter (240ms)
+ * survive. No idle loops, no shimmers, no breathing. */
 * {
-  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
 }
 
 ::selection {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(178, 58, 58, 0.22);  /* oxblood at 22% */
+  color: var(--ivory);
 }
 
-/* Hero title shimmer */
-.hero-title {
-  background: linear-gradient(
-    135deg,
-    #ffffff 0%,
-    #d4af37 25%,
-    #ffffff 50%,
-    #d4af37 75%,
-    #ffffff 100%
-  );
-  background-size: 300% 300%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: hero-shimmer 8s ease-in-out infinite;
+/* ── Page transition (240ms — the page-change budget) ─────────────────── */
+
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(2px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes hero-shimmer {
-  0%, 100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
+.page-enter {
+  animation: page-enter 240ms cubic-bezier(0.2, 0, 0, 1) both;
 }
 
-/* ── TypeWriter cursor blink ──────────────────────────────────────── */
+/* ── Cursor blink (TypeWriter) ────────────────────────────────────────── */
+/* Kept: the blink IS the state — it tells you the cursor is alive.       */
 
-@keyframes typewriter-blink {
+@keyframes cursor-blink {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+  50%      { opacity: 0; }
 }
 
 .typewriter-cursor {
   display: inline-block;
-  color: #d4af37;
-  font-weight: 200;
-  animation: typewriter-blink 0.8s step-end infinite;
+  color: var(--oxblood);
+  font-weight: 400;
+  animation: cursor-blink 0.9s step-end infinite;
   margin-left: 1px;
 }
 
-/* ── Hero staggered entrance ──────────────────────────────────────── */
+/* ── Toast (state change: enter/exit) ─────────────────────────────────── */
 
-@keyframes hero-fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes toast-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-.hero-stagger > * {
-  opacity: 0;
-  animation: hero-fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+@keyframes toast-exit {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(8px); }
 }
 
-.hero-stagger > *:nth-child(1) { animation-delay: 100ms; }
-.hero-stagger > *:nth-child(2) { animation-delay: 250ms; }
-.hero-stagger > *:nth-child(3) { animation-delay: 400ms; }
-.hero-stagger > *:nth-child(4) { animation-delay: 550ms; }
-.hero-stagger > *:nth-child(5) { animation-delay: 700ms; }
-.hero-stagger > *:nth-child(6) { animation-delay: 850ms; }
+.toast-enter { animation: toast-enter 160ms cubic-bezier(0.2, 0, 0, 1) forwards; }
+.toast-exit  { animation: toast-exit  160ms cubic-bezier(0.2, 0, 0, 1) forwards; }
 
-/* ── Hero network constellation ────────────────────────────────────── */
-
-@keyframes hero-node-breathe {
-  0%, 100% { opacity: inherit; transform: scale(1); }
-  50% { opacity: calc(inherit * 1.5); transform: scale(1.15); }
-}
-
-@keyframes hero-edge-pulse {
-  0%, 100% { stroke-opacity: 0.04; }
-  50% { stroke-opacity: 0.08; }
-}
-
-@keyframes hero-pulse-ring-expand {
-  0% { r: 3; opacity: 0.15; }
-  100% { r: 16; opacity: 0; }
-}
-
-@keyframes hero-glow-pulse {
-  0%, 100% { opacity: 0.03; }
-  50% { opacity: 0.06; }
-}
-
-.hero-node {
-  animation: hero-node-breathe 6s ease-in-out infinite;
-}
-
-.hero-node-glow {
-  animation: hero-glow-pulse 8s ease-in-out infinite;
-}
-
-.hero-edge {
-  animation: hero-edge-pulse 5s ease-in-out infinite;
-}
-
-.hero-pulse-ring {
-  animation: hero-pulse-ring-expand 4s ease-out infinite;
-}
-
-/* Toast animations — slide up on mobile, slide from right on desktop */
-@keyframes toast-enter-mobile {
-  from {
-    opacity: 0;
-    transform: translateY(100%);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes toast-exit-mobile {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(100%);
-  }
-}
-
-@keyframes toast-enter-desktop {
-  from {
-    opacity: 0;
-    transform: translateX(100%);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes toast-exit-desktop {
-  from {
-    opacity: 1;
-    transform: translateX(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateX(100%);
-  }
-}
-
-.toast-enter {
-  animation: toast-enter-mobile 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.toast-exit {
-  animation: toast-exit-mobile 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@media (min-width: 768px) {
-  .toast-enter {
-    animation: toast-enter-desktop 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  }
-  .toast-exit {
-    animation: toast-exit-desktop 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  }
-}
-
-/* Toast progress bar — shrinks from full width to 0 */
+/* Toast progress bar — communicates time remaining (legitimate state). */
 @keyframes toast-progress {
-  from {
-    width: 100%;
-  }
-  to {
-    width: 0%;
-  }
+  from { width: 100%; }
+  to   { width: 0%; }
 }
 
-.toast-progress {
-  animation: toast-progress linear forwards;
-}
+.toast-progress { animation: toast-progress linear forwards; }
 
-/* Respect reduced motion for all toast animations */
-@media (prefers-reduced-motion: reduce) {
-  .toast-enter {
-    animation: none;
-    opacity: 1;
-  }
-  .toast-exit {
-    animation: none;
-    opacity: 0;
-  }
-  .toast-progress {
-    animation: none;
-    width: 0%;
-  }
-}
+/* ── Mobile main padding — for bottom-tab safe area ───────────────────── */
 
-/* Command palette animations */
-@keyframes cmd-backdrop-enter {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes cmd-dialog-enter {
-  from {
-    opacity: 0;
-    transform: scale(0.96) translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-.cmd-backdrop-enter {
-  animation: cmd-backdrop-enter 0.15s ease-out forwards;
-}
-
-.cmd-dialog-enter {
-  animation: cmd-dialog-enter 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* Mobile safe area for bottom tab bar */
 .mobile-main-padding {
   padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
 }
 
 @media (min-width: 768px) {
-  .mobile-main-padding {
-    padding-bottom: 0;
-  }
+  .mobile-main-padding { padding-bottom: 0; }
 }
 
-/* Page transition — subtle fade + rise on navigation */
-@keyframes page-enter {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+/* ── Sidebar collapsible (state-change: expand/collapse) ──────────────── */
 
-.page-enter {
-  animation: page-enter 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* Smooth scroll */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Nous gold accent button */
-.btn-gold {
-  background-color: #d4af37;
-  color: #000000;
-  font-weight: 500;
-}
-.btn-gold:hover {
-  background-color: #c4a030;
-}
-.btn-gold:active {
-  background-color: #b39028;
-}
-
-/* Sidebar collapsible sections — smooth height via grid */
 .sidebar-section-collapse {
   display: grid;
   grid-template-rows: 1fr;
-  transition: grid-template-rows 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: grid-template-rows 160ms cubic-bezier(0.2, 0, 0, 1);
 }
 
 .sidebar-section-collapse[data-collapsed="true"] {
   grid-template-rows: 0fr;
 }
 
-/* Onboarding step entrance */
-@keyframes onboarding-step-enter {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+/* ── Thread / listing detail expand (state-change) ────────────────────── */
 
-.onboarding-step {
-  animation: onboarding-step-enter 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* Onboarding logo slow pulse */
-@keyframes onboarding-logo-pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
-}
-
-.onboarding-logo {
-  animation: onboarding-logo-pulse 4s ease-in-out infinite;
-}
-
-/* ── Micro-interactions ──────────────────────────────────────────────── */
-
-/* Tactile button press — subtle scale on active */
-button:active:not(:disabled),
-[role="button"]:active:not(:disabled) {
-  transform: scale(0.97);
-}
-
-/* Focus-visible ring — gold accent for keyboard navigation (WCAG AA) */
-:focus-visible {
-  outline: 2px solid rgba(212, 175, 55, 0.5);
-  outline-offset: 2px;
-}
-
-/* Input focus glow — gold border shift on focus */
-input:focus,
-textarea:focus,
-select:focus {
-  border-color: rgba(212, 175, 55, 0.3) !important;
-  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.08);
-}
-
-/* Custom select styling — dark mode consistent */
-select {
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23525252' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  padding-right: 32px !important;
-  cursor: pointer;
-}
-
-select option {
-  background: #0a0a0a;
-  color: #e5e5e5;
-}
-
-/* Interactive card — lift on hover */
-.card-lift {
-  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.card-lift:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-}
-
-.card-lift:active {
-  transform: translateY(0) scale(0.99);
-}
-
-/* Underline reveal — for text links */
-.link-underline {
-  position: relative;
-}
-
-.link-underline::after {
-  content: "";
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  width: 0;
-  height: 1px;
-  background: #d4af37;
-  transition: width 200ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.link-underline:hover::after {
-  width: 100%;
-}
-
-/* Glow pulse — for status indicators and CTAs */
-@keyframes glow-pulse {
-  0%, 100% {
-    box-shadow: 0 0 4px rgba(212, 175, 55, 0.2);
-  }
-  50% {
-    box-shadow: 0 0 12px rgba(212, 175, 55, 0.4);
-  }
-}
-
-.glow-pulse {
-  animation: glow-pulse 2s ease-in-out infinite;
-}
-
-/* Staggered fade-in — for lists and grids */
-@keyframes stagger-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.stagger-in > * {
-  opacity: 0;
-  animation: stagger-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.stagger-in > *:nth-child(1) { animation-delay: 0ms; }
-.stagger-in > *:nth-child(2) { animation-delay: 50ms; }
-.stagger-in > *:nth-child(3) { animation-delay: 100ms; }
-.stagger-in > *:nth-child(4) { animation-delay: 150ms; }
-.stagger-in > *:nth-child(5) { animation-delay: 200ms; }
-.stagger-in > *:nth-child(6) { animation-delay: 250ms; }
-.stagger-in > *:nth-child(7) { animation-delay: 300ms; }
-.stagger-in > *:nth-child(8) { animation-delay: 350ms; }
-.stagger-in > *:nth-child(n+9) { animation-delay: 350ms; }
-
-/* Architecture diagram — draw-in animation */
-@keyframes arch-line-draw {
-  from {
-    stroke-dashoffset: var(--line-length, 200);
-    opacity: 0;
-  }
-  to {
-    stroke-dashoffset: 0;
-    opacity: 1;
-  }
-}
-
-@keyframes arch-node-enter {
-  from {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes arch-orbit-spin {
-  from {
-    stroke-dashoffset: 0;
-  }
-  to {
-    stroke-dashoffset: -44;
-  }
-}
-
-.arch-diagram .arch-line {
-  animation: arch-line-draw 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  opacity: 0;
-}
-
-.arch-diagram .arch-node {
-  opacity: 0;
-  animation: arch-node-enter 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.arch-diagram .arch-node[data-delay="0"] { animation-delay: 200ms; }
-.arch-diagram .arch-node[data-delay="1"] { animation-delay: 280ms; }
-.arch-diagram .arch-node[data-delay="2"] { animation-delay: 360ms; }
-.arch-diagram .arch-node[data-delay="3"] { animation-delay: 440ms; }
-.arch-diagram .arch-node[data-delay="4"] { animation-delay: 520ms; }
-.arch-diagram .arch-node[data-delay="5"] { animation-delay: 600ms; }
-.arch-diagram .arch-node[data-delay="6"] { animation-delay: 680ms; }
-.arch-diagram .arch-node[data-delay="7"] { animation-delay: 760ms; }
-
-.arch-diagram .arch-orbit {
-  animation: arch-orbit-spin 20s linear infinite;
-}
-
-/* Architecture diagram — particle layer fade-in after draw animation */
-@keyframes arch-particles-enter {
-  to {
-    opacity: 1;
-  }
-}
-
-.arch-particles {
-  opacity: 0;
-  animation: arch-particles-enter 0.8s ease forwards;
-  animation-delay: 1.5s;
-}
-
-/* ── Reduced Motion (WCAG 2.1 Level AA) ─────────────────────────────── */
-
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-
-  .arch-particles {
-    display: none;
-  }
-
-  .hero-title {
-    animation: none;
-    background: none;
-    -webkit-text-fill-color: unset;
-    color: white;
-  }
-}
-
-/* Terminal demo — thin custom scrollbar */
-/* Activity heatmap — cell hover glow */
-.activity-cell {
-  transition: background-color 150ms ease-out, box-shadow 150ms ease-out;
-}
-
-.activity-cell:hover {
-  box-shadow: 0 0 4px rgba(212, 175, 55, 0.3);
-}
-
-/* Heatmap tooltip — fade + rise in */
-@keyframes heatmap-tooltip-enter {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.heatmap-tooltip {
-  animation: heatmap-tooltip-enter 0.12s ease-out forwards;
-}
-
-/* Terminal demo — thin custom scrollbar */
-.terminal-scroll::-webkit-scrollbar {
-  width: 4px;
-}
-
-.terminal-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.terminal-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 2px;
-}
-
-.terminal-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-.terminal-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
-}
-
-/* Notification panel — slide down from bell */
-@keyframes notif-panel-enter {
-  from {
-    opacity: 0;
-    transform: translateY(-4px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.notif-panel-enter {
-  animation: notif-panel-enter 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* Notification badge — pop in */
-@keyframes notif-badge-enter {
-  from {
-    opacity: 0;
-    transform: scale(0.5);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.notif-badge-enter {
-  animation: notif-badge-enter 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
-
-/* ── Offline / Connecting states ───────────────────────────────────────── */
-
-/* Full-page offline state — fade + rise */
-@keyframes offline-state-enter {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.offline-state-enter {
-  animation: offline-state-enter 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* Offline illustration — slow subtle float */
-@keyframes offline-float {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-6px);
-  }
-}
-
-.offline-illustration {
-  animation: offline-float 4s ease-in-out infinite;
-}
-
-/* Offline pulse — for auto-retry dot */
-@keyframes offline-pulse {
-  0%, 100% {
-    opacity: 0.3;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-.offline-pulse {
-  animation: offline-pulse 2s ease-in-out infinite;
-}
-
-/* Connecting state — breathing gold dot */
-@keyframes connecting-pulse {
-  0%, 100% {
-    opacity: 0.4;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.3);
-  }
-}
-
-.connecting-pulse {
-  animation: connecting-pulse 1.5s ease-in-out infinite;
-}
-
-/* ── Chart animations ──────────────────────────────────────────────────── */
-
-/* Donut/ring entrance — scale from center */
-@keyframes chart-donut-enter {
-  from {
-    opacity: 0;
-    transform: scale(0.85) rotate(-10deg);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) rotate(0deg);
-  }
-}
-
-.chart-donut-enter {
-  animation: chart-donut-enter 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* Arc segments grow in via strokeDashoffset */
-@keyframes chart-arc-enter {
-  from {
-    opacity: 0;
-    stroke-dashoffset: 999;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.chart-arc-enter {
-  animation: chart-arc-enter 700ms cubic-bezier(0.33, 1, 0.68, 1) forwards;
-}
-
-/* Horizontal bar grow from left */
-@keyframes chart-bar-enter {
-  from {
-    transform: scaleX(0);
-    transform-origin: left center;
-  }
-  to {
-    transform: scaleX(1);
-    transform-origin: left center;
-  }
-}
-
-.chart-bar-enter {
-  animation: chart-bar-enter 500ms cubic-bezier(0.33, 1, 0.68, 1) forwards;
-}
-
-/* Thread replies — smooth height expand/collapse via grid */
-.thread-replies {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 250ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.thread-replies[data-expanded="true"] {
-  grid-template-rows: 1fr;
-}
-
-.thread-replies > .thread-replies-inner {
-  overflow: hidden;
-}
-
-/* Thread reply items stagger in */
-@keyframes thread-reply-enter {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.thread-replies[data-expanded="true"] .thread-reply-item {
-  opacity: 0;
-  animation: thread-reply-enter 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.thread-replies[data-expanded="true"] .thread-reply-item:nth-child(1) { animation-delay: 30ms; }
-.thread-replies[data-expanded="true"] .thread-reply-item:nth-child(2) { animation-delay: 60ms; }
-.thread-replies[data-expanded="true"] .thread-reply-item:nth-child(3) { animation-delay: 90ms; }
-.thread-replies[data-expanded="true"] .thread-reply-item:nth-child(4) { animation-delay: 120ms; }
-.thread-replies[data-expanded="true"] .thread-reply-item:nth-child(n+5) { animation-delay: 150ms; }
-
-/* Marketplace listing detail — smooth height expand/collapse via grid */
+.thread-replies,
 .listing-detail {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: grid-template-rows 160ms cubic-bezier(0.2, 0, 0, 1);
 }
 
+.thread-replies[data-expanded="true"],
 .listing-detail[data-expanded="true"] {
   grid-template-rows: 1fr;
 }
 
+.thread-replies > .thread-replies-inner,
 .listing-detail > .listing-detail-inner {
   overflow: hidden;
 }
 
-/* Listing detail content fade-in */
-@keyframes listing-detail-enter {
-  from {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* ── Sheet / slide-over (state-change: panel open) ────────────────────── */
+
+@keyframes sheet-backdrop-enter {
+  from { background-color: transparent; }
+  to   { background-color: rgba(0, 0, 0, 0.5); }
 }
 
-.listing-detail[data-expanded="true"] .listing-detail-inner > div {
-  opacity: 0;
-  animation: listing-detail-enter 300ms cubic-bezier(0.16, 1, 0.3, 1) 100ms forwards;
+@keyframes sheet-slide-in-left {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
 }
 
-/* AI chat — typing indicator dots */
-@keyframes typing-dot {
-  0%, 60%, 100% {
-    opacity: 0.3;
-    transform: translateY(0);
-  }
-  30% {
-    opacity: 1;
-    transform: translateY(-3px);
-  }
+@keyframes sheet-slide-in-right {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
 }
 
-.typing-dot {
-  display: inline-block;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: #d4af37;
-  animation: typing-dot 1.2s ease-in-out infinite;
+.sheet-backdrop  { animation: sheet-backdrop-enter 160ms cubic-bezier(0.2, 0, 0, 1) forwards; }
+.sheet-slide-left  { animation: sheet-slide-in-left  240ms cubic-bezier(0.2, 0, 0, 1) forwards; }
+.sheet-slide-right { animation: sheet-slide-in-right 240ms cubic-bezier(0.2, 0, 0, 1) forwards; }
+
+/* ── Command palette (state-change: open) ─────────────────────────────── */
+
+@keyframes cmd-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
-.typing-dot:nth-child(2) { animation-delay: 150ms; }
-.typing-dot:nth-child(3) { animation-delay: 300ms; }
+.cmd-backdrop-enter { animation: cmd-fade-in 160ms cubic-bezier(0.2, 0, 0, 1) forwards; }
+.cmd-dialog-enter   { animation: cmd-fade-in 160ms cubic-bezier(0.2, 0, 0, 1) forwards; }
 
-/* AI chat — message entrance */
-@keyframes chat-msg-enter {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* ── Notification panel (state-change: open) ──────────────────────────── */
+
+.notif-panel-enter { animation: cmd-fade-in 160ms cubic-bezier(0.2, 0, 0, 1) forwards; }
+.notif-badge-enter { animation: cmd-fade-in 160ms cubic-bezier(0.2, 0, 0, 1) forwards; }
+.unread-badge-enter { animation: cmd-fade-in 160ms cubic-bezier(0.2, 0, 0, 1) forwards; }
+.unread-dot-enter   { animation: cmd-fade-in 160ms cubic-bezier(0.2, 0, 0, 1) forwards; }
+.nav-badge-enter    { animation: cmd-fade-in 160ms cubic-bezier(0.2, 0, 0, 1) forwards; }
+.inline-reply-compose { animation: cmd-fade-in 160ms cubic-bezier(0.2, 0, 0, 1) forwards; }
+.chat-msg-enter     { animation: cmd-fade-in 160ms cubic-bezier(0.2, 0, 0, 1) forwards; }
+.tour-enter         { animation: cmd-fade-in 160ms cubic-bezier(0.2, 0, 0, 1) forwards; }
+.tour-exit          { animation: cmd-fade-in 160ms cubic-bezier(0.2, 0, 0, 1) reverse forwards; }
+.tour-popover-enter { animation: cmd-fade-in 160ms cubic-bezier(0.2, 0, 0, 1) forwards; }
+.heatmap-tooltip    { animation: cmd-fade-in 160ms cubic-bezier(0.2, 0, 0, 1) forwards; }
+.peer-graph-tooltip-enter { animation: cmd-fade-in 160ms cubic-bezier(0.2, 0, 0, 1) forwards; }
+.testimonial-fade   { animation: cmd-fade-in 160ms cubic-bezier(0.2, 0, 0, 1) forwards; }
+
+/* Onboarding step (state-change: step advances) */
+.onboarding-step    { animation: cmd-fade-in 240ms cubic-bezier(0.2, 0, 0, 1) forwards; }
+
+/* Hero/page lists (state-change: enter once on mount) */
+.hero-stagger > * { opacity: 1; }   /* no decorative stagger; tokens handle it */
+
+/* Architecture diagram nodes / lines — render statically; no animation. */
+.arch-diagram .arch-line,
+.arch-diagram .arch-node { opacity: 1; }
+.arch-particles { display: none; }   /* decorative — culled */
+
+/* Charts: render in place, no draw-in. */
+.chart-donut-enter,
+.chart-arc-enter,
+.chart-bar-enter,
+.sparkline-enter,
+.sparkline-line-enter,
+.sparkline-area-enter,
+.sparkline-dot-enter,
+.sparkline-bar-enter,
+.power-bar-enter,
+.vote-bar-enter,
+.timeline-enter,
+.timeline-line-grow,
+.signal-bar,
+.category-icon-enter,
+.app-preview-card,
+.app-preview-row,
+.app-preview-sparkline,
+.wallet-chart-line-draw,
+.wallet-chart-area-enter,
+.new-post-enter {
+  opacity: 1;
+  transform: none;
+  stroke-dashoffset: 0;
+  animation: none;
 }
 
-.chat-msg-enter {
-  animation: chat-msg-enter 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* Messages — unread badge pop */
-@keyframes unread-badge-enter {
-  from {
-    opacity: 0;
-    transform: scale(0);
-  }
-  60% {
-    transform: scale(1.15);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.unread-badge-enter {
-  animation: unread-badge-enter 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* Messages — unread dot pulse */
-@keyframes unread-dot-enter {
-  from {
-    opacity: 0;
-    transform: scale(0);
-  }
-  50% {
-    transform: scale(1.3);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.unread-dot-enter {
-  animation: unread-dot-enter 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* Inline reply compose — smooth reveal */
-@keyframes inline-reply-enter {
-  from {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.inline-reply-compose {
-  animation: inline-reply-enter 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* Like heart pulse */
+/* Like-pulse — keep, it's a single micro state-change on user action. */
 @keyframes like-pulse {
-  0% { transform: scale(1); }
-  40% { transform: scale(1.25); }
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.18); }
   100% { transform: scale(1); }
 }
+.like-pulse { animation: like-pulse 160ms cubic-bezier(0.2, 0, 0, 1); }
 
-.like-pulse {
-  animation: like-pulse 300ms ease-out;
-}
-
-/* ── Power bar chart animation ─────────────────────────────────────── */
-
-@keyframes power-bar-enter {
-  from { width: 0; }
-}
-
-.power-bar-enter {
-  animation: power-bar-enter 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-/* ── Vote progress bar animation ─────────────────────────────────── */
-
-@keyframes vote-bar-enter {
-  from { transform: scaleX(0); }
-  to { transform: scaleX(1); }
-}
-
-.vote-bar-enter {
-  transform-origin: left;
-  animation: vote-bar-enter 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-/* ── Double-tap like heart burst ──────────────────────────────────── */
-
+/* Heart burst — also user-action feedback, very brief. */
 @keyframes heart-burst {
-  0% { transform: scale(0); opacity: 0; }
-  30% { transform: scale(1.3); opacity: 1; }
-  60% { transform: scale(0.95); opacity: 1; }
-  80% { transform: scale(1.05); opacity: 0.8; }
-  100% { transform: scale(1); opacity: 0; }
+  0%   { transform: scale(0.4); opacity: 0; }
+  40%  { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1);   opacity: 0; }
+}
+.heart-burst { animation: heart-burst 240ms cubic-bezier(0.2, 0, 0, 1) forwards; pointer-events: none; }
+
+/* Idle "breathing" / pulse loops are out. Map their classes to no-ops so
+ * existing markup remains valid but does not animate. */
+.glow-pulse,
+.connecting-pulse,
+.offline-pulse,
+.offline-illustration,
+.offline-state-enter,
+.peer-graph-breathe,
+.peer-graph-center-pulse,
+.wallet-chart-dot-pulse,
+.drop-zone-active,
+.activity-cell,
+.onboarding-logo,
+.hero-node,
+.hero-node-glow,
+.hero-edge,
+.hero-pulse-ring {
+  animation: none;
 }
 
-.heart-burst {
-  animation: heart-burst 800ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  pointer-events: none;
-}
-
-/* ── Nav badge ────────────────────────────────────────────────────── */
-
-@keyframes nav-badge-enter {
-  from { transform: scale(0); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-.nav-badge-enter {
-  animation: nav-badge-enter 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* ── New post slide-in (SSE live posts) ─────────────────────────── */
-
-@keyframes new-post-enter {
-  from {
-    opacity: 0;
-    transform: translateY(-12px);
-    max-height: 0;
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-    max-height: 600px;
-  }
-}
-
-.new-post-enter {
-  animation: new-post-enter 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  overflow: hidden;
-}
-
-/* ── Testimonial fade ──────────────────���─────────────────────────── */
-
-@keyframes testimonial-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.testimonial-fade {
-  animation: testimonial-fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* ── Drop zone ────────────────────────────────────────────────────── */
-
-@keyframes drop-zone-border-pulse {
-  0%, 100% { border-color: rgba(212, 175, 55, 0.25); }
-  50% { border-color: rgba(212, 175, 55, 0.5); }
-}
-
-.drop-zone-active {
-  animation: drop-zone-border-pulse 1.5s ease-in-out infinite;
-}
-
-/* ── Scroll-triggered reveal animations ──────────────────────────────── */
-
-/* Base: hidden state for all reveal variants */
+/* Reveal-on-scroll: collapse to a single subtle fade. No translate, no scale. */
 .reveal-fade-up,
 .reveal-fade,
 .reveal-fade-left,
 .reveal-fade-right,
 .reveal-scale {
   opacity: 0;
-  will-change: opacity, transform;
-  transition:
-    opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 240ms cubic-bezier(0.2, 0, 0, 1);
 }
 
-.reveal-fade-up {
-  transform: translateY(24px);
-}
-
-.reveal-fade-left {
-  transform: translateX(-24px);
-}
-
-.reveal-fade-right {
-  transform: translateX(24px);
-}
-
-.reveal-scale {
-  transform: scale(0.95);
-}
-
-/* Visible: all variants resolve to identity transform */
 .reveal-fade-up.reveal-visible,
 .reveal-fade.reveal-visible,
 .reveal-fade-left.reveal-visible,
@@ -1129,541 +477,218 @@ select option {
   transform: none;
 }
 
-/* ── Scroll-to-top button ────────────────────────────────────────────── */
+/* ── Smooth scroll ────────────────────────────────────────────────────── */
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* ── Focus: 1px oxblood ring (accent stamp) ───────────────────────────── */
+
+:focus-visible {
+  outline: 1px solid var(--oxblood);
+  outline-offset: 2px;
+}
+
+/* Inputs: hairline border, oxblood on focus — no glow. */
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--oxblood) !important;
+  box-shadow: none;
+  outline: none;
+}
+
+/* Custom select chevron — stone, not gold. */
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236f6a60' stroke-width='1.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px !important;
+  cursor: pointer;
+}
+
+select option {
+  background: var(--ink);
+  color: var(--ivory);
+}
+
+/* ── Hairline rules (utilities) ────────────────────────────────────────── */
+
+.rule-x { border-top: 1px solid var(--rule); }
+.rule-y { border-left: 1px solid var(--rule); }
+
+/* ── Scroll-to-top — a discrete affordance. Kept, in oxblood/ivory. ───── */
 
 .scroll-to-top {
   position: fixed;
   bottom: 2rem;
   right: 2rem;
   z-index: 50;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 9999px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(12px);
-  color: #737373;
+  border: 1px solid var(--rule);
+  background: var(--ink);
+  color: var(--stone);
   cursor: pointer;
   opacity: 0;
-  transform: translateY(12px);
   pointer-events: none;
-  transition:
-    opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-    color 0.2s ease,
-    border-color 0.2s ease,
-    background-color 0.2s ease;
+  transition: opacity 160ms cubic-bezier(0.2, 0, 0, 1),
+              color 160ms ease,
+              border-color 160ms ease;
 }
 
 .scroll-to-top-visible {
   opacity: 1;
-  transform: translateY(0);
   pointer-events: auto;
 }
 
 .scroll-to-top:hover {
-  color: #d4af37;
-  border-color: rgba(212, 175, 55, 0.3);
-  background: rgba(212, 175, 55, 0.04);
-}
-
-.scroll-to-top:active {
-  transform: translateY(0) scale(0.92);
+  color: var(--oxblood);
+  border-color: var(--oxblood);
 }
 
 @media (max-width: 640px) {
   .scroll-to-top {
     bottom: 5rem;
     right: 1.25rem;
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
   }
 }
 
-/* ── Proposal timeline ─────────────────────────────────────────────── */
+/* ── Reduced motion — full honour ─────────────────────────────────────── */
 
-@keyframes timeline-enter {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .hero-stagger > * { opacity: 1; }
+  .reveal-fade-up,
+  .reveal-fade,
+  .reveal-fade-left,
+  .reveal-fade-right,
+  .reveal-scale { opacity: 1; transform: none; }
 }
 
-.timeline-enter {
-  animation: timeline-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
+/* ── Markdown body ─────────────────────────────────────────────────────── */
 
-@keyframes timeline-line-grow {
-  from { transform: scaleX(0); }
-  to { transform: scaleX(1); }
-}
-
-.timeline-line-grow {
-  transform-origin: left;
-  animation: timeline-line-grow 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
-}
-
-/* ── Signal strength bars ──────────────────────────────────────────── */
-
-@keyframes signal-bar-enter {
-  from { transform: scaleY(0); }
-  to { transform: scaleY(1); }
-}
-
-.signal-bar {
-  transform-origin: bottom;
-  animation: signal-bar-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.signal-bar:nth-child(1) { animation-delay: 0ms; }
-.signal-bar:nth-child(2) { animation-delay: 40ms; }
-.signal-bar:nth-child(3) { animation-delay: 80ms; }
-.signal-bar:nth-child(4) { animation-delay: 120ms; }
-
-/* ── Category icon pulse on hover ──────────────────────────────────── */
-
-@keyframes category-icon-enter {
-  from { opacity: 0; transform: scale(0.8); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-.category-icon-enter {
-  animation: category-icon-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-/* ── Sparkline animations ────────────────────────────────────────── */
-
-@keyframes sparkline-enter {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes sparkline-line-draw {
-  from { stroke-dashoffset: var(--sparkline-length, 200); }
-  to { stroke-dashoffset: 0; }
-}
-
-@keyframes sparkline-area-fade {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes sparkline-dot-pop {
-  0% { r: 0; opacity: 0; }
-  60% { r: 2.8; }
-  100% { r: 2; opacity: 1; }
-}
-
-@keyframes sparkline-bar-grow {
-  from { transform: scaleY(0); }
-  to { transform: scaleY(1); }
-}
-
-.sparkline-enter {
-  animation: sparkline-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.sparkline-line-enter {
-  stroke-dasharray: 200;
-  stroke-dashoffset: 200;
-  animation: sparkline-line-draw 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
-}
-
-.sparkline-area-enter {
-  animation: sparkline-area-fade 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
-}
-
-.sparkline-dot-enter {
-  animation: sparkline-dot-pop 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.7s both;
-}
-
-.sparkline-bar-enter {
-  transform-origin: bottom;
-  animation: sparkline-bar-grow 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-/* ── Markdown body styles ────────────────────────────────────────────── */
-
-.markdown-body .counter-reset-list {
-  counter-reset: list-item;
-}
-.markdown-body .counter-increment-list {
-  counter-increment: list-item;
-}
-
-/* Ordered list items — use CSS counters */
-.markdown-body ol {
-  counter-reset: md-list;
-}
-.markdown-body ol > li {
-  counter-increment: md-list;
-}
-
-/* Smooth selection color for code blocks */
-.markdown-body pre ::selection {
-  background: rgba(212, 175, 55, 0.2);
-}
+.markdown-body .counter-reset-list { counter-reset: list-item; }
+.markdown-body .counter-increment-list { counter-increment: list-item; }
+.markdown-body ol { counter-reset: md-list; }
+.markdown-body ol > li { counter-increment: md-list; }
+.markdown-body pre ::selection,
 .markdown-body code ::selection {
-  background: rgba(212, 175, 55, 0.2);
+  background: rgba(178, 58, 58, 0.20);
 }
 
-/* ── Syntax highlighting — Nous dark theme ────────────────────────────── */
-/* Custom highlight.js theme matching Infinite Minimalism design system.  */
-/* Gold accent for keywords, muted tones for everything else.            */
+/* ── Syntax highlighting — editorial dark palette ─────────────────────── */
+/* Restrained: oxblood for keywords, sage for strings, stone for chrome.   */
 
 .hljs {
-  color: #c9d1d9;
+  color: var(--ivory);
   background: transparent;
 }
 
 .hljs-keyword,
 .hljs-selector-tag,
-.hljs-built_in {
-  color: #d4af37;
+.hljs-built_in,
+.hljs-name,
+.hljs-tag .hljs-attr {
+  color: var(--oxblood);
 }
 
 .hljs-string,
-.hljs-attr {
-  color: #a5d6a7;
+.hljs-attr,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+  color: var(--sage);
 }
 
 .hljs-number,
-.hljs-literal {
-  color: #ce93d8;
+.hljs-literal,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp {
+  color: var(--clay);
 }
 
 .hljs-comment,
 .hljs-doctag {
-  color: #525252;
+  color: var(--stone);
   font-style: italic;
 }
 
 .hljs-title,
 .hljs-title.function_,
-.hljs-title.class_ {
-  color: #e0c080;
-}
-
+.hljs-title.class_,
 .hljs-type,
 .hljs-class .hljs-title {
-  color: #b8860b;
+  color: var(--ivory-dim);
 }
 
 .hljs-variable,
-.hljs-template-variable {
-  color: #c9d1d9;
+.hljs-template-variable,
+.hljs-property {
+  color: var(--ivory);
 }
 
 .hljs-params {
-  color: #a0a0a0;
-}
-
-.hljs-property {
-  color: #90caf9;
-}
-
-.hljs-regexp {
-  color: #f48fb1;
+  color: var(--ivory-dim);
 }
 
 .hljs-meta,
 .hljs-meta .hljs-keyword {
-  color: #80cbc4;
+  color: var(--ivory-dim);
 }
 
 .hljs-tag {
-  color: #737373;
-}
-
-.hljs-name,
-.hljs-tag .hljs-attr {
-  color: #d4af37;
-}
-
-.hljs-selector-id,
-.hljs-selector-class {
-  color: #ce93d8;
-}
-
-.hljs-symbol,
-.hljs-bullet {
-  color: #a5d6a7;
-}
-
-.hljs-addition {
-  color: #a5d6a7;
-  background: rgba(165, 214, 167, 0.1);
+  color: var(--stone);
 }
 
 .hljs-deletion {
-  color: #ef9a9a;
-  background: rgba(239, 154, 154, 0.1);
+  color: var(--clay);
+  background: rgba(194, 120, 90, 0.10);
 }
 
-.hljs-emphasis {
-  font-style: italic;
-}
+.hljs-emphasis { font-style: italic; }
+.hljs-strong   { font-weight: 600; }
 
-.hljs-strong {
-  font-weight: 600;
-}
-
-/* Scrollbar for code blocks */
-.markdown-body pre::-webkit-scrollbar {
-  height: 4px;
-}
-.markdown-body pre::-webkit-scrollbar-track {
-  background: transparent;
-}
-.markdown-body pre::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 2px;
-}
-.markdown-body pre::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-/* ── Sheet / Slide-over panel ────────────────────────────────────── */
-
-@keyframes sheet-backdrop-enter {
-  from { background-color: transparent; }
-  to { background-color: rgba(0, 0, 0, 0.5); }
-}
-
-@keyframes sheet-slide-in-left {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
-}
-
-@keyframes sheet-slide-in-right {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(0); }
-}
-
-.sheet-backdrop {
-  animation: sheet-backdrop-enter 0.2s ease-out forwards;
-}
-
-.sheet-panel {
-  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.4);
-}
-
-.sheet-slide-left {
-  animation: sheet-slide-in-left 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.sheet-slide-right {
-  animation: sheet-slide-in-right 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* Sheet content stagger — children animate in after the panel slides */
-@keyframes sheet-content-enter {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.sheet-content-stagger > * {
-  opacity: 0;
-  animation: sheet-content-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-.sheet-content-stagger > *:nth-child(1) { animation-delay: 80ms; }
-.sheet-content-stagger > *:nth-child(2) { animation-delay: 120ms; }
-.sheet-content-stagger > *:nth-child(3) { animation-delay: 160ms; }
-.sheet-content-stagger > *:nth-child(4) { animation-delay: 200ms; }
-.sheet-content-stagger > *:nth-child(5) { animation-delay: 240ms; }
-.sheet-content-stagger > *:nth-child(6) { animation-delay: 280ms; }
-.sheet-content-stagger > *:nth-child(n+7) { animation-delay: 300ms; }
-
-/* Sheet scrollbar */
+/* Hairline scrollbars for prose code blocks. */
+.markdown-body pre::-webkit-scrollbar,
+.terminal-scroll::-webkit-scrollbar,
 .sheet-panel::-webkit-scrollbar {
   width: 4px;
+  height: 4px;
 }
+.markdown-body pre::-webkit-scrollbar-track,
+.terminal-scroll::-webkit-scrollbar-track,
 .sheet-panel::-webkit-scrollbar-track {
   background: transparent;
 }
+.markdown-body pre::-webkit-scrollbar-thumb,
+.terminal-scroll::-webkit-scrollbar-thumb,
 .sheet-panel::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--rule);
   border-radius: 2px;
 }
+.markdown-body pre::-webkit-scrollbar-thumb:hover,
+.terminal-scroll::-webkit-scrollbar-thumb:hover,
 .sheet-panel::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--stone);
 }
 
-/* ── App Preview mockup animations ──────────────────────────────────── */
-
-@keyframes app-preview-fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes app-preview-sparkline-draw {
-  from {
-    stroke-dashoffset: 200;
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-.app-preview-card {
-  opacity: 0;
-  animation: app-preview-fade-up 0.5s ease-out forwards;
-}
-
-.app-preview-row {
-  opacity: 0;
-  animation: app-preview-fade-up 0.3s ease-out forwards;
-}
-
-.app-preview-sparkline {
-  stroke-dasharray: 200;
-  stroke-dashoffset: 200;
-  animation: app-preview-sparkline-draw 1.5s ease-out 1s forwards;
-}
-
-/* ── Peer Graph Animations ───────────────────────────────────────────────── */
-
-.peer-graph-breathe {
-  animation: peer-graph-breathe 3s ease-in-out infinite;
-}
-
-@keyframes peer-graph-breathe {
-  0%, 100% {
-    opacity: 0.4;
-    r: inherit;
-  }
-  50% {
-    opacity: 0.7;
-  }
-}
-
-.peer-graph-center-pulse {
-  animation: peer-graph-center-pulse 4s ease-in-out infinite;
-}
-
-@keyframes peer-graph-center-pulse {
-  0%, 100% {
-    opacity: 0.6;
-    r: 36;
-  }
-  50% {
-    opacity: 1;
-    r: 44;
-  }
-}
-
-.peer-graph-tooltip-enter {
-  animation: peer-graph-tooltip-fade 0.15s ease-out forwards;
-}
-
-@keyframes peer-graph-tooltip-fade {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-/* ── Product Tour ──────────────────────────────────────────────────── */
-
-.tour-enter {
-  animation: tour-fade-in 200ms ease-out forwards;
-}
-
-.tour-exit {
-  animation: tour-fade-out 200ms ease-in forwards;
-}
-
-@keyframes tour-fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes tour-fade-out {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
-.tour-popover-enter {
-  animation: tour-popover-in 250ms ease-out forwards;
-}
-
-@keyframes tour-popover-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.tour-spotlight-rect {
-  transition: x 300ms ease-out, y 300ms ease-out, width 300ms ease-out,
-    height 300ms ease-out;
-}
-
-.tour-spotlight-glow {
-  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.15),
-    0 0 24px rgba(212, 175, 55, 0.06);
-  transition: top 300ms ease-out, left 300ms ease-out, width 300ms ease-out,
-    height 300ms ease-out;
-}
-
-/* ── Wallet Chart ─────────────────────────────────────────────────────── */
-
-.wallet-chart-dot-pulse {
-  animation: wallet-dot-pulse 2s ease-in-out infinite;
-}
-
-@keyframes wallet-dot-pulse {
-  0%,
-  100% {
-    r: 5;
-    opacity: 0.15;
-  }
-  50% {
-    r: 8;
-    opacity: 0.06;
-  }
-}
-
-.wallet-chart-line-draw {
-  animation: wallet-line-draw 800ms ease-out forwards;
-}
-
-@keyframes wallet-line-draw {
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-.wallet-chart-area-enter {
-  animation: wallet-area-fade 500ms ease-out 300ms both;
-}
-
-@keyframes wallet-area-fade {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+.terminal-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule) transparent;
 }

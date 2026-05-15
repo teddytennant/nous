@@ -43,7 +43,7 @@ interface TimelineEvent {
 
 const kindMeta: Record<EventKind, { label: string; color: string }> = {
   social: { label: "Social", color: "text-blue-500" },
-  governance: { label: "Governance", color: "text-[#d4af37]" },
+  governance: { label: "Governance", color: "text-[#B23A3A]" },
   payment: { label: "Payment", color: "text-emerald-500" },
   marketplace: { label: "Market", color: "text-purple-400" },
   message: { label: "Message", color: "text-cyan-400" },
@@ -221,7 +221,7 @@ export function ActivityTimeline() {
         </p>
         <Link
           href="/social"
-          className="inline-flex items-center gap-1.5 mt-4 text-[11px] text-[#d4af37] font-medium hover:text-[#c4a030] transition-colors duration-200"
+          className="inline-flex items-center gap-1.5 mt-4 text-[11px] text-[#B23A3A] font-medium hover:text-[#7A2A2A] transition-colors duration-200"
         >
           Create a post
           <ArrowRight className="w-3 h-3" />

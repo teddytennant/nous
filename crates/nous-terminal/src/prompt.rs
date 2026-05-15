@@ -127,18 +127,18 @@ pub fn render_plain(state: &PromptState, config: &PromptConfig) -> String {
 /// Render the prompt with ANSI escape codes for terminal display.
 pub fn render_ansi(state: &PromptState, config: &PromptConfig) -> String {
     let mut segments: Vec<String> = Vec::new();
-    let gold = "\x1b[38;2;212;175;55m";
-    let dim = "\x1b[38;2;100;100;100m";
-    let green = "\x1b[38;2;100;180;100m";
-    let red = "\x1b[38;2;190;80;70m";
-    let yellow = "\x1b[38;2;212;175;55m";
+    // Editorial palette — see nous-design::palette.
+    let oxblood = "\x1b[38;2;178;58;58m"; //  #B23A3A — accent / error
+    let stone = "\x1b[38;2;111;106;96m"; //   #6F6A60 — metadata / dim
+    let sage = "\x1b[38;2;143;164;138m"; //   #8FA48A — positive
+    let clay = "\x1b[38;2;194;120;90m"; //    #C2785A — warning / in-progress
     let reset = "\x1b[0m";
 
     if config.show_connection {
         let (color, label) = match state.connection {
-            ConnectionStatus::Online => (green, "online"),
-            ConnectionStatus::Offline => (red, "offline"),
-            ConnectionStatus::Syncing => (yellow, "syncing"),
+            ConnectionStatus::Online => (sage, "online"),
+            ConnectionStatus::Offline => (oxblood, "offline"),
+            ConnectionStatus::Syncing => (clay, "syncing"),
         };
         segments.push(format!("{color}{label}{reset}"));
     }
@@ -150,15 +150,15 @@ pub fn render_ansi(state: &PromptState, config: &PromptConfig) -> String {
             .display_name
             .as_deref()
             .unwrap_or_else(|| truncate_did(&id.did));
-        segments.push(format!("{dim}{label}{reset}"));
+        segments.push(format!("{stone}{label}{reset}"));
     }
 
     if config.show_wallet
         && let Some(ref w) = state.wallet
     {
-        let mut s = format!("{dim}{}{reset}", w.primary_balance);
+        let mut s = format!("{stone}{}{reset}", w.primary_balance);
         if w.pending_tx > 0 {
-            s.push_str(&format!(" {gold}(+{}){reset}", w.pending_tx));
+            s.push_str(&format!(" {clay}(+{}){reset}", w.pending_tx));
         }
         segments.push(s);
     }
@@ -166,16 +166,16 @@ pub fn render_ansi(state: &PromptState, config: &PromptConfig) -> String {
     if config.show_path
         && let Some(ref p) = state.path
     {
-        segments.push(format!("{dim}{p}{reset}"));
+        segments.push(format!("{stone}{p}{reset}"));
     }
 
-    let sep = format!("{dim}{}{reset}", config.separator);
+    let sep = format!("{stone}{}{reset}", config.separator);
 
     if segments.is_empty() {
-        format!("{gold}nous{reset}{} ", config.prompt_char)
+        format!("{oxblood}nous{reset}{} ", config.prompt_char)
     } else {
         format!(
-            "{gold}nous{reset} {dim}[{reset}{}{dim}]{reset}{} ",
+            "{oxblood}nous{reset} {stone}[{reset}{}{stone}]{reset}{} ",
             segments.join(&sep),
             config.prompt_char
         )

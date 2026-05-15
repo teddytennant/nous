@@ -180,8 +180,8 @@ export default function FilesPage() {
       {/* Drop overlay */}
       {isDragging && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-none">
-          <div className="drop-zone-active border-2 border-dashed border-[#d4af37]/40 rounded-sm p-16 text-center">
-            <Upload className="w-10 h-10 text-[#d4af37]/50 mx-auto mb-4" />
+          <div className="drop-zone-active border-2 border-dashed border-[#B23A3A]/40 rounded-sm p-16 text-center">
+            <Upload className="w-10 h-10 text-[#B23A3A]/50 mx-auto mb-4" />
             <p className="text-base font-extralight text-white tracking-[-0.02em]">
               Drop files to upload
             </p>
@@ -224,7 +224,7 @@ export default function FilesPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Filter by name..."
-              className="bg-white/[0.02] border border-white/[0.06] rounded-sm text-sm font-light px-3 py-1.5 outline-none placeholder:text-neutral-700 focus:border-[#d4af37]/40 transition-colors duration-200 w-48"
+              className="bg-white/[0.02] border border-white/[0.06] rounded-sm text-sm font-light px-3 py-1.5 outline-none placeholder:text-neutral-700 focus:border-[#B23A3A]/40 transition-colors duration-200 w-48"
             />
           )}
         </div>
@@ -244,7 +244,7 @@ export default function FilesPage() {
             size="sm"
             disabled={uploading}
             onClick={() => fileInput.current?.click()}
-            className="text-xs font-mono uppercase tracking-wider border-white/10 hover:border-[#d4af37] hover:text-[#d4af37]"
+            className="text-xs font-mono uppercase tracking-wider border-white/10 hover:border-[#B23A3A] hover:text-[#B23A3A]"
           >
             {uploading ? "Uploading..." : "Upload File"}
           </Button>
@@ -258,7 +258,7 @@ export default function FilesPage() {
               await ensureIdentity();
               loadFiles();
             }}
-            className="text-[#d4af37] hover:underline"
+            className="text-[#B23A3A] hover:underline"
           >
             Create an identity
           </button>{" "}
@@ -287,7 +287,7 @@ export default function FilesPage() {
           action={
             <button
               onClick={() => fileInput.current?.click()}
-              className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150"
+              className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#B23A3A]/30 text-[#B23A3A] hover:bg-[#B23A3A]/5 transition-all duration-150"
             >
               Upload File
             </button>
@@ -374,7 +374,7 @@ export default function FilesPage() {
                     e.stopPropagation();
                     handleDownload(f);
                   }}
-                  className="text-[10px] font-mono text-neutral-600 hover:text-[#d4af37] transition-colors duration-150"
+                  className="text-[10px] font-mono text-neutral-600 hover:text-[#B23A3A] transition-colors duration-150"
                 >
                   download
                 </button>
@@ -443,7 +443,7 @@ export default function FilesPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleDownload(f)}
-                        className="text-xs font-mono uppercase tracking-wider border-white/10 hover:border-[#d4af37] hover:text-[#d4af37]"
+                        className="text-xs font-mono uppercase tracking-wider border-white/10 hover:border-[#B23A3A] hover:text-[#B23A3A]"
                       >
                         Download
                       </Button>

@@ -369,7 +369,7 @@ export function KeyboardShortcutsModal({
             {/* Page-specific shortcuts (shown first when on a page that has them) */}
             {pageGroup && (
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#d4af37] mb-3">
+                <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#B23A3A] mb-3">
                   {pageGroup.title} — This Page
                 </p>
                 <div className="space-y-0">

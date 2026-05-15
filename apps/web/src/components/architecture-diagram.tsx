@@ -59,14 +59,14 @@ export function ArchitectureDiagram() {
         <defs>
           {/* Core ambient glow */}
           <radialGradient id="arch-core-glow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#d4af37" stopOpacity="0.12" />
-            <stop offset="100%" stopColor="#d4af37" stopOpacity="0" />
+            <stop offset="0%" stopColor="#B23A3A" stopOpacity="0.12" />
+            <stop offset="100%" stopColor="#B23A3A" stopOpacity="0" />
           </radialGradient>
 
           {/* Node hover glow */}
           <radialGradient id="arch-node-glow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#d4af37" stopOpacity="0.2" />
-            <stop offset="100%" stopColor="#d4af37" stopOpacity="0" />
+            <stop offset="0%" stopColor="#B23A3A" stopOpacity="0.2" />
+            <stop offset="100%" stopColor="#B23A3A" stopOpacity="0" />
           </radialGradient>
         </defs>
 
@@ -92,7 +92,7 @@ export function ArchitectureDiagram() {
             cx={CX}
             cy={CY}
             fill="none"
-            stroke="#d4af37"
+            stroke="#B23A3A"
             strokeWidth={0.5}
           >
             <animate
@@ -126,7 +126,7 @@ export function ArchitectureDiagram() {
               y2={pb.y}
               stroke={
                 isActive
-                  ? "rgba(212,175,55,0.12)"
+                  ? "rgba(178,58,58,0.12)"
                   : "rgba(255,255,255,0.015)"
               }
               strokeWidth={1}
@@ -151,7 +151,7 @@ export function ArchitectureDiagram() {
               y2={pos.y}
               stroke={
                 isActive
-                  ? "rgba(212,175,55,0.45)"
+                  ? "rgba(178,58,58,0.45)"
                   : "rgba(255,255,255,0.05)"
               }
               strokeWidth={isActive ? 1.5 : 1}
@@ -181,7 +181,7 @@ export function ArchitectureDiagram() {
                 }}
               >
                 {/* Outward — gold */}
-                <circle r={2} fill="#d4af37" opacity={0.35}>
+                <circle r={2} fill="#B23A3A" opacity={0.35}>
                   <animateMotion
                     path={outPath}
                     dur={`${2.5 + i * 0.2}s`}
@@ -216,7 +216,7 @@ export function ArchitectureDiagram() {
                   transition: "opacity 0.3s ease",
                 }}
               >
-                <circle r={1.5} fill="#d4af37" opacity={0.12}>
+                <circle r={1.5} fill="#B23A3A" opacity={0.12}>
                   <animateMotion
                     path={path}
                     dur={`${5 + i * 0.5}s`}
@@ -236,7 +236,7 @@ export function ArchitectureDiagram() {
           fill="rgba(0,0,0,0.9)"
           stroke={
             hovered !== null
-              ? "rgba(212,175,55,0.3)"
+              ? "rgba(178,58,58,0.3)"
               : "rgba(255,255,255,0.07)"
           }
           strokeWidth={1}
@@ -250,7 +250,7 @@ export function ArchitectureDiagram() {
           fill="none"
           stroke={
             hovered !== null
-              ? "rgba(212,175,55,0.12)"
+              ? "rgba(178,58,58,0.12)"
               : "rgba(255,255,255,0.03)"
           }
           strokeWidth={0.5}
@@ -313,12 +313,12 @@ export function ArchitectureDiagram() {
                 r={NODE_R}
                 fill={
                   isActive
-                    ? "rgba(212,175,55,0.05)"
+                    ? "rgba(178,58,58,0.05)"
                     : "rgba(255,255,255,0.015)"
                 }
                 stroke={
                   isActive
-                    ? "rgba(212,175,55,0.4)"
+                    ? "rgba(178,58,58,0.4)"
                     : "rgba(255,255,255,0.05)"
                 }
                 strokeWidth={1}
@@ -349,7 +349,7 @@ export function ArchitectureDiagram() {
                 y={pos.y + 12}
                 textAnchor="middle"
                 dominantBaseline="middle"
-                fill={isActive ? "#d4af37" : "#404040"}
+                fill={isActive ? "#B23A3A" : "#404040"}
                 fontSize={8}
                 letterSpacing="0.06em"
                 style={{
@@ -371,7 +371,7 @@ export function ArchitectureDiagram() {
             key={sys.name}
             className="flex items-center gap-3 p-3 border border-white/[0.05] rounded-sm"
           >
-            <div className="w-2 h-2 rounded-full bg-[#d4af37]/30 shrink-0" />
+            <div className="w-2 h-2 rounded-full bg-[#B23A3A]/30 shrink-0" />
             <div>
               <p className="text-xs font-light text-neutral-300">
                 {sys.name}

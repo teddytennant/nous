@@ -235,7 +235,7 @@ describe("TerminalDemo", () => {
       await runFirstCommand();
 
       const outputGoldSpans = container.querySelectorAll(
-        ".leading-\\[1\\.6\\] .text-\\[\\#d4af37\\]"
+        ".leading-\\[1\\.6\\] .text-\\[\\#B23A3A\\]"
       );
       expect(outputGoldSpans.length).toBeGreaterThan(0);
       const didSpan = Array.from(outputGoldSpans).find((s) =>
@@ -456,7 +456,7 @@ describe("TerminalDemo", () => {
     it("cursor blinks at 530ms interval", async () => {
       const { container } = render(<TerminalDemo />);
 
-      let cursor = container.querySelector(".inline-block.bg-\\[\\#d4af37\\]");
+      let cursor = container.querySelector(".inline-block.bg-\\[\\#B23A3A\\]");
       expect(cursor).not.toBeNull();
 
       await advance(530);
@@ -464,7 +464,7 @@ describe("TerminalDemo", () => {
       expect(cursor).not.toBeNull();
 
       await advance(530);
-      cursor = container.querySelector(".inline-block.bg-\\[\\#d4af37\\]");
+      cursor = container.querySelector(".inline-block.bg-\\[\\#B23A3A\\]");
       expect(cursor).not.toBeNull();
     });
 
@@ -472,7 +472,7 @@ describe("TerminalDemo", () => {
       const { container } = render(<TerminalDemo />);
 
       const getCursorBg = () => {
-        const gold = container.querySelector(".inline-block.bg-\\[\\#d4af37\\]");
+        const gold = container.querySelector(".inline-block.bg-\\[\\#B23A3A\\]");
         const transparent = container.querySelector(".inline-block.bg-transparent");
         if (gold) return "gold";
         if (transparent) return "transparent";

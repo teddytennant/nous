@@ -5,7 +5,7 @@ import { useConnection } from "@/components/connection-status";
 import { RefreshCw } from "lucide-react";
 
 /* ── Disconnected Network Illustration ──────────────────────────────────── */
-/* Minimalist, geometric, monochrome + gold accent (#d4af37).               */
+/* Minimalist, geometric, monochrome + gold accent (#B23A3A).               */
 /* Five nodes with broken/dashed connections — representing an offline mesh. */
 
 function DisconnectedIllustration() {
@@ -24,11 +24,11 @@ function DisconnectedIllustration() {
         cx="80"
         cy="80"
         r="8"
-        stroke="#d4af37"
+        stroke="#B23A3A"
         strokeWidth="1"
         opacity="0.25"
       />
-      <circle cx="80" cy="80" r="3" fill="#d4af37" opacity="0.15" />
+      <circle cx="80" cy="80" r="3" fill="#B23A3A" opacity="0.15" />
 
       {/* Outer nodes */}
       <circle
@@ -148,7 +148,7 @@ function DisconnectedIllustration() {
         y1="73"
         x2="87"
         y2="87"
-        stroke="#d4af37"
+        stroke="#B23A3A"
         strokeWidth="1"
         opacity="0.3"
         strokeLinecap="round"
@@ -158,7 +158,7 @@ function DisconnectedIllustration() {
         y1="73"
         x2="73"
         y2="87"
-        stroke="#d4af37"
+        stroke="#B23A3A"
         strokeWidth="1"
         opacity="0.3"
         strokeLinecap="round"
@@ -226,7 +226,7 @@ export function OfflineState() {
       {/* Title */}
       <h2 className="text-xl sm:text-2xl font-extralight tracking-[-0.02em] text-neutral-300 mb-3 text-center">
         Unable to reach{" "}
-        <span className="text-[#d4af37]">Nous</span>
+        <span className="text-[#B23A3A]">Nous</span>
       </h2>
 
       {/* Description */}
@@ -243,7 +243,7 @@ export function OfflineState() {
       <button
         onClick={handleRetry}
         disabled={retrying}
-        className="group flex items-center gap-2.5 px-6 py-2.5 border border-white/[0.08] rounded-md text-sm font-light text-neutral-400 hover:border-[#d4af37]/30 hover:text-[#d4af37] transition-all duration-200 disabled:opacity-50"
+        className="group flex items-center gap-2.5 px-6 py-2.5 border border-white/[0.08] rounded-md text-sm font-light text-neutral-400 hover:border-[#B23A3A]/30 hover:text-[#B23A3A] transition-all duration-200 disabled:opacity-50"
       >
         <RefreshCw
           className={`w-3.5 h-3.5 ${retrying ? "animate-spin" : "group-hover:rotate-45 transition-transform duration-300"}`}
@@ -280,7 +280,7 @@ export function ConnectingState() {
     <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 py-20 offline-state-enter">
       {/* Pulsing gold dot */}
       <div className="mb-8">
-        <div className="w-3 h-3 rounded-full bg-[#d4af37] connecting-pulse" />
+        <div className="w-3 h-3 rounded-full bg-[#B23A3A] connecting-pulse" />
       </div>
 
       <p className="text-sm text-neutral-500 font-light">

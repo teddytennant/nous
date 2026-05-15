@@ -54,9 +54,9 @@ describe("cn (class name utility)", () => {
     const result = cn(
       "bg-white/[0.04]",
       "border-white/[0.06]",
-      "bg-[#d4af37]/[0.02]",
+      "bg-[#B23A3A]/[0.02]",
     );
-    expect(result).toContain("bg-[#d4af37]/[0.02]");
+    expect(result).toContain("bg-[#B23A3A]/[0.02]");
     expect(result).toContain("border-white/[0.06]");
     expect(result).not.toContain("bg-white/[0.04]");
   });

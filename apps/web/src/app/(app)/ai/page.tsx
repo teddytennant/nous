@@ -214,7 +214,7 @@ export default function AIPage() {
             onClick={() => setMode(tab)}
             className={`text-xs font-mono uppercase tracking-[0.2em] pb-2 transition-colors duration-150 ${
               mode === tab
-                ? "text-[#d4af37] border-b border-[#d4af37]"
+                ? "text-[#B23A3A] border-b border-[#B23A3A]"
                 : "text-neutral-600 hover:text-neutral-400"
             }`}
           >
@@ -242,7 +242,7 @@ export default function AIPage() {
                       startNewConversation();
                     }
                   }}
-                  className="bg-transparent text-sm font-light border border-white/[0.06] px-3 py-1.5 outline-none focus:border-[#d4af37] transition-colors"
+                  className="bg-transparent text-sm font-light border border-white/[0.06] px-3 py-1.5 outline-none focus:border-[#B23A3A] transition-colors"
                 >
                   {agents.map((a) => (
                     <option key={a.id} value={a.id} className="bg-black">
@@ -258,7 +258,7 @@ export default function AIPage() {
             </div>
             <button
               onClick={startNewConversation}
-              className="text-[10px] font-mono uppercase tracking-wider text-neutral-600 hover:text-[#d4af37] transition-colors"
+              className="text-[10px] font-mono uppercase tracking-wider text-neutral-600 hover:text-[#B23A3A] transition-colors"
             >
               New chat
             </button>
@@ -291,8 +291,8 @@ export default function AIPage() {
                       {msg.role === "user" ? (
                         <Avatar did={typeof window !== "undefined" ? localStorage.getItem("nous_did") || "" : ""} size="sm" />
                       ) : (
-                        <div className="w-7 h-7 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/20 flex items-center justify-center">
-                          <Brain size={13} className="text-[#d4af37]" />
+                        <div className="w-7 h-7 rounded-full bg-[#B23A3A]/10 border border-[#B23A3A]/20 flex items-center justify-center">
+                          <Brain size={13} className="text-[#B23A3A]" />
                         </div>
                       )}
                     </div>
@@ -303,7 +303,7 @@ export default function AIPage() {
                         <div className="flex items-baseline gap-2.5">
                           <span className={cn(
                             "text-xs font-medium",
-                            msg.role === "user" ? "text-neutral-300" : "text-[#d4af37]"
+                            msg.role === "user" ? "text-neutral-300" : "text-[#B23A3A]"
                           )}>
                             {msg.role === "user" ? "You" : selectedAgent?.name ?? "Assistant"}
                           </span>
@@ -323,7 +323,7 @@ export default function AIPage() {
                               title="Copy response"
                             >
                               {copiedMsgId === msg.id ? (
-                                <Check size={12} className="text-[#d4af37]" />
+                                <Check size={12} className="text-[#B23A3A]" />
                               ) : (
                                 <Copy size={12} />
                               )}
@@ -349,8 +349,8 @@ export default function AIPage() {
               <div className="chat-msg-enter py-4 px-4 -mx-4">
                 <div className="flex gap-3">
                   <div className="shrink-0 pt-0.5">
-                    <div className="w-7 h-7 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/20 flex items-center justify-center">
-                      <Brain size={13} className="text-[#d4af37]" />
+                    <div className="w-7 h-7 rounded-full bg-[#B23A3A]/10 border border-[#B23A3A]/20 flex items-center justify-center">
+                      <Brain size={13} className="text-[#B23A3A]" />
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 pt-2">
@@ -408,7 +408,7 @@ export default function AIPage() {
                 className={cn(
                   "shrink-0 w-8 h-8 flex items-center justify-center rounded-sm transition-all duration-150",
                   input.trim() && selectedAgent && !sending
-                    ? "bg-[#d4af37] text-black hover:bg-[#c4a030]"
+                    ? "bg-[#B23A3A] text-black hover:bg-[#7A2A2A]"
                     : "bg-white/[0.04] text-neutral-700 cursor-not-allowed"
                 )}
               >
@@ -436,7 +436,7 @@ export default function AIPage() {
             </span>
             <button
               onClick={() => setShowCreate(!showCreate)}
-              className="text-[10px] font-mono uppercase tracking-wider text-neutral-600 hover:text-[#d4af37] transition-colors"
+              className="text-[10px] font-mono uppercase tracking-wider text-neutral-600 hover:text-[#B23A3A] transition-colors"
             >
               {showCreate ? "Cancel" : "New agent"}
             </button>
@@ -450,14 +450,14 @@ export default function AIPage() {
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="Agent name"
-                  className="w-full bg-transparent text-sm font-light border-b border-white/[0.06] pb-2 outline-none placeholder:text-neutral-700 focus:border-[#d4af37] transition-colors"
+                  className="w-full bg-transparent text-sm font-light border-b border-white/[0.06] pb-2 outline-none placeholder:text-neutral-700 focus:border-[#B23A3A] transition-colors"
                 />
                 <textarea
                   value={newPrompt}
                   onChange={(e) => setNewPrompt(e.target.value)}
                   placeholder="System prompt (optional)"
                   rows={3}
-                  className="w-full bg-transparent text-sm font-light resize-none outline-none placeholder:text-neutral-700 border-b border-white/[0.06] pb-2 focus:border-[#d4af37] transition-colors"
+                  className="w-full bg-transparent text-sm font-light resize-none outline-none placeholder:text-neutral-700 border-b border-white/[0.06] pb-2 focus:border-[#B23A3A] transition-colors"
                 />
                 <div className="flex justify-end">
                   <Button
@@ -465,7 +465,7 @@ export default function AIPage() {
                     disabled={!newName.trim()}
                     variant="outline"
                     size="sm"
-                    className="text-xs font-mono uppercase tracking-wider border-white/10 hover:border-[#d4af37] hover:text-[#d4af37] disabled:opacity-30"
+                    className="text-xs font-mono uppercase tracking-wider border-white/10 hover:border-[#B23A3A] hover:text-[#B23A3A] disabled:opacity-30"
                   >
                     Create
                   </Button>
@@ -501,7 +501,7 @@ export default function AIPage() {
               action={
                 <button
                   onClick={() => setShowCreate(true)}
-                  className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150"
+                  className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#B23A3A]/30 text-[#B23A3A] hover:bg-[#B23A3A]/5 transition-all duration-150"
                 >
                   Create Agent
                 </button>
@@ -548,7 +548,7 @@ export default function AIPage() {
                             startNewConversation();
                             setMode("chat");
                           }}
-                          className="text-[10px] font-mono uppercase tracking-wider text-neutral-600 hover:text-[#d4af37] transition-colors"
+                          className="text-[10px] font-mono uppercase tracking-wider text-neutral-600 hover:text-[#B23A3A] transition-colors"
                         >
                           Chat
                         </button>
@@ -578,7 +578,7 @@ export default function AIPage() {
             </span>
             <button
               onClick={loadConversations}
-              className="text-[10px] font-mono uppercase tracking-wider text-neutral-600 hover:text-[#d4af37] transition-colors"
+              className="text-[10px] font-mono uppercase tracking-wider text-neutral-600 hover:text-[#B23A3A] transition-colors"
             >
               Refresh
             </button>
@@ -605,7 +605,7 @@ export default function AIPage() {
                     <CardContent className="p-0">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-light group-hover:text-[#d4af37] transition-colors">
+                          <p className="text-sm font-light group-hover:text-[#B23A3A] transition-colors">
                             {agentName}
                           </p>
                           <p className="text-[10px] font-mono text-neutral-600 mt-1">

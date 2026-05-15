@@ -65,15 +65,15 @@ function MiniSparkline() {
     >
       <defs>
         <linearGradient id="spark-fill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#d4af37" stopOpacity="0.15" />
-          <stop offset="100%" stopColor="#d4af37" stopOpacity="0" />
+          <stop offset="0%" stopColor="#B23A3A" stopOpacity="0.15" />
+          <stop offset="100%" stopColor="#B23A3A" stopOpacity="0" />
         </linearGradient>
       </defs>
       <path d={fillD} fill="url(#spark-fill)" />
       <path
         d={pathD}
         fill="none"
-        stroke="#d4af37"
+        stroke="#B23A3A"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -88,7 +88,7 @@ function MiniSparkline() {
 function TypeDot({ type }: { type: string }) {
   const color =
     type === "governance"
-      ? "bg-[#d4af37]"
+      ? "bg-[#B23A3A]"
       : type === "social"
         ? "bg-blue-500"
         : type === "payment"
@@ -105,7 +105,7 @@ export function AppPreview() {
   return (
     <div className="relative mx-auto max-w-5xl">
       {/* Glow behind the window */}
-      <div className="absolute -inset-8 bg-[radial-gradient(ellipse_at_center,#d4af37_0%,transparent_70%)] opacity-[0.03] pointer-events-none rounded-2xl" />
+      <div className="absolute -inset-8 bg-[radial-gradient(ellipse_at_center,#B23A3A_0%,transparent_70%)] opacity-[0.03] pointer-events-none rounded-2xl" />
 
       {/* Window frame */}
       <div className="relative border border-white/[0.08] rounded-lg overflow-hidden bg-[#050505] shadow-2xl shadow-black/60">
@@ -125,8 +125,8 @@ export function AppPreview() {
           <div className="hidden sm:flex flex-col w-44 border-r border-white/[0.06] bg-[#080808] py-4 px-3 shrink-0">
             {/* Logo */}
             <div className="flex items-center gap-2 px-2 mb-6">
-              <div className="w-5 h-5 rounded-sm bg-[#d4af37]/20 border border-[#d4af37]/30 flex items-center justify-center">
-                <span className="text-[8px] font-bold text-[#d4af37]">N</span>
+              <div className="w-5 h-5 rounded-sm bg-[#B23A3A]/20 border border-[#B23A3A]/30 flex items-center justify-center">
+                <span className="text-[8px] font-bold text-[#B23A3A]">N</span>
               </div>
               <span className="text-xs font-extralight tracking-[-0.02em] text-neutral-300">
                 Nous
@@ -148,7 +148,7 @@ export function AppPreview() {
                   <div
                     className={`w-3.5 h-3.5 rounded-sm ${
                       item.active
-                        ? "bg-[#d4af37]/20 border border-[#d4af37]/30"
+                        ? "bg-[#B23A3A]/20 border border-[#B23A3A]/30"
                         : "bg-white/[0.04] border border-white/[0.06]"
                     }`}
                   />
@@ -159,7 +159,7 @@ export function AppPreview() {
 
             {/* Bottom user */}
             <div className="flex items-center gap-2 px-2 pt-4 border-t border-white/[0.06]">
-              <div className="w-5 h-5 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/20" />
+              <div className="w-5 h-5 rounded-full bg-[#B23A3A]/10 border border-[#B23A3A]/20" />
               <div className="min-w-0">
                 <p className="text-[10px] font-light text-neutral-400 truncate">
                   anon

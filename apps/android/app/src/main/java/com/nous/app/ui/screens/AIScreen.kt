@@ -1,6 +1,6 @@
 package com.nous.app.ui.screens
 
-import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,13 +15,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -31,9 +28,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.nous.app.data.NousViewModel
+import com.nous.app.ui.components.EmptyState
+import com.nous.app.ui.components.Hairline
+import com.nous.app.ui.components.MetaLabel
+import com.nous.app.ui.components.OxbloodMark
+import com.nous.app.ui.theme.NousSpacing
 
 data class ChatMessage(val role: String, val content: String)
 
@@ -48,162 +49,118 @@ fun AIScreen(viewModel: NousViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(horizontal = NousSpacing.gutter, vertical = NousSpacing.xl),
     ) {
         Text(
             text = "AI",
-            style = MaterialTheme.typography.headlineLarge,
-            modifier = Modifier.padding(bottom = 4.dp),
+            style = MaterialTheme.typography.displayMedium,
+            color = MaterialTheme.colorScheme.onSurface,
         )
-        Text(
-            text = "Local inference · Private by default",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 24.dp),
-        )
+        Spacer(Modifier.height(8.dp))
+        MetaLabel(text = "Local inference · Private by default")
+        Spacer(Modifier.height(NousSpacing.xl))
 
         if (!node.connected) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentAlignment = Alignment.Center,
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "API Offline",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Start the API server to use AI features",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                }
+            Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                EmptyState(
+                    headline = "API offline",
+                    body = "Start the API server to use AI features.",
+                )
             }
         } else {
-            // Chat messages
+            Hairline()
             LazyColumn(
                 state = listState,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.weight(1f).fillMaxWidth(),
             ) {
                 if (messages.isEmpty()) {
                     item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 48.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = "Start a conversation",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "Ask anything — runs locally on your node",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.outline,
-                                )
-                            }
-                        }
+                        EmptyState(
+                            headline = "Start a conversation",
+                            body = "Ask anything — runs locally on your node.",
+                        )
                     }
                 }
 
                 items(messages) { msg ->
                     val isUser = msg.role == "user"
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
-                    ) {
-                        Surface(
-                            color = if (isUser)
-                                MaterialTheme.colorScheme.primaryContainer
-                            else
-                                MaterialTheme.colorScheme.surfaceVariant,
-                            shape = RoundedCornerShape(12.dp),
-                        ) {
-                            Text(
-                                text = msg.content,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.padding(12.dp),
+                    Column(modifier = Modifier.fillMaxWidth().padding(vertical = NousSpacing.md)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            MetaLabel(
+                                text = if (isUser) "You" else "Assistant",
+                                active = !isUser,
                             )
+                            if (isUser) {
+                                Spacer(Modifier.size(6.dp))
+                                OxbloodMark(filled = true)
+                            }
                         }
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            text = msg.content,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
                     }
+                    Hairline()
                 }
 
                 if (loading) {
                     item {
-                        Row(modifier = Modifier.padding(8.dp)) {
+                        Row(modifier = Modifier.padding(vertical = NousSpacing.md)) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                strokeWidth = 2.dp,
+                                modifier = Modifier.size(14.dp),
+                                strokeWidth = 1.dp,
                                 color = MaterialTheme.colorScheme.primary,
                             )
-                            Text(
-                                text = "  Thinking...",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(start = 8.dp),
-                            )
+                            Spacer(Modifier.size(8.dp))
+                            MetaLabel(text = "Thinking…")
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Hairline()
+            Spacer(Modifier.height(NousSpacing.md))
 
-            // Input row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(NousSpacing.sm),
             ) {
                 OutlinedTextField(
                     value = input,
                     onValueChange = { input = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = {
-                        Text(
-                            "Ask something...",
-                            color = MaterialTheme.colorScheme.outline,
-                        )
-                    },
+                    placeholder = { Text("Ask something…", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MaterialTheme.colorScheme.primary,
                         unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                     ),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(0.dp),
                     maxLines = 4,
                 )
-                Button(
-                    onClick = {
-                        if (input.isNotBlank() && !loading) {
+                Text(
+                    text = "Send",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (input.isBlank() || loading)
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    else
+                        MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .padding(bottom = 16.dp)
+                        .clickable(enabled = input.isNotBlank() && !loading) {
                             val userMsg = ChatMessage("user", input.trim())
                             messages = messages + userMsg
                             input = ""
                             loading = true
-                            // Simulate AI response (real integration would call the API)
-                            messages = messages + ChatMessage("assistant", "AI inference is running locally. Connect to the API for full responses.")
+                            messages = messages + ChatMessage(
+                                "assistant",
+                                "AI inference is running locally. Connect to the API for full responses.",
+                            )
                             loading = false
-                        }
-                    },
-                    enabled = input.isNotBlank() && !loading,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    ),
-                    shape = RoundedCornerShape(8.dp),
-                ) {
-                    Text("Send")
-                }
+                        },
+                )
             }
         }
     }

@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Messages — editorial thread list and message detail. No bubbles.
 struct MessagesView: View {
     @Environment(NousStore.self) private var store
     @State private var selectedChannel: ChannelResponse?
@@ -23,119 +24,109 @@ struct ChannelListView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: NousTheme.spacingXL) {
-                VStack(alignment: .leading, spacing: NousTheme.spacingXS) {
-                    Text("Messages")
-                        .font(NousTheme.headlineLarge)
-                        .foregroundColor(NousTheme.text)
-                    Text("End-to-end encrypted via Double Ratchet")
-                        .font(NousTheme.bodySmall)
-                        .foregroundColor(NousTheme.textMuted)
-                }
+            VStack(alignment: .leading, spacing: NousTheme.s8) {
+                header
 
                 if store.channels.isEmpty {
-                    VStack(spacing: NousTheme.spacingMD) {
-                        Spacer().frame(height: 60)
-                        Text("No conversations yet.")
-                            .font(NousTheme.bodySmall)
-                            .foregroundColor(NousTheme.textMuted)
-                        Text("Channels appear when you or a peer creates one via the API.")
-                            .font(NousTheme.label)
-                            .foregroundColor(NousTheme.textMuted)
-                            .multilineTextAlignment(.center)
-                        Spacer().frame(height: 60)
-                    }
-                    .frame(maxWidth: .infinity)
+                    EmptyState(
+                        title: "No conversations yet",
+                        subtitle: "Channels appear when you or a peer creates one. The Nous protocol carries them end-to-end with the Double Ratchet."
+                    )
                 } else {
-                    VStack(alignment: .leading, spacing: 0) {
+                    VStack(spacing: 0) {
+                        Hairline()
                         ForEach(store.channels) { channel in
-                            Button(action: { onSelect(channel) }) {
-                                ChannelRow(channel: channel)
-                            }
-                            .buttonStyle(.plain)
-
-                            if channel.id != store.channels.last?.id {
-                                Rectangle()
-                                    .fill(NousTheme.border)
-                                    .frame(height: 1)
-                            }
+                            ChannelRow(channel: channel, onTap: { onSelect(channel) })
                         }
                     }
-                    .overlay(
-                        Rectangle()
-                            .stroke(NousTheme.border, lineWidth: 1)
-                    )
                 }
             }
-            .padding(NousTheme.spacingLG)
+            .padding(.horizontal, NousTheme.s6)
+            .padding(.vertical, NousTheme.s8)
         }
         .background(NousTheme.background)
-        .task {
-            await store.refreshChannels()
+        .task { await store.refreshChannels() }
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: NousTheme.s2) {
+            Text("Messages")
+                .font(NousTheme.display)
+                .foregroundColor(NousTheme.ivory)
+                .tracking(-1)
+            MetaLabel(text: "End-to-end · Double Ratchet")
         }
     }
 }
 
-// MARK: - Channel Row
+// MARK: - Channel Row (editorial)
 
-struct ChannelRow: View {
+private struct ChannelRow: View {
     let channel: ChannelResponse
-
-    private var kindIcon: String {
-        switch channel.kind {
-        case "direct": return "person.2"
-        case "group": return "person.3"
-        case "public": return "megaphone"
-        default: return "bubble.left"
-        }
-    }
+    let onTap: () -> Void
+    @State private var pressed = false
 
     private var displayName: String {
         if let name = channel.name, !name.isEmpty { return name }
-        if channel.kind == "direct" && channel.members.count >= 2 {
-            let peer = channel.members.first ?? "Unknown"
-            if peer.count > 20 { return String(peer.prefix(16)) + "..." }
+        if channel.kind == "direct", let peer = channel.members.first {
+            if peer.count > 24 {
+                return String(peer.prefix(14)) + "…" + String(peer.suffix(6))
+            }
             return peer
         }
         return "Channel"
     }
 
-    var body: some View {
-        HStack(spacing: 14) {
-            Image(systemName: kindIcon)
-                .font(.system(size: 14))
-                .foregroundColor(NousTheme.accent)
-                .frame(width: 32, height: 32)
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(displayName)
-                    .font(NousTheme.bodySmall)
-                    .foregroundColor(NousTheme.text)
-                    .lineLimit(1)
-                HStack(spacing: 6) {
-                    Text(channel.kind.uppercased())
-                        .font(.system(size: 10, weight: .regular, design: .monospaced))
-                        .foregroundColor(NousTheme.accent)
-                        .tracking(0.6)
-                    Text("\(channel.members.count) member\(channel.members.count == 1 ? "" : "s")")
-                        .font(NousTheme.label)
-                        .foregroundColor(NousTheme.textMuted)
-                }
-            }
-
-            Spacer()
-
-            Image(systemName: "chevron.right")
-                .font(.system(size: 12))
-                .foregroundColor(NousTheme.textMuted)
+    private var lastExcerpt: String {
+        switch channel.kind {
+        case "direct": return "Direct message · encrypted"
+        case "group": return "Group · \(channel.members.count) member\(channel.members.count == 1 ? "" : "s")"
+        case "public": return "Public channel"
+        default: return "Channel"
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .background(NousTheme.surface)
+    }
+
+    private var timestampDisplay: String {
+        let raw = channel.createdAt
+        if raw.count > 10 { return String(raw.prefix(10)) }
+        return raw
+    }
+
+    var body: some View {
+        Button(action: onTap) {
+            VStack(spacing: 0) {
+                HStack(alignment: .firstTextBaseline, spacing: NousTheme.s4) {
+                    VStack(alignment: .leading, spacing: NousTheme.s2) {
+                        Text(displayName)
+                            .font(NousTheme.headlineMedium)
+                            .foregroundColor(NousTheme.ivory)
+                            .lineLimit(1)
+                        Text(lastExcerpt)
+                            .font(NousTheme.body)
+                            .foregroundColor(NousTheme.ivoryDim)
+                            .lineLimit(1)
+                    }
+                    Spacer(minLength: NousTheme.s2)
+                    Text(timestampDisplay)
+                        .font(NousTheme.mono)
+                        .foregroundColor(NousTheme.stone)
+                }
+                .padding(.vertical, NousTheme.s4)
+                .background(NousTheme.oxblood.opacity(pressed ? 0.12 : 0))
+                Hairline()
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in if !pressed { pressed = true } }
+                .onEnded { _ in pressed = false }
+        )
     }
 }
 
-// MARK: - Channel Message View
+// MARK: - Channel Detail
 
 struct ChannelMessageView: View {
     @Environment(NousStore.self) private var store
@@ -147,96 +138,100 @@ struct ChannelMessageView: View {
     @State private var sending = false
 
     private var channelName: String {
-        channel.name ?? "Direct Message"
+        if let name = channel.name, !name.isEmpty { return name }
+        return channel.kind.capitalized + " channel"
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
-            HStack(spacing: 12) {
-                Button(action: onBack) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 14))
-                        .foregroundColor(NousTheme.accent)
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(channelName)
-                        .font(NousTheme.bodySmall)
-                        .foregroundColor(NousTheme.text)
-                        .lineLimit(1)
-                    Text(channel.kind.uppercased())
-                        .font(.system(size: 10, weight: .regular, design: .monospaced))
-                        .foregroundColor(NousTheme.textMuted)
-                        .tracking(0.6)
-                }
-                Spacer()
-            }
-            .padding(.horizontal, NousTheme.spacingLG)
-            .padding(.vertical, 14)
-            .background(NousTheme.surface)
-            .overlay(
-                Rectangle()
-                    .fill(NousTheme.border)
-                    .frame(height: 1),
-                alignment: .bottom
-            )
-
-            // Messages
+            detailHeader
             ScrollView {
-                LazyVStack(spacing: 8) {
+                LazyVStack(alignment: .leading, spacing: 0) {
                     if messages.isEmpty {
-                        Text("No messages. Start the conversation.")
-                            .font(NousTheme.bodySmall)
-                            .foregroundColor(NousTheme.textMuted)
-                            .padding(.top, 40)
+                        EmptyState(
+                            title: "Quiet line.",
+                            subtitle: "No messages have come through yet. Start the conversation."
+                        )
+                        .padding(.horizontal, NousTheme.s6)
                     } else {
+                        Hairline()
                         ForEach(messages) { msg in
-                            MessageBubble(message: msg, isMe: msg.sender == store.did)
+                            MessageBlock(message: msg, isMe: msg.sender == store.did)
                         }
                     }
                 }
-                .padding(NousTheme.spacingMD)
+                .padding(.bottom, NousTheme.s8)
             }
-
-            // Input
-            HStack(spacing: 10) {
-                TextField("Message", text: $inputText)
-                    .font(NousTheme.body)
-                    .foregroundColor(NousTheme.text)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(NousTheme.surface)
-                    .overlay(
-                        Rectangle()
-                            .stroke(NousTheme.border, lineWidth: 1)
-                    )
-                    .textInputAutocapitalization(.sentences)
-
-                Button(action: {
-                    Task { await send() }
-                }) {
-                    Image(systemName: "arrow.up")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(inputText.isEmpty ? NousTheme.textMuted : .black)
-                        .frame(width: 36, height: 36)
-                        .background(inputText.isEmpty ? NousTheme.surface : NousTheme.accent)
-                }
-                .disabled(inputText.isEmpty || sending)
-            }
-            .padding(.horizontal, NousTheme.spacingMD)
-            .padding(.vertical, 10)
-            .background(NousTheme.background)
-            .overlay(
-                Rectangle()
-                    .fill(NousTheme.border)
-                    .frame(height: 1),
-                alignment: .top
-            )
+            inputBar
         }
         .background(NousTheme.background)
         .task {
             messages = await store.getMessages(channelId: channel.id)
         }
+    }
+
+    private var detailHeader: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: NousTheme.s3) {
+                Button(action: onBack) {
+                    HStack(spacing: NousTheme.s1) {
+                        Text("‹")
+                            .font(.system(size: 22, weight: .regular))
+                            .foregroundColor(NousTheme.oxblood)
+                        Text("Back")
+                            .font(NousTheme.label)
+                            .tracking(NousTheme.metaTracking)
+                            .foregroundColor(NousTheme.oxblood)
+                    }
+                }
+                .buttonStyle(.plain)
+                Spacer()
+                VStack(alignment: .trailing, spacing: NousTheme.s1) {
+                    Text(channelName)
+                        .font(NousTheme.titleLarge)
+                        .foregroundColor(NousTheme.ivory)
+                        .lineLimit(1)
+                    MetaLabel(text: channel.kind)
+                }
+            }
+            .padding(.horizontal, NousTheme.s6)
+            .padding(.vertical, NousTheme.s4)
+            Hairline()
+        }
+        .background(NousTheme.background)
+    }
+
+    private var inputBar: some View {
+        VStack(spacing: 0) {
+            Hairline()
+            HStack(alignment: .bottom, spacing: NousTheme.s3) {
+                TextField("", text: $inputText, prompt: Text("Compose").foregroundColor(NousTheme.stone), axis: .vertical)
+                    .font(NousTheme.body)
+                    .foregroundColor(NousTheme.ivory)
+                    .lineLimit(1...5)
+                    .textInputAutocapitalization(.sentences)
+
+                Button(action: { Task { await send() } }) {
+                    HStack(spacing: NousTheme.s1) {
+                        Text(sending ? "Sending" : "Send")
+                            .font(NousTheme.label)
+                            .tracking(NousTheme.metaTracking)
+                            .foregroundColor(inputText.isEmpty ? NousTheme.stone : NousTheme.oxblood)
+                        OxbloodMark(
+                            style: .arrow,
+                            color: inputText.isEmpty ? NousTheme.stone : NousTheme.oxblood,
+                            size: 10
+                        )
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(inputText.isEmpty || sending)
+            }
+            .padding(.horizontal, NousTheme.s6)
+            .padding(.vertical, NousTheme.s3)
+        }
+        .background(NousTheme.background)
     }
 
     private func send() async {
@@ -251,15 +246,16 @@ struct ChannelMessageView: View {
     }
 }
 
-// MARK: - Message Bubble
+// MARK: - Message Block (editorial — no bubble)
 
-struct MessageBubble: View {
+private struct MessageBlock: View {
     let message: MessageResponse
     let isMe: Bool
 
     private var senderDisplay: String {
+        if isMe { return "You" }
         let s = message.sender
-        if s.count > 16 { return String(s.prefix(12)) + "..." }
+        if s.count > 24 { return String(s.prefix(14)) + "…" + String(s.suffix(6)) }
         return s
     }
 
@@ -274,33 +270,28 @@ struct MessageBubble: View {
     }
 
     var body: some View {
-        HStack {
-            if isMe { Spacer(minLength: 40) }
-            VStack(alignment: isMe ? .trailing : .leading, spacing: 4) {
-                if !isMe {
-                    Text(senderDisplay)
-                        .font(.system(size: 10, weight: .regular, design: .monospaced))
-                        .foregroundColor(NousTheme.accent)
-                        .tracking(0.4)
+        VStack(spacing: 0) {
+            HStack(alignment: .firstTextBaseline, spacing: NousTheme.s4) {
+                VStack(alignment: .leading, spacing: NousTheme.s2) {
+                    HStack(spacing: NousTheme.s2) {
+                        MetaLabel(text: senderDisplay, active: isMe)
+                        if isMe {
+                            OxbloodMark(style: .disc, size: 5)
+                        }
+                    }
+                    Text(message.content)
+                        .font(NousTheme.body)
+                        .foregroundColor(NousTheme.ivory)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                Text(message.content)
-                    .font(NousTheme.body)
-                    .foregroundColor(isMe ? .black : NousTheme.text)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(isMe ? NousTheme.accent : NousTheme.surface)
-                    .overlay(
-                        Rectangle()
-                            .stroke(
-                                isMe ? Color.clear : NousTheme.border,
-                                lineWidth: 1
-                            )
-                    )
+                Spacer(minLength: NousTheme.s4)
                 Text(timeDisplay)
-                    .font(NousTheme.label)
-                    .foregroundColor(NousTheme.textMuted)
+                    .font(NousTheme.mono)
+                    .foregroundColor(NousTheme.stone)
             }
-            if !isMe { Spacer(minLength: 40) }
+            .padding(.horizontal, NousTheme.s6)
+            .padding(.vertical, NousTheme.s4)
+            Hairline()
         }
     }
 }

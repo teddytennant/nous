@@ -40,7 +40,7 @@ export default async function TwitterImage() {
             height: 700,
             borderRadius: "50%",
             background:
-              "radial-gradient(circle, rgba(212,175,55,0.08) 0%, transparent 70%)",
+              "radial-gradient(circle, rgba(178,58,58,0.08) 0%, transparent 70%)",
             top: "50%",
             left: "50%",
             transform: "translate(-50%, -50%)",
@@ -92,7 +92,7 @@ export default async function TwitterImage() {
             right: 0,
             height: 2,
             background:
-              "linear-gradient(90deg, transparent, #d4af37, transparent)",
+              "linear-gradient(90deg, transparent, #B23A3A, transparent)",
           }}
         />
       </div>

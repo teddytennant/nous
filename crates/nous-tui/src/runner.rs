@@ -18,6 +18,12 @@ use crate::theme::Theme;
 use crate::views;
 use crate::widgets;
 
+/// Whether the help overlay is currently visible.
+#[derive(Debug, Default)]
+struct UiState {
+    help_open: bool,
+}
+
 /// Run the Nous TUI application.
 ///
 /// This is the top-level entry point that sets up the terminal, runs the event
@@ -40,8 +46,11 @@ pub async fn run(config: TuiConfig) -> io::Result<()> {
     let (mut poll_rx, poll_handle) =
         poll::spawn_poller(client, app.local_did.clone(), PollConfig::default());
 
+    // UI state outside the persistent app (overlay flags etc.)
+    let mut ui = UiState::default();
+
     // Main loop
-    let result = event_loop(&mut terminal, &mut app, &mut poll_rx).await;
+    let result = event_loop(&mut terminal, &mut app, &mut poll_rx, &mut ui).await;
 
     // Cleanup
     poll_handle.abort();
@@ -56,27 +65,40 @@ async fn event_loop(
     terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
     app: &mut App,
     poll_rx: &mut tokio::sync::mpsc::Receiver<poll::PollEvent>,
+    ui: &mut UiState,
 ) -> io::Result<()> {
     loop {
         // Draw
         terminal.draw(|f| {
             let area = f.area();
-            let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([
-                    Constraint::Length(1),
-                    Constraint::Min(1),
-                    Constraint::Length(1),
-                ])
-                .split(area);
-
-            // Background
+            // Page surface — ivory on ink across the whole frame.
             let bg = ratatui::widgets::Block::default().style(Theme::base());
             f.render_widget(bg, area);
 
-            widgets::render_header(f, chunks[0], &app.tabs);
-            views::render_tab(f, chunks[1], app);
-            widgets::render_status_bar(f, chunks[2], app.peer_count, &app.local_did);
+            // Vertical spine: header (2) | rule under tabs (2) | body (min) | status (2)
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Length(2), // wordmark + DID + rule
+                    Constraint::Length(2), // tab strip + underbar/rule
+                    Constraint::Min(1),
+                    Constraint::Length(2), // rule + status
+                ])
+                .split(area);
+
+            widgets::render_header(f, chunks[0], &app.tabs, &app.local_did);
+            widgets::render_tab_strip(f, chunks[1], &app.tabs);
+            views::render_tab(f, chunks[2], app);
+            let reach = if app.connected {
+                Some("ON")
+            } else {
+                Some("OFF")
+            };
+            widgets::render_status_bar(f, chunks[3], app.peer_count, reach, None);
+
+            if ui.help_open {
+                views::render_help_modal(f, area);
+            }
         })?;
 
         if !app.running {
@@ -89,7 +111,7 @@ async fn event_loop(
             _ = tokio::time::sleep(Duration::from_millis(50)) => {
                 while event::poll(Duration::ZERO)? {
                     if let Event::Key(key) = event::read()? {
-                        handle_key(app, key);
+                        handle_key(app, ui, key);
                     }
                 }
             }
@@ -103,8 +125,22 @@ async fn event_loop(
     Ok(())
 }
 
-fn handle_key(app: &mut App, key: KeyEvent) {
+fn handle_key(app: &mut App, ui: &mut UiState, key: KeyEvent) {
+    // Help overlay swallows everything except dismissal.
+    if ui.help_open {
+        match key.code {
+            KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char('?') => {
+                ui.help_open = false;
+            }
+            _ => {}
+        }
+        return;
+    }
+
     match key.code {
+        KeyCode::Char('?') => {
+            ui.help_open = true;
+        }
         KeyCode::Char('q') if key.modifiers.contains(KeyModifiers::CONTROL) => {
             app.quit();
         }
@@ -174,97 +210,92 @@ mod tests {
         App::new(TuiConfig::default())
     }
 
+    fn press(app: &mut App, ui: &mut UiState, code: KeyCode, mods: KeyModifiers) {
+        handle_key(app, ui, KeyEvent::new(code, mods));
+    }
+
     #[test]
     fn handle_ctrl_q_quits() {
         let mut app = test_app();
-        handle_key(
-            &mut app,
-            KeyEvent::new(KeyCode::Char('q'), KeyModifiers::CONTROL),
-        );
+        let mut ui = UiState::default();
+        press(&mut app, &mut ui, KeyCode::Char('q'), KeyModifiers::CONTROL);
         assert!(!app.running);
     }
 
     #[test]
     fn handle_esc_quits() {
         let mut app = test_app();
-        handle_key(&mut app, KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
+        let mut ui = UiState::default();
+        press(&mut app, &mut ui, KeyCode::Esc, KeyModifiers::NONE);
         assert!(!app.running);
     }
 
     #[test]
     fn handle_tab_cycles() {
         let mut app = test_app();
-        handle_key(&mut app, KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE));
+        let mut ui = UiState::default();
+        press(&mut app, &mut ui, KeyCode::Tab, KeyModifiers::NONE);
         assert_eq!(app.tabs.active, crate::tabs::Tab::Messages);
     }
 
     #[test]
     fn handle_backtab_cycles_back() {
         let mut app = test_app();
-        handle_key(
-            &mut app,
-            KeyEvent::new(KeyCode::BackTab, KeyModifiers::SHIFT),
-        );
+        let mut ui = UiState::default();
+        press(&mut app, &mut ui, KeyCode::BackTab, KeyModifiers::SHIFT);
         assert_eq!(app.tabs.active, crate::tabs::Tab::Settings);
     }
 
     #[test]
     fn handle_char_input() {
         let mut app = test_app();
-        handle_key(
-            &mut app,
-            KeyEvent::new(KeyCode::Char('h'), KeyModifiers::NONE),
-        );
-        handle_key(
-            &mut app,
-            KeyEvent::new(KeyCode::Char('i'), KeyModifiers::NONE),
-        );
+        let mut ui = UiState::default();
+        press(&mut app, &mut ui, KeyCode::Char('h'), KeyModifiers::NONE);
+        press(&mut app, &mut ui, KeyCode::Char('i'), KeyModifiers::NONE);
         assert_eq!(app.input.value, "hi");
     }
 
     #[test]
     fn handle_number_switches_tab() {
         let mut app = test_app();
-        handle_key(
-            &mut app,
-            KeyEvent::new(KeyCode::Char('4'), KeyModifiers::NONE),
-        );
+        let mut ui = UiState::default();
+        press(&mut app, &mut ui, KeyCode::Char('4'), KeyModifiers::NONE);
         assert_eq!(app.tabs.active, crate::tabs::Tab::Wallet);
     }
 
     #[test]
     fn handle_backspace() {
         let mut app = test_app();
+        let mut ui = UiState::default();
         app.input.insert('a');
         app.input.insert('b');
-        handle_key(
-            &mut app,
-            KeyEvent::new(KeyCode::Backspace, KeyModifiers::NONE),
-        );
+        press(&mut app, &mut ui, KeyCode::Backspace, KeyModifiers::NONE);
         assert_eq!(app.input.value, "a");
     }
 
     #[test]
     fn handle_enter_submits() {
         let mut app = test_app();
+        let mut ui = UiState::default();
         app.input.insert('h');
         app.input.insert('i');
-        handle_key(&mut app, KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        press(&mut app, &mut ui, KeyCode::Enter, KeyModifiers::NONE);
         assert!(app.input.is_empty());
     }
 
     #[test]
     fn handle_arrow_keys() {
         let mut app = test_app();
-        // Up/Down shouldn't crash on empty messages
-        handle_key(&mut app, KeyEvent::new(KeyCode::Up, KeyModifiers::NONE));
-        handle_key(&mut app, KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        let mut ui = UiState::default();
+        press(&mut app, &mut ui, KeyCode::Up, KeyModifiers::NONE);
+        press(&mut app, &mut ui, KeyCode::Down, KeyModifiers::NONE);
         assert_eq!(app.scroll_offset, 0);
     }
 
     #[test]
     fn up_down_navigates_marketplace() {
         let mut app = test_app();
+        let mut ui = UiState::default();
         app.tabs.select(crate::tabs::Tab::Marketplace);
         app.listings.push(crate::client::ListingItem {
             id: "l1".into(),
@@ -291,31 +322,64 @@ mod tests {
             tags: vec![],
         });
 
-        handle_key(&mut app, KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        press(&mut app, &mut ui, KeyCode::Down, KeyModifiers::NONE);
         assert_eq!(app.marketplace_selected, 1);
-        handle_key(&mut app, KeyEvent::new(KeyCode::Up, KeyModifiers::NONE));
+        press(&mut app, &mut ui, KeyCode::Up, KeyModifiers::NONE);
         assert_eq!(app.marketplace_selected, 0);
     }
 
     #[test]
     fn left_right_toggles_marketplace_tab() {
         let mut app = test_app();
+        let mut ui = UiState::default();
         app.tabs.select(crate::tabs::Tab::Marketplace);
         assert_eq!(app.marketplace_tab, crate::app::MarketplaceSubTab::Listings);
-        handle_key(&mut app, KeyEvent::new(KeyCode::Right, KeyModifiers::NONE));
+        press(&mut app, &mut ui, KeyCode::Right, KeyModifiers::NONE);
         assert_eq!(app.marketplace_tab, crate::app::MarketplaceSubTab::Orders);
-        handle_key(&mut app, KeyEvent::new(KeyCode::Left, KeyModifiers::NONE));
+        press(&mut app, &mut ui, KeyCode::Left, KeyModifiers::NONE);
         assert_eq!(app.marketplace_tab, crate::app::MarketplaceSubTab::Listings);
     }
 
     #[test]
     fn handle_home_end() {
         let mut app = test_app();
+        let mut ui = UiState::default();
         app.input.insert('a');
         app.input.insert('b');
-        handle_key(&mut app, KeyEvent::new(KeyCode::Home, KeyModifiers::NONE));
+        press(&mut app, &mut ui, KeyCode::Home, KeyModifiers::NONE);
         assert_eq!(app.input.cursor, 0);
-        handle_key(&mut app, KeyEvent::new(KeyCode::End, KeyModifiers::NONE));
+        press(&mut app, &mut ui, KeyCode::End, KeyModifiers::NONE);
         assert_eq!(app.input.cursor, 2);
+    }
+
+    #[test]
+    fn question_mark_toggles_help() {
+        let mut app = test_app();
+        let mut ui = UiState::default();
+        assert!(!ui.help_open);
+        press(&mut app, &mut ui, KeyCode::Char('?'), KeyModifiers::NONE);
+        assert!(ui.help_open);
+        // While open, ? again dismisses.
+        press(&mut app, &mut ui, KeyCode::Char('?'), KeyModifiers::NONE);
+        assert!(!ui.help_open);
+    }
+
+    #[test]
+    fn esc_dismisses_help_without_quitting() {
+        let mut app = test_app();
+        let mut ui = UiState::default();
+        ui.help_open = true;
+        press(&mut app, &mut ui, KeyCode::Esc, KeyModifiers::NONE);
+        assert!(!ui.help_open);
+        assert!(app.running);
+    }
+
+    #[test]
+    fn help_swallows_input() {
+        let mut app = test_app();
+        let mut ui = UiState::default();
+        ui.help_open = true;
+        press(&mut app, &mut ui, KeyCode::Char('h'), KeyModifiers::NONE);
+        assert_eq!(app.input.value, "");
     }
 }

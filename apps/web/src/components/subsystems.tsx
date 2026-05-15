@@ -6,7 +6,7 @@ import { node, type SubsystemStatus, type SubsystemsResponse } from "@/lib/api";
 function statusColor(status: string): string {
   switch (status) {
     case "healthy":
-      return "text-[#d4af37]";
+      return "text-[#B23A3A]";
     case "degraded":
       return "text-amber-500";
     case "down":
@@ -19,7 +19,7 @@ function statusColor(status: string): string {
 function statusDot(status: string): string {
   switch (status) {
     case "healthy":
-      return "bg-[#d4af37]";
+      return "bg-[#B23A3A]";
     case "degraded":
       return "bg-amber-500";
     case "down":

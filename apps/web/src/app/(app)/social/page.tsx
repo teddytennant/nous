@@ -32,7 +32,7 @@ function CharacterProgress({ current, max }: { current: number; max: number }) {
       : remaining <= 20
         ? "#f59e0b"
         : remaining <= 50
-          ? "#d4af37"
+          ? "#B23A3A"
           : "#525252";
 
   if (current === 0) return null;
@@ -548,7 +548,7 @@ export default function SocialPage() {
                 disabled={posting || !draft.trim() || !userDid}
                 variant="outline"
                 size="sm"
-                className="text-xs font-mono uppercase tracking-wider border-white/10 hover:border-[#d4af37] hover:text-[#d4af37] disabled:opacity-30"
+                className="text-xs font-mono uppercase tracking-wider border-white/10 hover:border-[#B23A3A] hover:text-[#B23A3A] disabled:opacity-30"
               >
                 {posting ? "Posting..." : "Post"}
               </Button>
@@ -571,7 +571,7 @@ export default function SocialPage() {
               onClick={() => { setActiveTab(tab); setSelectedIndex(-1); }}
               className={`text-xs font-mono uppercase tracking-[0.2em] pb-2 transition-colors duration-150 ${
                 activeTab === tab
-                  ? "text-[#d4af37] border-b border-[#d4af37]"
+                  ? "text-[#B23A3A] border-b border-[#B23A3A]"
                   : "text-neutral-600 hover:text-neutral-400"
               }`}
             >
@@ -582,7 +582,7 @@ export default function SocialPage() {
         <button
           onClick={handleRefresh}
           disabled={refreshing}
-          className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-neutral-600 hover:text-[#d4af37] transition-colors disabled:opacity-50"
+          className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-neutral-600 hover:text-[#B23A3A] transition-colors disabled:opacity-50"
         >
           <RefreshCw size={10} className={cn(refreshing && "animate-spin")} />
           {refreshing ? "Loading" : "Refresh"}
@@ -629,7 +629,7 @@ export default function SocialPage() {
               action={
                 <button
                   onClick={() => { setActiveTab("timeline"); setSelectedIndex(-1); }}
-                  className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150"
+                  className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#B23A3A]/30 text-[#B23A3A] hover:bg-[#B23A3A]/5 transition-all duration-150"
                 >
                   Browse timeline
                 </button>
@@ -643,7 +643,7 @@ export default function SocialPage() {
               action={
                 <button
                   onClick={() => document.querySelector("textarea")?.focus()}
-                  className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150"
+                  className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#B23A3A]/30 text-[#B23A3A] hover:bg-[#B23A3A]/5 transition-all duration-150"
                 >
                   Write a post
                 </button>
@@ -662,12 +662,12 @@ export default function SocialPage() {
                   data-list-item
                   className={cn(
                     "relative bg-transparent border-0 rounded-none border-b border-white/[0.04] pb-6 mb-6 transition-colors duration-150",
-                    isSelected && "bg-[#d4af37]/[0.015]",
+                    isSelected && "bg-[#B23A3A]/[0.015]",
                     newPostIds.has(post.id) && "new-post-enter"
                   )}
                 >
                   {isSelected && (
-                    <div className="absolute left-0 top-0 bottom-6 w-0.5 bg-[#d4af37] rounded-full" />
+                    <div className="absolute left-0 top-0 bottom-6 w-0.5 bg-[#B23A3A] rounded-full" />
                   )}
                   <CardContent className="p-0">
                     {/* Author row */}
@@ -705,7 +705,7 @@ export default function SocialPage() {
                           onClick={() => toggleFollow(post.pubkey)}
                           className={`text-[10px] font-mono uppercase tracking-wider transition-colors duration-150 ${
                             isFollowing
-                              ? "text-[#d4af37]"
+                              ? "text-[#B23A3A]"
                               : "text-neutral-700 hover:text-white"
                           }`}
                         >
@@ -731,8 +731,8 @@ export default function SocialPage() {
                         <div className="absolute inset-0 flex items-center justify-center">
                           <Heart
                             size={48}
-                            fill="#d4af37"
-                            className="text-[#d4af37] heart-burst drop-shadow-[0_0_12px_rgba(212,175,55,0.5)]"
+                            fill="#B23A3A"
+                            className="text-[#B23A3A] heart-burst drop-shadow-[0_0_12px_rgba(178,58,58,0.5)]"
                           />
                         </div>
                       )}
@@ -761,7 +761,7 @@ export default function SocialPage() {
                         className={cn(
                           "flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider transition-colors",
                           likes.has(post.id)
-                            ? "text-[#d4af37]"
+                            ? "text-[#B23A3A]"
                             : "text-neutral-700 hover:text-white"
                         )}
                       >
@@ -777,7 +777,7 @@ export default function SocialPage() {
                         className={cn(
                           "text-[10px] font-mono uppercase tracking-wider transition-colors",
                           inlineReplyTo === post.id
-                            ? "text-[#d4af37]"
+                            ? "text-[#B23A3A]"
                             : "text-neutral-700 hover:text-white"
                         )}
                       >
@@ -789,7 +789,7 @@ export default function SocialPage() {
                           className={cn(
                             "flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider transition-colors",
                             expandedThreads.has(post.id)
-                              ? "text-[#d4af37]"
+                              ? "text-[#B23A3A]"
                               : "text-neutral-700 hover:text-white"
                           )}
                         >
@@ -809,7 +809,7 @@ export default function SocialPage() {
                         className={cn(
                           "flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider transition-colors",
                           bookmarks.has(post.id)
-                            ? "text-[#d4af37]"
+                            ? "text-[#B23A3A]"
                             : "text-neutral-700 hover:text-white"
                         )}
                       >
@@ -824,7 +824,7 @@ export default function SocialPage() {
                         className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-neutral-700 hover:text-white transition-colors"
                       >
                         {copiedId === post.id ? (
-                          <Check size={11} className="text-[#d4af37]" />
+                          <Check size={11} className="text-[#B23A3A]" />
                         ) : (
                           <Link size={11} />
                         )}
@@ -892,8 +892,8 @@ export default function SocialPage() {
                                       <div className="absolute inset-0 flex items-center justify-center">
                                         <Heart
                                           size={32}
-                                          fill="#d4af37"
-                                          className="text-[#d4af37] heart-burst drop-shadow-[0_0_8px_rgba(212,175,55,0.5)]"
+                                          fill="#B23A3A"
+                                          className="text-[#B23A3A] heart-burst drop-shadow-[0_0_8px_rgba(178,58,58,0.5)]"
                                         />
                                       </div>
                                     )}
@@ -906,7 +906,7 @@ export default function SocialPage() {
                                       className={cn(
                                         "flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider transition-colors",
                                         likes.has(reply.id)
-                                          ? "text-[#d4af37]"
+                                          ? "text-[#B23A3A]"
                                           : "text-neutral-700 hover:text-white"
                                       )}
                                     >
@@ -927,7 +927,7 @@ export default function SocialPage() {
                                       className={cn(
                                         "flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider transition-colors",
                                         bookmarks.has(reply.id)
-                                          ? "text-[#d4af37]"
+                                          ? "text-[#B23A3A]"
                                           : "text-neutral-700 hover:text-white"
                                       )}
                                     >
@@ -982,7 +982,7 @@ export default function SocialPage() {
 
                     {/* Inline Reply Compose */}
                     {inlineReplyTo === post.id && userDid && (
-                      <div className="inline-reply-compose mt-4 ml-4 pl-4 border-l border-[#d4af37]/20">
+                      <div className="inline-reply-compose mt-4 ml-4 pl-4 border-l border-[#B23A3A]/20">
                         {/* Reply context preview */}
                         <div className="flex items-center gap-2 mb-2 pb-2 border-b border-white/[0.04]">
                           <span className="text-[10px] font-mono text-neutral-700">Replying to</span>
@@ -1035,7 +1035,7 @@ export default function SocialPage() {
                                 <button
                                   onClick={() => handleInlineReply(post.id)}
                                   disabled={inlinePosting || !inlineReplyDraft.trim()}
-                                  className="text-[10px] font-mono uppercase tracking-wider px-3 py-1 border border-white/10 hover:border-[#d4af37] hover:text-[#d4af37] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                  className="text-[10px] font-mono uppercase tracking-wider px-3 py-1 border border-white/10 hover:border-[#B23A3A] hover:text-[#B23A3A] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                                 >
                                   {inlinePosting ? "Sending..." : "Reply"}
                                 </button>

@@ -84,14 +84,14 @@ function StatusIcon({ status }: { status: ItemStatus }) {
   switch (status) {
     case "done":
       return (
-        <div className="w-4 h-4 rounded-full bg-[#d4af37]/15 flex items-center justify-center shrink-0">
-          <Check className="w-2.5 h-2.5 text-[#d4af37]" />
+        <div className="w-4 h-4 rounded-full bg-[#B23A3A]/15 flex items-center justify-center shrink-0">
+          <Check className="w-2.5 h-2.5 text-[#B23A3A]" />
         </div>
       );
     case "in-progress":
       return (
-        <div className="w-4 h-4 rounded-full border border-[#d4af37]/30 flex items-center justify-center shrink-0">
-          <div className="w-1.5 h-1.5 rounded-full bg-[#d4af37] animate-pulse" />
+        <div className="w-4 h-4 rounded-full border border-[#B23A3A]/30 flex items-center justify-center shrink-0">
+          <div className="w-1.5 h-1.5 rounded-full bg-[#B23A3A] animate-pulse" />
         </div>
       );
     case "planned":
@@ -142,7 +142,7 @@ function PhaseCard({
       aria-pressed={isActive}
       className={`text-left w-full p-5 rounded-sm border transition-all duration-200 ${
         isActive
-          ? "border-[#d4af37]/20 bg-[#d4af37]/[0.03]"
+          ? "border-[#B23A3A]/20 bg-[#B23A3A]/[0.03]"
           : "border-white/[0.06] hover:border-white/[0.1] hover:bg-white/[0.02]"
       }`}
     >
@@ -152,7 +152,7 @@ function PhaseCard({
         </span>
         <span
           className={`text-[10px] font-mono tracking-wider ${
-            isActive ? "text-[#d4af37]" : "text-neutral-700"
+            isActive ? "text-[#B23A3A]" : "text-neutral-700"
           }`}
         >
           {phase.quarter}
@@ -172,7 +172,7 @@ function PhaseCard({
       {/* Progress bar */}
       <div className="h-px bg-white/[0.06] rounded-full overflow-hidden">
         <div
-          className="h-full bg-[#d4af37]/40 rounded-full transition-all duration-500"
+          className="h-full bg-[#B23A3A]/40 rounded-full transition-all duration-500"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -297,7 +297,7 @@ export function RoadmapSection() {
                   {item.label}
                 </span>
                 {item.status === "in-progress" && (
-                  <span className="text-[9px] font-mono uppercase tracking-wider text-[#d4af37]/60 ml-auto">
+                  <span className="text-[9px] font-mono uppercase tracking-wider text-[#B23A3A]/60 ml-auto">
                     Active
                   </span>
                 )}

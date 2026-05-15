@@ -147,7 +147,7 @@ function statusColor(status: string): string {
     case "Active":
     case "Pending":
     case "Open":
-      return "text-[#d4af37]";
+      return "text-[#B23A3A]";
     case "Completed":
     case "Accepted":
     case "ResolvedBuyerWins":
@@ -293,7 +293,7 @@ function ListingsTab() {
       <div className="flex justify-end mb-8">
         <button
           onClick={() => setCreating(true)}
-          className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-white/10 text-neutral-500 hover:text-[#d4af37] hover:border-[#d4af37]/30 transition-all duration-150"
+          className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-white/10 text-neutral-500 hover:text-[#B23A3A] hover:border-[#B23A3A]/30 transition-all duration-150"
         >
           New Listing
         </button>
@@ -375,7 +375,7 @@ function ListingsTab() {
           </button>
           <button
             onClick={createListing}
-            className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150"
+            className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#B23A3A]/30 text-[#B23A3A] hover:bg-[#B23A3A]/5 transition-all duration-150"
           >
             Publish
           </button>
@@ -400,7 +400,7 @@ function ListingsTab() {
                 className={cn(
                   "flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider px-4 py-2 border transition-all duration-150",
                   category === cat
-                    ? "border-[#d4af37]/30 text-[#d4af37] bg-[#d4af37]/[0.06]"
+                    ? "border-[#B23A3A]/30 text-[#B23A3A] bg-[#B23A3A]/[0.06]"
                     : "border-white/[0.06] text-neutral-600 hover:text-neutral-400"
                 )}
               >
@@ -489,7 +489,7 @@ function ListingsTab() {
               action={
                 <button
                   onClick={() => setCreating(true)}
-                  className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150"
+                  className="text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#B23A3A]/30 text-[#B23A3A] hover:bg-[#B23A3A]/5 transition-all duration-150"
                 >
                   Create Listing
                 </button>
@@ -641,7 +641,7 @@ function ListingsTab() {
                                 e.stopPropagation();
                                 toast({ title: "Purchase started", description: `Buying "${listing.title}"`, variant: "success" });
                               }}
-                              className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150"
+                              className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider px-5 py-2.5 border border-[#B23A3A]/30 text-[#B23A3A] hover:bg-[#B23A3A]/5 transition-all duration-150"
                             >
                               <ShoppingCart size={12} />
                               Buy Now
@@ -1135,7 +1135,7 @@ export default function MarketplacePage() {
             className={cn(
               "text-xs font-mono uppercase tracking-wider px-6 py-3 -mb-px border-b-2 transition-all duration-150",
               tab === key
-                ? "border-[#d4af37] text-[#d4af37]"
+                ? "border-[#B23A3A] text-[#B23A3A]"
                 : "border-transparent text-neutral-600 hover:text-neutral-400"
             )}
           >

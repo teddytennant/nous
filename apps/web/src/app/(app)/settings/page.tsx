@@ -243,7 +243,7 @@ export default function SettingsPage() {
             {did && (
               <button
                 onClick={exportDIDDocument}
-                className="text-[10px] font-mono uppercase tracking-wider px-4 py-2 border border-white/10 text-neutral-600 hover:text-[#d4af37] hover:border-[#d4af37]/30 transition-all duration-150"
+                className="text-[10px] font-mono uppercase tracking-wider px-4 py-2 border border-white/10 text-neutral-600 hover:text-[#B23A3A] hover:border-[#B23A3A]/30 transition-all duration-150"
               >
                 Export DID Document
               </button>
@@ -341,7 +341,7 @@ export default function SettingsPage() {
                     onClick={() => setTheme(t)}
                     className={`text-xs font-mono uppercase tracking-wider px-5 py-2.5 border transition-all duration-150 ${
                       theme === t
-                        ? "border-[#d4af37]/30 text-[#d4af37]"
+                        ? "border-[#B23A3A]/30 text-[#B23A3A]"
                         : "border-white/10 text-neutral-600 hover:text-white hover:border-white/20"
                     }`}
                   >
@@ -403,7 +403,7 @@ export default function SettingsPage() {
                       onClick={() => toggleNotifCategory(cat.key)}
                       className={`relative w-9 h-5 rounded-full transition-colors duration-200 ${
                         enabled
-                          ? "bg-[#d4af37]/30"
+                          ? "bg-[#B23A3A]/30"
                           : "bg-white/[0.06]"
                       }`}
                       role="switch"
@@ -413,7 +413,7 @@ export default function SettingsPage() {
                       <span
                         className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full transition-all duration-200 ${
                           enabled
-                            ? "translate-x-4 bg-[#d4af37]"
+                            ? "translate-x-4 bg-[#B23A3A]"
                             : "translate-x-0 bg-neutral-500"
                         }`}
                       />
@@ -533,7 +533,7 @@ export default function SettingsPage() {
                   Decentralized social operating system
                 </p>
               </div>
-              <span className="text-[10px] font-mono text-[#d4af37] border border-[#d4af37]/20 bg-[#d4af37]/[0.04] px-2 py-0.5">
+              <span className="text-[10px] font-mono text-[#B23A3A] border border-[#B23A3A]/20 bg-[#B23A3A]/[0.04] px-2 py-0.5">
                 v0.1.0
               </span>
             </div>
@@ -565,7 +565,7 @@ export default function SettingsPage() {
                 href="https://github.com/teddytennant/nous"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[10px] font-mono uppercase tracking-wider px-4 py-2 border border-white/10 text-neutral-500 hover:text-[#d4af37] hover:border-[#d4af37]/30 transition-all duration-150"
+                className="text-[10px] font-mono uppercase tracking-wider px-4 py-2 border border-white/10 text-neutral-500 hover:text-[#B23A3A] hover:border-[#B23A3A]/30 transition-all duration-150"
               >
                 GitHub
               </a>
@@ -573,7 +573,7 @@ export default function SettingsPage() {
                 href="https://github.com/teddytennant/nous/releases"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[10px] font-mono uppercase tracking-wider px-4 py-2 border border-white/10 text-neutral-500 hover:text-[#d4af37] hover:border-[#d4af37]/30 transition-all duration-150"
+                className="text-[10px] font-mono uppercase tracking-wider px-4 py-2 border border-white/10 text-neutral-500 hover:text-[#B23A3A] hover:border-[#B23A3A]/30 transition-all duration-150"
               >
                 Releases
               </a>
@@ -581,7 +581,7 @@ export default function SettingsPage() {
                 href="https://github.com/teddytennant/nous/blob/main/docs/ARCHITECTURE.md"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[10px] font-mono uppercase tracking-wider px-4 py-2 border border-white/10 text-neutral-500 hover:text-[#d4af37] hover:border-[#d4af37]/30 transition-all duration-150"
+                className="text-[10px] font-mono uppercase tracking-wider px-4 py-2 border border-white/10 text-neutral-500 hover:text-[#B23A3A] hover:border-[#B23A3A]/30 transition-all duration-150"
               >
                 Docs
               </a>
@@ -590,7 +590,7 @@ export default function SettingsPage() {
                   resetTour();
                   toast({ title: "Tour reset", description: "The guided tour will appear on your next visit to the dashboard" });
                 }}
-                className="text-[10px] font-mono uppercase tracking-wider px-4 py-2 border border-white/10 text-neutral-500 hover:text-[#d4af37] hover:border-[#d4af37]/30 transition-all duration-150"
+                className="text-[10px] font-mono uppercase tracking-wider px-4 py-2 border border-white/10 text-neutral-500 hover:text-[#B23A3A] hover:border-[#B23A3A]/30 transition-all duration-150"
               >
                 Restart Tour
               </button>
@@ -636,7 +636,7 @@ export default function SettingsPage() {
       <section className="flex items-center gap-4">
         <button
           onClick={handleSave}
-          className="text-xs font-mono uppercase tracking-wider px-6 py-3 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/5 transition-all duration-150"
+          className="text-xs font-mono uppercase tracking-wider px-6 py-3 border border-[#B23A3A]/30 text-[#B23A3A] hover:bg-[#B23A3A]/5 transition-all duration-150"
         >
           {saved ? "Saved" : "Save Settings"}
         </button>

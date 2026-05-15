@@ -360,7 +360,7 @@ describe("Settings page", () => {
     it("defaults to dark theme", async () => {
       await renderSettings();
       const darkBtn = screen.getByText("dark");
-      expect(darkBtn.className).toContain("d4af37");
+      expect(darkBtn.className).toContain("B23A3A");
     });
 
     it("switches to light theme on click", async () => {
@@ -368,7 +368,7 @@ describe("Settings page", () => {
       await renderSettings();
       await user.click(screen.getByText("light"));
       const lightBtn = screen.getByText("light");
-      expect(lightBtn.className).toContain("d4af37");
+      expect(lightBtn.className).toContain("B23A3A");
     });
   });
 

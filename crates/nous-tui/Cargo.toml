@@ -9,6 +9,7 @@ authors.workspace = true
 
 [dependencies]
 nous-core = { path = "../nous-core" }
+nous-design = { path = "../nous-design", features = ["ratatui"] }
 nous-identity = { path = "../nous-identity" }
 nous-messaging = { path = "../nous-messaging" }
 nous-terminal = { path = "../nous-terminal" }

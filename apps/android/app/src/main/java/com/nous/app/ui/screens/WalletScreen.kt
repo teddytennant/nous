@@ -1,9 +1,7 @@
 package com.nous.app.ui.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,21 +9,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -36,19 +28,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.nous.app.data.NousViewModel
-
-private val Gold = Color(0xFFD4AF37)
-private val TextPrimary = Color(0xFFFAFAFA)
-private val TextSecondary = Color(0xFF737373)
-private val SurfaceColor = Color(0xFF0A0A0A)
-private val BorderColor = Color(0xFF1A1A1A)
+import com.nous.app.ui.components.EditorialRow
+import com.nous.app.ui.components.EmptyState
+import com.nous.app.ui.components.Hairline
+import com.nous.app.ui.components.MetaLabel
+import com.nous.app.ui.theme.NousMono
+import com.nous.app.ui.theme.NousMonoLarge
+import com.nous.app.ui.theme.NousSpacing
 
 @Composable
 fun WalletScreen(viewModel: NousViewModel = viewModel()) {
@@ -69,273 +59,113 @@ fun WalletScreen(viewModel: NousViewModel = viewModel()) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp),
+            .padding(horizontal = NousSpacing.gutter),
     ) {
         item {
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "Wallet",
-                style = MaterialTheme.typography.headlineLarge,
-                color = TextPrimary,
-                modifier = Modifier.padding(bottom = 4.dp),
-            )
-            Text(
-                text = "Multi-chain, escrow-backed",
-                style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary,
-                modifier = Modifier.padding(bottom = 24.dp),
-            )
-        }
-
-        // Balance cards
-        item {
-            if (walletState.loading) {
-                LinearProgressIndicator(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = Gold,
-                    trackColor = BorderColor,
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-            } else if (walletState.balances.isEmpty()) {
-                // Show placeholder balances when offline
-                val placeholders = listOf(
-                    Triple("NOUS", "0.000", null),
-                    Triple("ETH", "0.000", "$0.00"),
-                    Triple("USDC", "0.000", "$0.00"),
-                )
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.padding(bottom = 24.dp),
-                ) {
-                    placeholders.forEach { (token, amount, usd) ->
-                        BalanceCard(
-                            token = token,
-                            amount = amount,
-                            usdValue = usd,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                }
-            } else {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.padding(bottom = 24.dp),
-                ) {
-                    walletState.balances.forEach { balance ->
-                        BalanceCard(
-                            token = balance.token,
-                            amount = balance.amount,
-                            usdValue = null,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                }
-            }
-        }
-
-        // Action buttons
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(
-                    onClick = { showSendDialog = true },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Gold,
-                        contentColor = Color.Black,
-                    ),
-                    shape = RoundedCornerShape(0.dp),
-                ) {
-                    Text("Send", fontWeight = FontWeight.Normal)
-                }
-                OutlinedButton(
-                    onClick = {},
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = TextPrimary,
-                    ),
-                    shape = RoundedCornerShape(0.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderColor),
-                ) {
-                    Text("Receive")
-                }
-                OutlinedButton(
-                    onClick = {},
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = TextPrimary,
-                    ),
-                    shape = RoundedCornerShape(0.dp),
-                ) {
-                    Text("Swap")
-                }
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-        }
-
-        // Transaction history header
-        item {
-            Text(
-                text = "TRANSACTIONS",
-                style = MaterialTheme.typography.labelSmall,
-                color = TextSecondary,
-                modifier = Modifier.padding(bottom = 12.dp),
-            )
-        }
-
-        if (txState.loading) {
-            item {
-                LinearProgressIndicator(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = Gold,
-                    trackColor = BorderColor,
-                )
-            }
-        } else if (txState.transactions.isEmpty()) {
-            item {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(1.dp, BorderColor, RoundedCornerShape(0.dp)),
-                    color = SurfaceColor,
-                    shape = RoundedCornerShape(0.dp),
-                ) {
-                    Text(
-                        text = "No transactions yet.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondary,
-                        modifier = Modifier.padding(24.dp),
-                    )
-                }
-            }
-        } else {
-            items(txState.transactions) { tx ->
-                TransactionRow(
-                    fromDid = tx.from_did,
-                    toDid = tx.to_did,
-                    token = tx.token,
-                    amount = tx.amount,
-                    memo = tx.memo,
-                    status = tx.status,
-                    timestamp = tx.created_at,
-                )
-            }
-        }
-
-        item { Spacer(modifier = Modifier.height(24.dp)) }
-    }
-}
-
-@Composable
-private fun BalanceCard(
-    token: String,
-    amount: String,
-    usdValue: String?,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier
-            .border(1.dp, BorderColor, RoundedCornerShape(0.dp)),
-        color = SurfaceColor,
-        shape = RoundedCornerShape(0.dp),
-    ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Text(
-                text = token,
-                style = MaterialTheme.typography.labelSmall,
-                color = if (token == "NOUS") Gold else TextSecondary,
-            )
-            Text(
-                text = amount,
-                fontFamily = FontFamily.Monospace,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.ExtraLight,
-                letterSpacing = (-0.02).sp,
-                color = TextPrimary,
-                modifier = Modifier.padding(top = 8.dp),
-            )
-            usdValue?.let { usd ->
-                Text(
-                    text = usd,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextSecondary,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun TransactionRow(
-    fromDid: String,
-    toDid: String,
-    token: String,
-    amount: String,
-    memo: String?,
-    status: String,
-    timestamp: String,
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, BorderColor, RoundedCornerShape(0.dp)),
-        color = SurfaceColor,
-        shape = RoundedCornerShape(0.dp),
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+            Spacer(Modifier.height(NousSpacing.xl))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column {
                     Text(
-                        text = "$amount $token",
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Light,
-                        color = TextPrimary,
+                        text = "Wallet",
+                        style = MaterialTheme.typography.displayMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
-                    val toDisplay = if (toDid.length > 20) "${toDid.take(16)}..." else toDid
-                    Text(
-                        text = "to $toDisplay",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondary,
-                        modifier = Modifier.padding(top = 2.dp),
-                    )
+                    Spacer(Modifier.height(8.dp))
+                    MetaLabel(text = "Multi-chain · Escrow-backed")
                 }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = status.uppercase(),
-                        fontSize = 10.sp,
-                        letterSpacing = 0.06.sp,
-                        color = when (status.lowercase()) {
-                            "confirmed" -> Color(0xFF22C55E)
-                            "pending" -> Gold
-                            else -> TextSecondary
-                        },
-                    )
-                    Text(
-                        text = timestamp.take(10),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = TextSecondary,
-                        modifier = Modifier.padding(top = 2.dp),
-                    )
-                }
+                Text(
+                    text = "Send",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.clickable { showSendDialog = true },
+                )
             }
-            memo?.let {
-                if (it.isNotBlank()) {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondary,
-                        modifier = Modifier.padding(top = 8.dp),
-                    )
+            Spacer(Modifier.height(NousSpacing.xxl))
+        }
+
+        // Featured balance
+        item {
+            val featured = walletState.balances.firstOrNull()
+            val token = featured?.token ?: "NOUS"
+            val amount = featured?.amount ?: "0.000"
+            Text(
+                text = amount,
+                style = NousMonoLarge.copy(fontSize = 56.sp),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(Modifier.height(4.dp))
+            MetaLabel(text = token, active = true)
+            Spacer(Modifier.height(NousSpacing.xl))
+            Hairline()
+
+            // Other balances
+            walletState.balances.drop(1).forEach { balance ->
+                EditorialRow(
+                    trailing = {
+                        Text(
+                            text = balance.amount,
+                            style = NousMono,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    },
+                ) {
+                    MetaLabel(text = balance.token)
                 }
+                Hairline()
+            }
+            Spacer(Modifier.height(NousSpacing.xxl))
+        }
+
+        item {
+            MetaLabel(text = "Ledger")
+            Spacer(Modifier.height(NousSpacing.md))
+            Hairline()
+        }
+
+        if (txState.loading) {
+            item {
+                LinearProgressIndicator(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.outline,
+                )
+            }
+        } else if (txState.transactions.isEmpty()) {
+            item { EmptyState(headline = "No transactions yet", body = "Sent and received tokens will appear here.") }
+        } else {
+            items(txState.transactions) { tx ->
+                EditorialRow(
+                    trailing = {
+                        Text(
+                            text = "${tx.amount} ${tx.token}",
+                            style = NousMono,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    },
+                ) {
+                    Column {
+                        MetaLabel(text = tx.created_at.take(10))
+                        Spacer(Modifier.height(4.dp))
+                        val counter = if (tx.to_did.length > 24) "${tx.to_did.take(20)}…" else tx.to_did
+                        Text(
+                            text = counter,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
+                Hairline()
             }
         }
-    }
 
-    Spacer(modifier = Modifier.height(8.dp))
+        item { Spacer(Modifier.height(NousSpacing.xl)) }
+    }
 }
 
 @Composable
@@ -349,88 +179,64 @@ private fun SendDialog(
     var memo by remember { mutableStateOf("") }
 
     val fieldColors = OutlinedTextFieldDefaults.colors(
-        focusedBorderColor = Gold,
-        unfocusedBorderColor = BorderColor,
-        focusedTextColor = TextPrimary,
-        unfocusedTextColor = TextPrimary,
-        cursorColor = Gold,
+        focusedBorderColor = MaterialTheme.colorScheme.primary,
+        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+        cursorColor = MaterialTheme.colorScheme.primary,
     )
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = SurfaceColor,
+        containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(0.dp),
         title = {
             Text(
                 "Send Tokens",
-                style = MaterialTheme.typography.titleLarge,
-                color = TextPrimary,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface,
             )
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
-                    value = toDid,
-                    onValueChange = { toDid = it },
-                    label = { Text("Recipient DID", color = TextSecondary) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = fieldColors,
+                    value = toDid, onValueChange = { toDid = it },
+                    label = { Text("Recipient DID") }, singleLine = true,
+                    modifier = Modifier.fillMaxWidth(), colors = fieldColors,
                     shape = RoundedCornerShape(0.dp),
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
-                        value = amount,
-                        onValueChange = { amount = it },
-                        label = { Text("Amount", color = TextSecondary) },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
-                        colors = fieldColors,
+                        value = amount, onValueChange = { amount = it },
+                        label = { Text("Amount") }, singleLine = true,
+                        modifier = Modifier.weight(1f), colors = fieldColors,
                         shape = RoundedCornerShape(0.dp),
                     )
                     OutlinedTextField(
-                        value = token,
-                        onValueChange = { token = it },
-                        label = { Text("Token", color = TextSecondary) },
-                        singleLine = true,
-                        modifier = Modifier.width(100.dp),
-                        colors = fieldColors,
+                        value = token, onValueChange = { token = it },
+                        label = { Text("Token") }, singleLine = true,
+                        modifier = Modifier.width(100.dp), colors = fieldColors,
                         shape = RoundedCornerShape(0.dp),
                     )
                 }
                 OutlinedTextField(
-                    value = memo,
-                    onValueChange = { memo = it },
-                    label = { Text("Memo (optional)", color = TextSecondary) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = fieldColors,
+                    value = memo, onValueChange = { memo = it },
+                    label = { Text("Memo (optional)") }, singleLine = true,
+                    modifier = Modifier.fillMaxWidth(), colors = fieldColors,
                     shape = RoundedCornerShape(0.dp),
                 )
             }
         },
         confirmButton = {
-            Button(
-                onClick = {
-                    if (toDid.isNotBlank() && amount.isNotBlank()) {
-                        onSend(toDid, token, amount, memo.ifBlank { null })
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Gold,
-                    contentColor = Color.Black,
-                ),
-                shape = RoundedCornerShape(0.dp),
-            ) {
-                Text("Send")
-            }
+            TextButton(onClick = {
+                if (toDid.isNotBlank() && amount.isNotBlank()) {
+                    onSend(toDid, token, amount, memo.ifBlank { null })
+                }
+            }) { Text("Send", color = MaterialTheme.colorScheme.primary) }
         },
         dismissButton = {
-            TextButton(
-                onClick = onDismiss,
-                colors = ButtonDefaults.textButtonColors(contentColor = TextSecondary),
-            ) {
-                Text("Cancel")
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         },
     )

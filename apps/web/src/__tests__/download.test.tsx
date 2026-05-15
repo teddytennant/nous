@@ -237,7 +237,7 @@ describe("Download page", () => {
       const linuxNav = navLinks.find(
         (el) => el.getAttribute("href") === "#platform-linux",
       );
-      expect(linuxNav?.className).toContain("text-[#d4af37]");
+      expect(linuxNav?.className).toContain("text-[#B23A3A]");
     });
 
     it("non-detected platform tabs have neutral styling", () => {

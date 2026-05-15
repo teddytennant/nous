@@ -51,7 +51,7 @@ interface Notification {
 
 const kindMeta: Record<NotifKind, { label: string; color: string }> = {
   social: { label: "Social", color: "text-blue-500" },
-  governance: { label: "Governance", color: "text-[#d4af37]" },
+  governance: { label: "Governance", color: "text-[#B23A3A]" },
   payment: { label: "Payment", color: "text-emerald-500" },
   marketplace: { label: "Market", color: "text-purple-400" },
   message: { label: "Message", color: "text-cyan-400" },
@@ -353,7 +353,7 @@ export function NotificationBell() {
       >
         <Bell className="w-4 h-4" />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-[#d4af37] text-black text-[9px] font-mono font-bold flex items-center justify-center notif-badge-enter">
+          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-[#B23A3A] text-black text-[9px] font-mono font-bold flex items-center justify-center notif-badge-enter">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
@@ -375,7 +375,7 @@ export function NotificationBell() {
                 <button
                   type="button"
                   onClick={markAllAsRead}
-                  className="text-[10px] font-mono text-neutral-600 hover:text-[#d4af37] transition-colors duration-150 px-2 py-1 rounded-sm hover:bg-white/[0.04]"
+                  className="text-[10px] font-mono text-neutral-600 hover:text-[#B23A3A] transition-colors duration-150 px-2 py-1 rounded-sm hover:bg-white/[0.04]"
                 >
                   Mark all read
                 </button>
@@ -407,7 +407,7 @@ export function NotificationBell() {
                   className={cn(
                     "text-[10px] font-mono tracking-wider px-2.5 py-1 rounded-sm transition-colors duration-150 whitespace-nowrap",
                     active
-                      ? "text-[#d4af37] bg-[#d4af37]/[0.06]"
+                      ? "text-[#B23A3A] bg-[#B23A3A]/[0.06]"
                       : "text-neutral-600 hover:text-neutral-400 hover:bg-white/[0.03]",
                   )}
                 >
@@ -416,7 +416,7 @@ export function NotificationBell() {
                     <span
                       className={cn(
                         "ml-1 text-[9px]",
-                        active ? "text-[#d4af37]/60" : "text-neutral-700",
+                        active ? "text-[#B23A3A]/60" : "text-neutral-700",
                       )}
                     >
                       {count}
@@ -531,7 +531,7 @@ function NotificationRow({
 
       {/* Unread dot */}
       {!isRead && (
-        <span className="w-2 h-2 rounded-full bg-[#d4af37] shrink-0 mt-2" />
+        <span className="w-2 h-2 rounded-full bg-[#B23A3A] shrink-0 mt-2" />
       )}
     </Link>
   );

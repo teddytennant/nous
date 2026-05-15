@@ -5,7 +5,7 @@ export default function NotFound() {
     <div className="flex flex-col items-center justify-center min-h-screen px-6">
       {/* Animated gradient orb */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] opacity-[0.04] pointer-events-none">
-        <div className="w-full h-full rounded-full bg-[radial-gradient(circle,#d4af37_0%,transparent_70%)] animate-[pulse_6s_ease-in-out_infinite]" />
+        <div className="w-full h-full rounded-full bg-[radial-gradient(circle,#B23A3A_0%,transparent_70%)] animate-[pulse_6s_ease-in-out_infinite]" />
       </div>
 
       <div className="relative text-center max-w-md">
@@ -15,7 +15,7 @@ export default function NotFound() {
 
         <h1 className="text-8xl sm:text-9xl font-extralight tracking-[-0.05em] mb-4">
           <span className="text-white">4</span>
-          <span className="text-[#d4af37]">0</span>
+          <span className="text-[#B23A3A]">0</span>
           <span className="text-white">4</span>
         </h1>
 
