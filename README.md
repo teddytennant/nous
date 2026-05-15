@@ -1,14 +1,17 @@
 # Nous
 
+> **⚠️ EXPERIMENTAL — NOT FOR REAL-WORLD USE**
+>
+> **Nous is an experimental research and learning project.** It is **not production-ready** and **must not be used for any real-world purposes**.
+>
+> This software has **not been security audited**. Do **not** use it with real money, sensitive personal data, production identity systems, real governance, payments, or any security-critical application.
+>
+> Everything in this repository is provided **for educational and experimental purposes only**. Use at your own risk.
+
 Decentralized everything-app built in Rust. Self-sovereign identity (DID:key), end-to-end encrypted messaging (Double Ratchet), on-chain governance (quadratic voting), P2P payments, AI inference, a marketplace, and a Nostr relay — all in one protocol. Local-first with CRDTs and SQLite. Runs as a CLI, API server, TUI, web app, desktop app (Tauri), and has iOS/Android shells.
 
 > **Status:** Early development (v0.1.0). Core crates are functional with tests passing. Mobile apps are UI shells without full Rust integration. The web app connects to the API server but not all features are wired up. Treat this as a working prototype, not production software.
 
-## Architecture
-
-```
- ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌──────────┐
- │   CLI   │  │   TUI   │  │ Web App │  │ Desktop  │
  │ (nous)  │  │(ratatui)│  │(Next.js)│  │ (Tauri)  │
  └────┬────┘  └────┬────┘  └────┬────┘  └────┬─────┘
       │            │            │             │

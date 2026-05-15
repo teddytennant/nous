@@ -46,9 +46,7 @@
     }
   },
   "plugins": {
-    "notification": {
-      "sound": true
-    },
+    "notification": null,
     "deep-link": {
       "desktop": {
         "schemes": ["nous"]
