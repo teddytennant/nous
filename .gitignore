@@ -12,3 +12,4 @@ build/
 *.db-journal
 *.key
 *.pem
+.claude/
